@@ -147,8 +147,10 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* milestones */}
-        <div className="flex flex-col gap-3">
+        {/* milestones — min-w-0 stops the grid item's default min-width:auto
+            from being sized by its widest row, which pushed the whole
+            dashboard past a phone viewport (T-103 responsive audit) */}
+        <div className="flex min-w-0 flex-col gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wider">
             Milestones — next 14 days
           </h2>
@@ -181,7 +183,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* blockers + hotspots */}
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <div className="flex flex-col gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wider">
               Cross-division blockers
