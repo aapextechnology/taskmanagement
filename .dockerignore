@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+uploads
+docs
+.claude
+.claude-flow
+.agentic
+scripts
+*.md
+.env
+.env.*

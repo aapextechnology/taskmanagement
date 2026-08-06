@@ -32,7 +32,7 @@ gates — so that every feature epic ships against one stack with consistent qua
 
 ### Local dev stack
 
-- [ ] **T-002** Docker Compose: app + Postgres + nginx reverse proxy with healthchecks + volumes; `.env.example`; `/api/health` endpoint; make `scripts/deploy-dev.sh` fully functional.
+- [x] **T-002** Docker Compose: app + Postgres + nginx reverse proxy with healthchecks + volumes; `.env.example`; `/api/health` endpoint; make `scripts/deploy-dev.sh` fully functional.
 
 ### Database & env foundation
 
@@ -73,6 +73,7 @@ gates — so that every feature epic ships against one stack with consistent qua
 
 ## Automation Log
 
+- 2026-08-06 **T-002 done** — Compose stack (postgres:17 + standalone Next image + nginx:1.27) up healthy; `scripts/deploy-dev.sh` smoke PASS at `http://localhost:3000/api/health` (nginx → app, SSE-ready `proxy_buffering off`). Decisions: Next `output: "standalone"` for the image; **host DB port 5438** — 5432–5437 are all occupied on this dev server, so `DATABASE_URL` for local tooling uses `localhost:5438` while in-network uses `db:5432`.
 - 2026-08-06 **T-001 done** — Next.js 16.3 (App Router, TS) + Tailwind 4 + shadcn/ui (radix base) scaffolded on `develop`; layout `src/{app,components,db,lib}` with `lib/types` seed enums; vitest wired (`utils.test.ts`, 3 passing); scripts `lint`/`typecheck` (`next typegen && tsc`)/`test`/`build` all green; gates qa+test+security PASS on real commands. Decision: `typecheck` must run `next typegen` first — Next 16 route types (`LayoutProps`) are generated, plain `tsc` fails without it.
 - 2026-08-06 `/agentic-init new` bootstrapped the repo — manifest, gates, `.claude/` wiring, and the full docs set (PRD → stories → AC → tasks → backlog → 11 epics across phases 0–4) synthesized from `docs/PLAN.en.md`. Git repo initialized (`main`); loop disabled by default; no hooks template in kit (skipped gracefully).
 

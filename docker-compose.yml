@@ -1,0 +1,52 @@
+# RVC Backstage — DEV stack: nginx (host :3000) → app → postgres.
+# Brought up by scripts/deploy-dev.sh; never used for production by automation.
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: rvc
+      POSTGRES_PASSWORD: rvc_dev_password
+      POSTGRES_DB: rvc_backstage
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rvc -d rvc_backstage"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "5438:5432" # host 5438 (5432-5437 taken on this server) for local `pnpm dev` + drizzle-kit
+
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgres://rvc:rvc_dev_password@db:5432/rvc_backstage
+      APP_URL: http://localhost:3000
+      AUTH_SECRET: ${AUTH_SECRET:-dev-only-secret-change-me}
+      UPLOADS_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  db_data:
+  uploads:
