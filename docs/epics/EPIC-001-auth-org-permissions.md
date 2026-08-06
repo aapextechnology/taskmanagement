@@ -27,11 +27,11 @@ the security core every later epic builds on.
 
 ### Org schema & seed
 
-- [ ] **T-010** Schema `profiles`, `divisions`, `division_members` (user + division + role); migration; idempotent seed of the 11 divisions from PLAN §3.
+- [x] **T-010** Schema `profiles`, `divisions`, `division_members` (user + division + role); migration; idempotent seed of the 11 divisions from PLAN §3.
 
 ### Staff authentication
 
-- [ ] **T-011** Auth.js v5 credentials provider (email+password), session strategy, sign-out; login page in RVC theme.
+- [x] **T-011** Auth.js v5 credentials provider (email+password), session strategy, sign-out; login page in RVC theme.
 
 ### Central permission module (protected path)
 
@@ -47,7 +47,7 @@ the security core every later epic builds on.
 
 ### Demo seed
 
-- [ ] **T-015** `pnpm seed`: demo users for all 5 roles across ≥3 divisions + fixture data for dev/smoke (includes `owner@rawvision.demo`).
+- [x] **T-015** `pnpm seed`: demo users for all 5 roles across ≥3 divisions + fixture data for dev/smoke (includes `owner@rawvision.demo`).
 
 ## Acceptance Criteria
 
