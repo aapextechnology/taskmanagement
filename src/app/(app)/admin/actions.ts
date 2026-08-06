@@ -43,7 +43,7 @@ export async function createUserAction(
 ): Promise<ActionState> {
   try {
     const actor = await requireActor();
-    await createUser(actor, {
+    const user = await createUser(actor, {
       email: String(formData.get("email") ?? ""),
       name: String(formData.get("name") ?? ""),
       role: String(formData.get("role")) as
@@ -53,6 +53,14 @@ export async function createUserAction(
         | "external",
       password: String(formData.get("password") ?? "") || undefined,
     });
+    // optional initial divisions — a user can belong to several
+    const divisionIds = formData.getAll("divisionIds").map(String).filter(Boolean);
+    const divisionRole = String(formData.get("divisionRole") || "staff") as
+      | "head"
+      | "staff";
+    for (const divisionId of divisionIds) {
+      await assignMembership(actor, user.id, divisionId, divisionRole);
+    }
     revalidatePath("/admin");
     return { ok: true };
   } catch (error) {
@@ -76,12 +84,16 @@ export async function assignMembershipAction(
 ): Promise<ActionState> {
   try {
     const actor = await requireActor();
-    await assignMembership(
-      actor,
-      String(formData.get("userId")),
-      String(formData.get("divisionId")),
-      String(formData.get("role")) as "head" | "staff",
-    );
+    const userId = String(formData.get("userId"));
+    const role = String(formData.get("role")) as "head" | "staff";
+    // multi-division: assign every checked division in one go
+    const divisionIds = formData.getAll("divisionIds").map(String).filter(Boolean);
+    if (divisionIds.length === 0) {
+      return { error: "Pick at least one division." };
+    }
+    for (const divisionId of divisionIds) {
+      await assignMembership(actor, userId, divisionId, role);
+    }
     revalidatePath("/admin");
     return { ok: true };
   } catch (error) {
