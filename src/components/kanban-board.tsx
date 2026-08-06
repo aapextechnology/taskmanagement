@@ -32,6 +32,8 @@ export interface KanbanTask {
   dueDate: string | null;
   assignees: Array<{ id: string; name: string }>;
   labels: Array<{ id: string; name: string; color: string }>;
+  /** shown on cards in the all-departments view */
+  divisionName?: string;
 }
 
 // Native HTML5 drag & drop — no library. Drop persists via server action;
@@ -108,6 +110,11 @@ export function KanbanBoard({ tasks }: { tasks: KanbanTask[] }) {
                     <span className="text-[13px] font-medium leading-snug">
                       {task.title}
                     </span>
+                    {task.divisionName ? (
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {task.divisionName}
+                      </span>
+                    ) : null}
                     {task.labels.length > 0 ? (
                       <span className="flex flex-wrap gap-1">
                         {task.labels.map((label) => (

@@ -2,16 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { KanbanBoard } from "@/components/kanban-board";
+import { NewTaskDialog } from "@/components/new-task-dialog";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { getEvent, listEventDivisions } from "@/lib/events/service";
 import { can } from "@/lib/permissions";
 import {
   listBoardTasks,
-  listDivisionMemberOptions,
+  listEventTasks,
   listLabels,
+  listMembersForDivisions,
 } from "@/lib/tasks/service";
 import { cn } from "@/lib/utils";
-import { NewTaskDialog } from "@/components/new-task-dialog";
 
 export const metadata: Metadata = { title: "Board" };
 
@@ -26,8 +27,8 @@ export default async function BoardPage({
   const event = await getEvent(actor, id);
   if (!event) notFound();
 
-  // board tabs = the divisions ACTIVE ON THIS EVENT (master data managed on
-  // the event workspace), intersected with what the actor may see
+  // board tabs = the divisions ACTIVE ON THIS EVENT, intersected with what
+  // the actor may see; "all" combines every visible division in one board
   const eventDivisionList = await listEventDivisions(actor, id);
   const visibleDivisions = eventDivisionList.filter((d) =>
     can(actor, "task.viewDivision", { divisionId: d.id }),
@@ -36,15 +37,32 @@ export default async function BoardPage({
 
   const sp = await searchParams;
   const requested = typeof sp.division === "string" ? sp.division : undefined;
-  const division =
-    visibleDivisions.find((d) => d.id === requested) ?? visibleDivisions[0];
+  const allMode =
+    requested === "all" || (!requested && visibleDivisions.length > 1);
+  const division = allMode
+    ? null
+    : (visibleDivisions.find((d) => d.id === requested) ?? visibleDivisions[0]);
 
-  const [tasks, members, labels] = await Promise.all([
-    listBoardTasks(actor, id, division.id),
-    listDivisionMemberOptions(division.id),
+  const divisionName = new Map(visibleDivisions.map((d) => [d.id, d.name]));
+  const creatableDivisions = visibleDivisions.filter((d) =>
+    can(actor, "task.create", { divisionId: d.id }),
+  );
+
+  const [tasks, memberRows, labels] = await Promise.all([
+    allMode
+      ? listEventTasks(actor, id)
+      : listBoardTasks(actor, id, division!.id),
+    listMembersForDivisions(creatableDivisions.map((d) => d.id)),
     listLabels(),
   ]);
-  const canCreate = can(actor, "task.create", { divisionId: division.id });
+
+  const createOptions = creatableDivisions.map((d) => ({
+    id: d.id,
+    name: d.name,
+    members: memberRows
+      .filter((m) => m.divisionId === d.id)
+      .map((m) => ({ id: m.id, name: m.name })),
+  }));
 
   return (
     <section className="flex flex-col gap-6">
@@ -57,40 +75,51 @@ export default async function BoardPage({
             ← {event.name}
           </Link>
           <h1 className="text-2xl font-semibold uppercase tracking-tight">
-            {division.name} board
+            {allMode ? "All departments board" : `${division!.name} board`}
           </h1>
         </div>
-        <nav className="flex flex-wrap gap-2">
-          {visibleDivisions.map((d) => (
-            <Link
-              key={d.id}
-              href={`/events/${id}/board?division=${d.id}`}
-              className={cn(
-                "rounded-sm border px-2.5 py-1 text-[11px] uppercase tracking-wider",
-                d.id === division.id
-                  ? "border-foreground font-semibold"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {d.name}
-            </Link>
-          ))}
-        </nav>
+        {createOptions.length > 0 ? (
+          <NewTaskDialog
+            eventId={id}
+            divisions={
+              allMode
+                ? createOptions
+                : createOptions.filter((d) => d.id === division!.id)
+            }
+            labels={labels}
+          />
+        ) : null}
       </div>
 
-      {canCreate ? (
-        <NewTaskDialog
-          eventId={id}
-          divisions={[
-            {
-              id: division.id,
-              name: division.name,
-              members: members.map((m) => ({ id: m.id, name: m.name })),
-            },
-          ]}
-          labels={labels}
-        />
-      ) : null}
+      <nav className="flex flex-wrap gap-2">
+        {visibleDivisions.length > 1 ? (
+          <Link
+            href={`/events/${id}/board?division=all`}
+            className={cn(
+              "rounded-sm border px-2.5 py-1 text-[11px] uppercase tracking-wider",
+              allMode
+                ? "border-foreground font-semibold"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            All departments
+          </Link>
+        ) : null}
+        {visibleDivisions.map((d) => (
+          <Link
+            key={d.id}
+            href={`/events/${id}/board?division=${d.id}`}
+            className={cn(
+              "rounded-sm border px-2.5 py-1 text-[11px] uppercase tracking-wider",
+              !allMode && d.id === division!.id
+                ? "border-foreground font-semibold"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {d.name}
+          </Link>
+        ))}
+      </nav>
 
       <KanbanBoard
         tasks={tasks.map((t) => ({
@@ -101,6 +130,7 @@ export default async function BoardPage({
           dueDate: t.dueDate?.toISOString() ?? null,
           assignees: t.assignees,
           labels: t.labels,
+          divisionName: allMode ? divisionName.get(t.divisionId) : undefined,
         }))}
       />
     </section>
