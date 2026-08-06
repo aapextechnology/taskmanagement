@@ -1,10 +1,14 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { Crown, Mail, ShieldCheck, Star, User } from "lucide-react";
+import { useActionState, useRef, useState } from "react";
+import { ChipMultiSelect, UserSingleSelect } from "@/components/choice-chips";
+import { Segmented } from "@/components/segmented";
 import { UserAvatar } from "@/components/task-meta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   assignMembershipAction,
@@ -13,9 +17,6 @@ import {
   toggleActiveAction,
   type ActionState,
 } from "./actions";
-
-const selectClass =
-  "border-input h-9 rounded-md border bg-transparent px-3 text-sm outline-none";
 
 export interface AdminUser {
   id: string;
@@ -38,6 +39,23 @@ const TABS = [
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
+
+const GLOBAL_ROLE_OPTIONS = [
+  { value: "member", label: "Member", icon: <User className="size-3.5" /> },
+  { value: "admin", label: "Admin", icon: <ShieldCheck className="size-3.5" /> },
+  { value: "owner", label: "Owner", icon: <Crown className="size-3.5" /> },
+  {
+    value: "external",
+    label: "External",
+    icon: <Mail className="size-3.5" />,
+    hint: "Magic link only — no password",
+  },
+];
+
+const DIVISION_ROLE_OPTIONS = [
+  { value: "staff", label: "Staff", icon: <User className="size-3.5" /> },
+  { value: "head", label: "Head", icon: <Star className="size-3.5" /> },
+];
 
 export function AdminTabs({
   users,
@@ -79,6 +97,30 @@ export function AdminTabs({
   );
 }
 
+function ActiveSwitch({ user }: { user: AdminUser }) {
+  const formRef = useRef<HTMLFormElement>(null);
+
+  return (
+    <form ref={formRef} action={toggleActiveAction} className="flex items-center gap-2">
+      <input type="hidden" name="userId" value={user.id} />
+      <input type="hidden" name="isActive" value={String(!user.isActive)} />
+      <Switch
+        checked={user.isActive}
+        onCheckedChange={() => formRef.current?.requestSubmit()}
+        aria-label={user.isActive ? "Deactivate account" : "Activate account"}
+      />
+      <span
+        className={cn(
+          "text-[10px] font-medium uppercase tracking-widest",
+          user.isActive ? "text-status-done" : "text-status-blocked",
+        )}
+      >
+        {user.isActive ? "Active" : "Inactive"}
+      </span>
+    </form>
+  );
+}
+
 function UsersTable({
   users,
   divisions,
@@ -101,7 +143,13 @@ function UsersTable({
         </thead>
         <tbody>
           {users.map((user) => (
-            <tr key={user.id} className="border-b last:border-0">
+            <tr
+              key={user.id}
+              className={cn(
+                "border-b transition-colors last:border-0 hover:bg-accent/30",
+                !user.isActive && "opacity-50",
+              )}
+            >
               <td className="px-4 py-3">
                 <span className="flex items-center gap-2.5">
                   <UserAvatar name={user.name} className="size-7 text-[10px]" />
@@ -113,8 +161,13 @@ function UsersTable({
                   </span>
                 </span>
               </td>
-              <td className="px-4 py-3 text-xs uppercase tracking-wider">
-                {user.role}
+              <td className="px-4 py-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  {user.role === "owner" ? <Crown className="size-3" /> : null}
+                  {user.role === "admin" ? <ShieldCheck className="size-3" /> : null}
+                  {user.role === "external" ? <Mail className="size-3" /> : null}
+                  {user.role}
+                </span>
               </td>
               <td className="px-4 py-3">
                 <div className="flex flex-wrap gap-1.5">
@@ -133,13 +186,20 @@ function UsersTable({
                           type="submit"
                           title="Remove from division"
                           className={cn(
-                            "rounded-sm border px-2 py-0.5 text-xs transition-colors hover:border-destructive hover:text-destructive",
+                            "group/chip inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-all duration-150",
+                            "hover:border-destructive/60 hover:bg-destructive/10 active:scale-[0.97]",
                             m.role === "head" && "font-semibold",
                           )}
                         >
+                          {m.role === "head" ? (
+                            <Star className="size-3 text-priority-high" />
+                          ) : (
+                            <span className="size-1.5 rounded-full bg-muted-foreground/50" />
+                          )}
                           {divisionName.get(m.divisionId) ?? m.divisionId}
-                          {m.role === "head" ? " · HEAD" : ""}
-                          <span className="ml-1 text-muted-foreground">×</span>
+                          <span className="text-muted-foreground transition-colors group-hover/chip:text-destructive">
+                            ×
+                          </span>
                         </button>
                       </form>
                     ))
@@ -147,58 +207,12 @@ function UsersTable({
                 </div>
               </td>
               <td className="px-4 py-3">
-                <form action={toggleActiveAction}>
-                  <input type="hidden" name="userId" value={user.id} />
-                  <input
-                    type="hidden"
-                    name="isActive"
-                    value={String(!user.isActive)}
-                  />
-                  <Button
-                    variant={user.isActive ? "ghost" : "destructive"}
-                    size="sm"
-                    type="submit"
-                    title={
-                      user.isActive
-                        ? "Click to DEACTIVATE this account"
-                        : "Click to reactivate"
-                    }
-                  >
-                    {user.isActive ? "Active" : "Inactive"}
-                  </Button>
-                </form>
+                <ActiveSwitch user={user} />
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-function DivisionChecklist({
-  divisions,
-  name,
-}: {
-  divisions: AdminDivision[];
-  name: string;
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-1.5 rounded-md border p-3 sm:grid-cols-3">
-      {divisions.map((d) => (
-        <label
-          key={d.id}
-          className="flex cursor-pointer items-center gap-2 text-sm"
-        >
-          <input
-            type="checkbox"
-            name={name}
-            value={d.id}
-            className="size-3.5 accent-foreground"
-          />
-          {d.name}
-        </label>
-      ))}
     </div>
   );
 }
@@ -210,7 +224,7 @@ function CreateUserForm({ divisions }: { divisions: AdminDivision[] }) {
   );
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-4">
+    <form action={formAction} className="flex max-w-2xl flex-col gap-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="new-name">Name</Label>
@@ -220,43 +234,35 @@ function CreateUserForm({ divisions }: { divisions: AdminDivision[] }) {
           <Label htmlFor="new-email">Email</Label>
           <Input id="new-email" name="email" type="email" required />
         </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="new-role">Global role</Label>
-          <select id="new-role" name="role" className={selectClass} defaultValue="member">
-            <option value="member">Member (internal)</option>
-            <option value="admin">Admin</option>
-            <option value="owner">Owner</option>
-            <option value="external">External (magic link only)</option>
-          </select>
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="new-password">Password (internal roles)</Label>
-          <Input id="new-password" name="password" type="password" minLength={8} />
-        </div>
       </div>
       <div className="flex flex-col gap-2">
-        <Label>Divisions (optional — can pick several)</Label>
-        <DivisionChecklist divisions={divisions} name="divisionIds" />
-        <div className="flex items-center gap-2">
-          <Label htmlFor="new-divrole" className="text-xs text-muted-foreground">
-            join as
-          </Label>
-          <select
-            id="new-divrole"
+        <Label>Global role</Label>
+        <Segmented name="role" options={GLOBAL_ROLE_OPTIONS} defaultValue="member" />
+      </div>
+      <div className="flex max-w-xs flex-col gap-2">
+        <Label htmlFor="new-password">Password (internal roles)</Label>
+        <Input id="new-password" name="password" type="password" minLength={8} />
+      </div>
+      <div className="flex flex-col gap-2.5">
+        <Label>Divisions — optional, pick several</Label>
+        <ChipMultiSelect
+          name="divisionIds"
+          options={divisions.map((d) => ({ value: d.id, label: d.name }))}
+        />
+        <div className="flex items-center gap-2.5">
+          <span className="text-xs text-muted-foreground">join as</span>
+          <Segmented
             name="divisionRole"
-            className={`${selectClass} h-8 text-xs`}
+            options={DIVISION_ROLE_OPTIONS}
             defaultValue="staff"
-          >
-            <option value="staff">Staff</option>
-            <option value="head">Head</option>
-          </select>
+          />
         </div>
       </div>
       {state.error ? (
         <p role="alert" className="text-sm text-destructive">{state.error}</p>
       ) : null}
       {state.ok ? (
-        <p className="text-sm text-muted-foreground">User created.</p>
+        <p className="text-sm text-status-done">User created.</p>
       ) : null}
       <div>
         <Button type="submit" disabled={pending}>
@@ -280,35 +286,32 @@ function AssignForm({
   );
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="assign-user">User</Label>
-          <select id="assign-user" name="userId" className={selectClass} required>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="assign-role">Join as</Label>
-          <select id="assign-role" name="role" className={selectClass} defaultValue="staff">
-            <option value="staff">Staff</option>
-            <option value="head">Head</option>
-          </select>
-        </div>
+    <form action={formAction} className="flex max-w-3xl flex-col gap-5">
+      <div className="flex flex-col gap-2.5">
+        <Label>User</Label>
+        <UserSingleSelect
+          name="userId"
+          users={users
+            .filter((u) => u.role !== "external")
+            .map((u) => ({ id: u.id, name: u.name }))}
+        />
+      </div>
+      <div className="flex flex-col gap-2.5">
+        <Label>Divisions — pick one or several</Label>
+        <ChipMultiSelect
+          name="divisionIds"
+          options={divisions.map((d) => ({ value: d.id, label: d.name }))}
+        />
       </div>
       <div className="flex flex-col gap-2">
-        <Label>Divisions — pick one or several</Label>
-        <DivisionChecklist divisions={divisions} name="divisionIds" />
+        <Label>Join as</Label>
+        <Segmented name="role" options={DIVISION_ROLE_OPTIONS} defaultValue="staff" />
       </div>
       {state.error ? (
         <p role="alert" className="text-sm text-destructive">{state.error}</p>
       ) : null}
       {state.ok ? (
-        <p className="text-sm text-muted-foreground">Memberships saved.</p>
+        <p className="text-sm text-status-done">Memberships saved.</p>
       ) : null}
       <div>
         <Button type="submit" disabled={pending}>
