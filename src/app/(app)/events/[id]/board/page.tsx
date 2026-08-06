@@ -11,7 +11,7 @@ import {
   listLabels,
 } from "@/lib/tasks/service";
 import { cn } from "@/lib/utils";
-import { NewTaskForm } from "./new-task-form";
+import { NewTaskDialog } from "@/components/new-task-dialog";
 
 export const metadata: Metadata = { title: "Board" };
 
@@ -79,11 +79,15 @@ export default async function BoardPage({
       </div>
 
       {canCreate ? (
-        <NewTaskForm
+        <NewTaskDialog
           eventId={id}
-          divisionId={division.id}
-          divisionName={division.name}
-          members={members.map((m) => ({ id: m.id, name: m.name }))}
+          divisions={[
+            {
+              id: division.id,
+              name: division.name,
+              members: members.map((m) => ({ id: m.id, name: m.name })),
+            },
+          ]}
           labels={labels}
         />
       ) : null}

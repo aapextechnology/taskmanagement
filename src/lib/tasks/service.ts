@@ -847,6 +847,21 @@ export async function listDivisionMemberOptions(divisionId: string) {
     .orderBy(asc(profiles.name));
 }
 
+// members for several divisions at once (cross-division create dialog)
+export async function listMembersForDivisions(divisionIds: string[]) {
+  if (divisionIds.length === 0) return [];
+  return db
+    .select({
+      divisionId: divisionMembers.divisionId,
+      id: profiles.id,
+      name: profiles.name,
+    })
+    .from(divisionMembers)
+    .innerJoin(profiles, eq(divisionMembers.userId, profiles.id))
+    .where(inArray(divisionMembers.divisionId, divisionIds))
+    .orderBy(asc(profiles.name));
+}
+
 // same-event tasks usable as dependency targets
 export async function listEventTaskOptions(
   actor: Actor,

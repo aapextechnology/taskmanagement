@@ -16,44 +16,53 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
-// Plane-style create dialog (Owner request 2026-08-06): borderless title +
-// description up top, property pickers below, footer actions.
-export function NewTaskForm({
+export interface DivisionWithMembers {
+  id: string;
+  name: string;
+  members: Array<{ id: string; name: string }>;
+}
+
+// Plane-style create dialog, shared by board (single division) and list
+// (cross-division: shows a division picker; assignees follow the division).
+export function NewTaskDialog({
   eventId,
-  divisionId,
-  divisionName,
-  members,
+  divisions,
+  defaultDivisionId,
   labels,
 }: {
   eventId: string;
-  divisionId: string;
-  divisionName?: string;
-  members: Array<{ id: string; name: string }>;
+  divisions: DivisionWithMembers[];
+  defaultDivisionId?: string;
   labels: Array<{ id: string; name: string; color: string }>;
 }) {
   const [open, setOpen] = useState(false);
+  const [divisionId, setDivisionId] = useState(
+    defaultDivisionId ?? divisions[0]?.id ?? "",
+  );
   const [state, formAction, pending] = useActionState<TaskActionState, FormData>(
     createTaskAction,
     {},
   );
 
+  const division = divisions.find((d) => d.id === divisionId) ?? divisions[0];
+  if (!division) return null;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={<Button variant="outline">New task ↗</Button>}
-      />
+      <DialogTrigger render={<Button variant="outline">New task ↗</Button>} />
       <DialogContent className="max-h-[85vh] gap-0 overflow-y-auto p-0 sm:max-w-2xl">
         <form action={formAction} className="flex flex-col">
           <input type="hidden" name="eventId" value={eventId} />
-          <input type="hidden" name="divisionId" value={divisionId} />
+          <input type="hidden" name="divisionId" value={division.id} />
 
           <div className="flex flex-col gap-1 px-6 pb-2 pt-6">
             <DialogTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
               Create task
-              {divisionName ? (
+              {divisions.length === 1 ? (
                 <span className="rounded-sm border px-1.5 py-0.5 text-[10px] normal-case tracking-normal">
-                  {divisionName}
+                  {division.name}
                 </span>
               ) : null}
             </DialogTitle>
@@ -73,6 +82,32 @@ export function NewTaskForm({
           </div>
 
           <div className="flex flex-col gap-4 border-t px-6 py-4">
+            {divisions.length > 1 ? (
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                  Division
+                </Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {divisions.map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => setDivisionId(d.id)}
+                      aria-pressed={d.id === division.id}
+                      className={cn(
+                        "rounded-full border px-3 py-1 text-xs transition-all duration-150",
+                        d.id === division.id
+                          ? "border-foreground bg-foreground font-medium text-background shadow-sm"
+                          : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+                      )}
+                    >
+                      {d.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             <div className="flex flex-wrap items-end gap-x-6 gap-y-4">
               <div className="flex flex-col gap-1.5">
                 <Label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -82,13 +117,13 @@ export function NewTaskForm({
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label
-                  htmlFor="nt-due"
+                  htmlFor="ntd-due"
                   className="flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
                 >
                   <CalendarClock className="size-3" /> Due
                 </Label>
                 <Input
-                  id="nt-due"
+                  id="ntd-due"
                   name="dueDate"
                   type="datetime-local"
                   className="h-9 w-52 text-xs"
@@ -113,9 +148,10 @@ export function NewTaskForm({
 
             <div className="flex flex-col gap-1.5">
               <Label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                Assignees
+                Assignees{divisions.length > 1 ? ` — ${division.name}` : ""}
               </Label>
-              <AssigneePicker members={members} />
+              {/* key remounts the picker so selections reset per division */}
+              <AssigneePicker key={division.id} members={division.members} />
             </div>
 
             <div className="flex flex-col gap-1.5">

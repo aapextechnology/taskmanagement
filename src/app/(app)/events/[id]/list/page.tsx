@@ -9,13 +9,16 @@ import {
   StatusDot,
   STATUS_TEXT,
 } from "@/components/task-meta";
+import { NewTaskDialog } from "@/components/new-task-dialog";
 import { sessionActor } from "@/lib/auth/session-actor";
-import { getEvent } from "@/lib/events/service";
+import { getEvent, listEventDivisions } from "@/lib/events/service";
 import { listDivisions } from "@/lib/org/service";
-import { PermissionError } from "@/lib/permissions";
+import { can, PermissionError } from "@/lib/permissions";
 import {
   deleteFilter,
   listEventTasks,
+  listLabels,
+  listMembersForDivisions,
   listSavedFilters,
   saveFilter,
   TASK_STATUS_ORDER,
@@ -60,15 +63,32 @@ export default async function TaskListPage({
     status: str("status") as TaskStatus | undefined,
   };
 
-  const [tasks, divisions, saved] = await Promise.all([
+  const [tasks, divisions, saved, eventDivisionList, labels] = await Promise.all([
     listEventTasks(actor, id, {
       priority: filters.priority,
       divisionId: filters.divisionId,
     }),
     listDivisions(),
     listSavedFilters(actor),
+    listEventDivisions(actor, id),
+    listLabels(),
   ]);
   const divisionName = new Map(divisions.map((d) => [d.id, d.name]));
+
+  // divisions the actor may create tasks in, with their members
+  const creatableDivisions = eventDivisionList.filter((d) =>
+    can(actor, "task.create", { divisionId: d.id }),
+  );
+  const memberRows = await listMembersForDivisions(
+    creatableDivisions.map((d) => d.id),
+  );
+  const createOptions = creatableDivisions.map((d) => ({
+    id: d.id,
+    name: d.name,
+    members: memberRows
+      .filter((m) => m.divisionId === d.id)
+      .map((m) => ({ id: m.id, name: m.name })),
+  }));
 
   const sorted = [...tasks].sort((a, b) => {
     let cmp = 0;
@@ -119,16 +139,26 @@ export default async function TaskListPage({
 
   return (
     <section className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <Link
-          href={`/events/${id}`}
-          className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
-        >
-          ← {event.name}
-        </Link>
-        <h1 className="text-2xl font-semibold uppercase tracking-tight">
-          Task list
-        </h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <Link
+            href={`/events/${id}`}
+            className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          >
+            ← {event.name}
+          </Link>
+          <h1 className="text-2xl font-semibold uppercase tracking-tight">
+            Task list
+          </h1>
+        </div>
+        {createOptions.length > 0 ? (
+          <NewTaskDialog
+            eventId={id}
+            divisions={createOptions}
+            defaultDivisionId={filters.divisionId}
+            labels={labels}
+          />
+        ) : null}
       </div>
 
       {/* Plane-style compact toolbar: filters & display behind popovers */}
