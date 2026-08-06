@@ -11,6 +11,10 @@ FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# build-time placeholders: page-data collection imports modules that read env;
+# postgres.js never connects during build. Real values come from compose at runtime.
+ENV DATABASE_URL=postgres://build:build@localhost:5432/build
+ENV AUTH_SECRET=build-time-placeholder-secret-32ch
 RUN pnpm build
 
 FROM node:24-alpine AS runner

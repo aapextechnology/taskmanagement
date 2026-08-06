@@ -1,6 +1,6 @@
 # EPIC-001: Auth, Org & Permissions
 
-status: on-progress
+status: ready-for-qa
 environment: dev
 phase: 1
 priority: P0
@@ -39,11 +39,11 @@ the security core every later epic builds on.
 
 ### Admin UI
 
-- [ ] **T-013** `/admin`: manage users, divisions, memberships, role assignment; gated to Owner/Admin.
+- [x] **T-013** `/admin`: manage users, divisions, memberships, role assignment; gated to Owner/Admin.
 
 ### Activity log foundation
 
-- [ ] **T-014** `activity_log` table + write helper; log all auth, permission, and admin mutations.
+- [x] **T-014** `activity_log` table + write helper; log all auth, permission, and admin mutations.
 
 ### Demo seed
 
@@ -72,6 +72,9 @@ the security core every later epic builds on.
 
 ## Automation Log
 
+- 2026-08-06 **T-013 + T-014 done — EPIC COMPLETE → ready-for-qa** — `/admin` (users table, create user, assign/remove membership, activate/deactivate) with every mutation through `src/lib/org/service.ts` (assertCan + logActivity); `activity_log` table + `logActivity` helper; `auth.signin` events logged. Verified on the DEPLOYED stack (nginx :3000): owner login → session role owner → `/admin` 200; staff → 307 redirect; audit rows present. Docker gotcha: `next build` page-data collection imports env-reading modules — build stage needs placeholder `DATABASE_URL`/`AUTH_SECRET` (postgres.js never connects at build; real values from compose at runtime). **Human QA notes:** exercise the admin forms in a browser; consider forcing password reset flow later (not in scope v1).
+- 2026-08-06 **T-012 done** — central permission module: 39-test matrix suite green (incl. all negative cases). Key rules encoded: Admin has NO approval powers; final approval Owner-only; Finance members see all budgets, Heads own-division only, non-finance staff none; externals hard-whitelisted to assigned-task updates + form submit.
+- 2026-08-06 **T-010, T-011, T-015 done** — org schema + 11-division seed; Auth.js v5 credentials (scrypt via node:crypto, no-enumeration authorize, JWT carries id+role only — memberships always fresh from DB); demo seed 9 users / 5 roles / 3 divisions (password `backstage123`, DEV only). Curl E2E: valid login ✓, wrong password ✗, external ✗, unauth redirect ✓.
 - 2026-08-06 Epic created by `/agentic-init` from PLAN §3–§4 — pending kickoff.
 
 ## Dependencies

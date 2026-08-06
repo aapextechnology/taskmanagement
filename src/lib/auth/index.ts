@@ -19,6 +19,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         authorizeUser(credentials?.email, credentials?.password),
     }),
   ],
+  events: {
+    async signIn({ user }) {
+      if (user?.id) {
+        const { logActivity } = await import("@/lib/activity");
+        await logActivity({
+          actorId: user.id,
+          action: "auth.signin",
+          entity: `profile:${user.id}`,
+        });
+      }
+    },
+  },
   callbacks: {
     jwt({ token, user }) {
       if (user) {
