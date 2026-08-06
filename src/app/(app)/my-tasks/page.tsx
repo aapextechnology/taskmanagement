@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { auth, signOut } from "@/lib/auth";
+import { PriorityIcon, StatusChip } from "@/components/task-meta";
 import { bucketForDue, type DueBucket } from "@/lib/tasks/dates";
-import { listMyTasks, STATUS_LABELS } from "@/lib/tasks/service";
+import { listMyTasks } from "@/lib/tasks/service";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "My Tasks" };
@@ -91,21 +92,20 @@ export default async function MyTasksPage() {
                     <li key={task.id}>
                       <Link
                         href={`/tasks/${task.id}`}
-                        className="flex items-center gap-4 px-4 py-3 text-sm hover:bg-accent/50"
+                        className="flex items-center gap-4 px-4 py-2.5 text-sm transition-colors hover:bg-accent/50"
                       >
+                        <PriorityIcon priority={task.priority} />
                         <span className="flex-1 font-medium">{task.title}</span>
                         <span className="hidden text-xs text-muted-foreground sm:block">
                           {eventName}
                         </span>
-                        <span className="text-xs uppercase text-muted-foreground">
-                          {STATUS_LABELS[task.status]}
-                        </span>
+                        <StatusChip status={task.status} />
                         {task.dueDate ? (
                           <span
                             className={cn(
                               "text-xs tabular-nums",
                               key === "overdue"
-                                ? "text-destructive"
+                                ? "text-priority-urgent"
                                 : "text-muted-foreground",
                             )}
                           >

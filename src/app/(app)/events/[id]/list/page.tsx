@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { PriorityIcon, StatusChip } from "@/components/task-meta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { sessionActor } from "@/lib/auth/session-actor";
@@ -202,10 +203,12 @@ export default async function TaskListPage({
                 <td className="px-4 py-2.5 text-xs text-muted-foreground">
                   {task.divisionId}
                 </td>
-                <td className="px-4 py-2.5 text-xs uppercase">
-                  {STATUS_LABELS[task.status]}
+                <td className="px-4 py-2.5">
+                  <StatusChip status={task.status} />
                 </td>
-                <td className="px-4 py-2.5 text-xs uppercase">{task.priority}</td>
+                <td className="px-4 py-2.5">
+                  <PriorityIcon priority={task.priority} withLabel />
+                </td>
                 <td className="px-4 py-2.5 text-xs tabular-nums">
                   {task.dueDate ? dt.format(task.dueDate) : "—"}
                 </td>

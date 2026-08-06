@@ -4,18 +4,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { updateStatusAction } from "@/app/(app)/tasks/actions";
+import {
+  AvatarStack,
+  PriorityIcon,
+  StatusDot,
+  STATUS_TEXT,
+  type StatusKey,
+} from "@/components/task-meta";
 import { cn } from "@/lib/utils";
 
-const COLUMNS = [
-  { key: "backlog", label: "Backlog" },
-  { key: "todo", label: "To do" },
-  { key: "in_progress", label: "In progress" },
-  { key: "in_review", label: "In review" },
-  { key: "blocked", label: "Blocked" },
-  { key: "done", label: "Done" },
-] as const;
-
-type StatusKey = (typeof COLUMNS)[number]["key"];
+const COLUMNS: StatusKey[] = [
+  "backlog",
+  "todo",
+  "in_progress",
+  "in_review",
+  "blocked",
+  "done",
+];
 
 export interface KanbanTask {
   id: string;
@@ -26,20 +31,13 @@ export interface KanbanTask {
   assignees: Array<{ id: string; name: string }>;
 }
 
-const PRIORITY_MARK: Record<KanbanTask["priority"], string> = {
-  low: "▁",
-  medium: "▃",
-  high: "▅",
-  urgent: "█",
-};
-
-// Native HTML5 drag & drop — no library. Drop persists via server action.
+// Native HTML5 drag & drop — no library. Drop persists via server action;
+// clicking a card opens the peek drawer (intercepted /tasks/[id]).
 export function KanbanBoard({ tasks }: { tasks: KanbanTask[] }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [dragId, setDragId] = useState<string | null>(null);
   const [overColumn, setOverColumn] = useState<StatusKey | null>(null);
-  // optimistic status overrides while the server action runs
   const [overrides, setOverrides] = useState<Record<string, StatusKey>>({});
 
   const drop = (status: StatusKey) => {
@@ -58,79 +56,79 @@ export function KanbanBoard({ tasks }: { tasks: KanbanTask[] }) {
   };
 
   const statusOf = (task: KanbanTask) => overrides[task.id] ?? task.status;
+  // captured once per mount — overdue highlighting doesn't need live ticking
+  const [now] = useState(() => Date.now());
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+    <div className="flex gap-3 overflow-x-auto pb-4">
       {COLUMNS.map((column) => {
-        const items = tasks.filter((t) => statusOf(t) === column.key);
+        const items = tasks.filter((t) => statusOf(t) === column);
         return (
           <div
-            key={column.key}
+            key={column}
             onDragOver={(e) => {
               e.preventDefault();
-              setOverColumn(column.key);
+              setOverColumn(column);
             }}
             onDragLeave={() => setOverColumn(null)}
-            onDrop={() => drop(column.key)}
+            onDrop={() => drop(column)}
             className={cn(
-              "flex min-h-64 flex-col gap-2 rounded-md border p-2",
-              overColumn === column.key && "border-foreground/50 bg-accent/40",
+              "flex min-h-72 w-64 shrink-0 flex-col gap-2 rounded-lg bg-muted/40 p-2 transition-colors",
+              overColumn === column && "bg-accent ring-1 ring-foreground/20",
             )}
           >
-            <div className="flex items-center justify-between px-1">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                {column.label}
-              </span>
-              <span className="text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-2 px-1.5 py-1">
+              <StatusDot status={column} />
+              <span className="text-xs font-medium">{STATUS_TEXT[column]}</span>
+              <span className="ml-auto rounded-full bg-background px-1.5 text-[10px] tabular-nums text-muted-foreground">
                 {items.length}
               </span>
             </div>
-            {items.map((task) => (
-              <Link
-                key={task.id}
-                href={`/tasks/${task.id}`}
-                draggable
-                onDragStart={() => setDragId(task.id)}
-                onDragEnd={() => setDragId(null)}
-                className={cn(
-                  "flex cursor-grab flex-col gap-1 rounded-sm border bg-card p-2.5 text-xs hover:border-foreground/40 active:cursor-grabbing",
-                  dragId === task.id && "opacity-50",
-                )}
-              >
-                <span className="font-medium leading-snug">{task.title}</span>
-                <span className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                  <span title={`priority: ${task.priority}`}>
-                    {PRIORITY_MARK[task.priority]}
-                  </span>
-                  {task.dueDate ? (
-                    <span>
-                      {new Date(task.dueDate).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        timeZone: "Asia/Jakarta",
-                      })}
+            <div className="flex flex-1 flex-col gap-2">
+              {items.map((task) => {
+                const overdue =
+                  task.dueDate !== null &&
+                  new Date(task.dueDate).getTime() < now &&
+                  statusOf(task) !== "done";
+                return (
+                  <Link
+                    key={task.id}
+                    href={`/tasks/${task.id}`}
+                    draggable
+                    onDragStart={() => setDragId(task.id)}
+                    onDragEnd={() => setDragId(null)}
+                    className={cn(
+                      "group flex cursor-grab flex-col gap-2 rounded-md border bg-card p-3 shadow-xs transition-all hover:border-foreground/25 hover:shadow-sm active:cursor-grabbing",
+                      dragId === task.id && "rotate-1 opacity-60",
+                    )}
+                  >
+                    <span className="text-[13px] font-medium leading-snug">
+                      {task.title}
                     </span>
-                  ) : null}
-                  {task.assignees.length > 0 ? (
-                    <span className="ml-auto flex gap-1">
-                      {task.assignees.slice(0, 3).map((a) => (
+                    <span className="flex items-center gap-2">
+                      <PriorityIcon priority={task.priority} />
+                      {task.dueDate ? (
                         <span
-                          key={a.id}
-                          title={a.name}
-                          className="flex size-4 items-center justify-center rounded-full border text-[8px] uppercase"
+                          className={cn(
+                            "rounded-sm border px-1.5 py-px text-[10px] tabular-nums",
+                            overdue
+                              ? "border-priority-urgent/40 text-priority-urgent"
+                              : "text-muted-foreground",
+                          )}
                         >
-                          {a.name
-                            .split(" ")
-                            .map((p) => p[0])
-                            .slice(0, 2)
-                            .join("")}
+                          {new Date(task.dueDate).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            timeZone: "Asia/Jakarta",
+                          })}
                         </span>
-                      ))}
+                      ) : null}
+                      <AvatarStack users={task.assignees} className="ml-auto" />
                     </span>
-                  ) : null}
-                </span>
-              </Link>
-            ))}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         );
       })}
