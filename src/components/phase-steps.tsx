@@ -1,19 +1,26 @@
 import { Fragment } from "react";
-import {
-  EVENT_PHASES_ORDER,
-  PHASE_LABELS,
-  type EventPhase,
-} from "@/lib/events/service";
 import { cn } from "@/lib/utils";
 
-// Lifecycle indicator: past phases dim, current phase full-contrast.
-export function PhaseSteps({ current }: { current: EventPhase }) {
-  const currentIndex = EVENT_PHASES_ORDER.indexOf(current);
+export interface PhaseStep {
+  id: string;
+  name: string;
+}
+
+// Lifecycle indicator over the event's OWN workflow (per-event data):
+// past phases dim, current phase full-contrast.
+export function PhaseSteps({
+  phases,
+  currentId,
+}: {
+  phases: PhaseStep[];
+  currentId: string | null;
+}) {
+  const currentIndex = phases.findIndex((p) => p.id === currentId);
 
   return (
     <ol className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-wider">
-      {EVENT_PHASES_ORDER.map((phase, index) => (
-        <Fragment key={phase}>
+      {phases.map((phase, index) => (
+        <Fragment key={phase.id}>
           {index > 0 ? (
             <span aria-hidden className="text-border">
               —
@@ -29,7 +36,7 @@ export function PhaseSteps({ current }: { current: EventPhase }) {
                   : "text-muted-foreground/60",
             )}
           >
-            {PHASE_LABELS[phase]}
+            {phase.name}
           </li>
         </Fragment>
       ))}

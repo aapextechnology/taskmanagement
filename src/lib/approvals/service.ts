@@ -262,11 +262,16 @@ export async function decide(
 // ---- queries --------------------------------------------------------------
 
 export async function listMyQueue(actor: Actor) {
+  const { events } = await import("@/db/schema");
   const pending = await db
-    .select()
+    .select({ approval: approvals, eventName: events.name })
     .from(approvals)
+    .leftJoin(events, eq(approvals.eventId, events.id))
     .where(eq(approvals.status, "pending"))
-    .orderBy(asc(approvals.createdAt));
+    .orderBy(asc(approvals.createdAt))
+    .then((rows) =>
+      rows.map((r) => ({ ...r.approval, eventName: r.eventName })),
+    );
   if (pending.length === 0) return [];
 
   const steps = await db

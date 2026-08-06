@@ -3,6 +3,7 @@ import { db } from "@/db";
 import {
   activityLog,
   divisions,
+  eventPhases,
   events,
   profiles,
   taskDependencies,
@@ -16,10 +17,14 @@ import { assertCan, type Actor } from "@/lib/permissions";
 export async function getPortfolio(actor: Actor) {
   assertCan(actor, "dashboard.view");
   const active = await db
-    .select()
+    .select({ event: events, phaseName: eventPhases.name })
     .from(events)
+    .leftJoin(eventPhases, eq(events.currentPhaseId, eventPhases.id))
     .where(isNull(events.archivedAt))
-    .orderBy(events.showDate);
+    .orderBy(events.showDate)
+    .then((rows) =>
+      rows.map((r) => ({ ...r.event, phaseName: r.phaseName ?? "—" })),
+    );
   const budgets = (await portfolioRollup(actor)) ?? [];
   const budgetByEvent = new Map(budgets.map((b) => [b.eventId, b]));
   return active.map((event) => {
@@ -120,9 +125,11 @@ export async function getActivityFeed(actor: Actor, limit = 15) {
       entity: activityLog.entity,
       createdAt: activityLog.createdAt,
       actorName: profiles.name,
+      eventName: events.name,
     })
     .from(activityLog)
     .leftJoin(profiles, eq(activityLog.actorId, profiles.id))
+    .leftJoin(events, eq(activityLog.eventId, events.id))
     .where(ne(activityLog.action, "auth.signin"))
     .orderBy(desc(activityLog.createdAt))
     .limit(limit);

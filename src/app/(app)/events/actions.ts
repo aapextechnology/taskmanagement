@@ -4,12 +4,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { sessionActor } from "@/lib/auth/session-actor";
 import {
+  addPhase,
   createEvent,
+  deletePhase,
+  movePhase,
   recomputeEventHealth,
+  renamePhase,
   setArchived,
+  setCurrentPhase,
   setEventDivisions,
-  updatePhase,
-  type EventPhase,
 } from "@/lib/events/service";
 import { PermissionError } from "@/lib/permissions";
 import { saveImageUpload } from "@/lib/uploads";
@@ -66,12 +69,43 @@ export async function createEventAction(
   redirect(`/events/${eventId}`);
 }
 
-export async function updatePhaseAction(formData: FormData): Promise<void> {
+export async function setCurrentPhaseAction(formData: FormData): Promise<void> {
   const actor = await requireActor();
   const eventId = String(formData.get("eventId"));
-  await updatePhase(actor, eventId, String(formData.get("phase")) as EventPhase);
+  await setCurrentPhase(actor, eventId, String(formData.get("phaseId")));
   revalidatePath(`/events/${eventId}`);
   revalidatePath("/events");
+}
+
+export async function phaseManageAction(
+  _prev: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  try {
+    const actor = await requireActor();
+    const eventId = String(formData.get("eventId"));
+    const op = String(formData.get("op"));
+    if (op === "add") {
+      await addPhase(actor, eventId, String(formData.get("name") ?? ""));
+    } else if (op === "rename") {
+      await renamePhase(
+        actor,
+        String(formData.get("phaseId")),
+        String(formData.get("name") ?? ""),
+      );
+    } else if (op === "delete") {
+      await deletePhase(actor, String(formData.get("phaseId")));
+    } else if (op === "up" || op === "down") {
+      await movePhase(actor, String(formData.get("phaseId")), op);
+    }
+    revalidatePath(`/events/${eventId}`);
+    revalidatePath("/events");
+    return {};
+  } catch (error) {
+    if (error instanceof PermissionError) return { error: "Not allowed." };
+    if (error instanceof Error) return { error: error.message };
+    throw error;
+  }
 }
 
 export async function setDivisionsAction(

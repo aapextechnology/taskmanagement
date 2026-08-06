@@ -37,6 +37,7 @@ export type Capability =
   | "event.archive"
   | "event.updatePhase" // advance the lifecycle phase
   | "event.manageDivisions" // which divisions participate in an event
+  | "event.manageWorkflow" // add/rename/delete/reorder an event's phases
   | "dashboard.view"
   | "audit.view"
   // tasks
@@ -121,6 +122,7 @@ export function can(
     case "event.archive":
     case "event.updatePhase":
     case "event.manageDivisions":
+    case "event.manageWorkflow":
     case "audit.view":
     case "org.viewAllDivisions":
       return isOwnerOrAdmin;

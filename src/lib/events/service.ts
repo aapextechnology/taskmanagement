@@ -3,6 +3,7 @@ import { db } from "@/db";
 import {
   divisions,
   eventDivisions,
+  eventPhases,
   events,
   taskDependencies,
   tasks,
@@ -12,43 +13,187 @@ import { assertCan, type Actor } from "@/lib/permissions";
 import { computeHealth, type HealthSignals } from "./health";
 
 // Events service (T-021/T-022/T-023). All access permission-gated here.
+// Workflow phases are per-event data (Owner request 2026-08-06).
 
-export const EVENT_PHASES_ORDER = [
-  "planning",
-  "pre_production",
-  "promotion",
-  "show_week",
-  "show_day",
-  "settlement",
+export const DEFAULT_PHASES = [
+  "Planning",
+  "Pre-production",
+  "Promotion",
+  "Show week",
+  "Show day",
+  "Settlement",
 ] as const;
-export type EventPhase = (typeof EVENT_PHASES_ORDER)[number];
-
-export const PHASE_LABELS: Record<EventPhase, string> = {
-  planning: "Planning",
-  pre_production: "Pre-production",
-  promotion: "Promotion",
-  show_week: "Show week",
-  show_day: "Show day",
-  settlement: "Settlement",
-};
 
 export async function listActiveEvents(actor: Actor) {
   assertCan(actor, "event.view");
   return db
-    .select()
+    .select({
+      event: events,
+      phaseName: eventPhases.name,
+    })
     .from(events)
+    .leftJoin(eventPhases, eq(events.currentPhaseId, eventPhases.id))
     .where(isNull(events.archivedAt))
-    .orderBy(asc(events.showDate));
+    .orderBy(asc(events.showDate))
+    .then((rows) =>
+      rows.map((r) => ({ ...r.event, phaseName: r.phaseName ?? "—" })),
+    );
 }
 
 export async function getEvent(actor: Actor, eventId: string) {
   assertCan(actor, "event.view");
-  const [event] = await db
-    .select()
+  const [row] = await db
+    .select({ event: events, phaseName: eventPhases.name })
     .from(events)
+    .leftJoin(eventPhases, eq(events.currentPhaseId, eventPhases.id))
     .where(eq(events.id, eventId))
     .limit(1);
-  return event ?? null;
+  return row ? { ...row.event, phaseName: row.phaseName ?? "—" } : null;
+}
+
+// ---- workflow phases ------------------------------------------------------
+
+export async function listPhases(actor: Actor, eventId: string) {
+  assertCan(actor, "event.view");
+  return db
+    .select()
+    .from(eventPhases)
+    .where(eq(eventPhases.eventId, eventId))
+    .orderBy(asc(eventPhases.sortOrder));
+}
+
+export async function addPhase(actor: Actor, eventId: string, name: string) {
+  assertCan(actor, "event.manageWorkflow");
+  const clean = name.trim();
+  if (!clean) throw new Error("Phase name is empty.");
+  const [{ max }] = await db
+    .select({ max: sql<number>`coalesce(max(sort_order), -1)::int` })
+    .from(eventPhases)
+    .where(eq(eventPhases.eventId, eventId));
+  const [phase] = await db
+    .insert(eventPhases)
+    .values({ eventId, name: clean, sortOrder: max + 1 })
+    .onConflictDoNothing()
+    .returning();
+  if (!phase) throw new Error("A phase with that name already exists.");
+  await logActivity({
+    actorId: actor.id,
+    action: "event.phase.add",
+    entity: `event:${eventId}`,
+    detail: { name: clean },
+    eventId,
+  });
+  return phase;
+}
+
+export async function renamePhase(
+  actor: Actor,
+  phaseId: string,
+  name: string,
+) {
+  assertCan(actor, "event.manageWorkflow");
+  const clean = name.trim();
+  if (!clean) throw new Error("Phase name is empty.");
+  const [phase] = await db
+    .update(eventPhases)
+    .set({ name: clean })
+    .where(eq(eventPhases.id, phaseId))
+    .returning();
+  if (phase) {
+    await logActivity({
+      actorId: actor.id,
+      action: "event.phase.rename",
+      entity: `event:${phase.eventId}`,
+      detail: { name: clean },
+      eventId: phase.eventId,
+    });
+  }
+}
+
+export async function deletePhase(actor: Actor, phaseId: string) {
+  assertCan(actor, "event.manageWorkflow");
+  const [phase] = await db
+    .select()
+    .from(eventPhases)
+    .where(eq(eventPhases.id, phaseId))
+    .limit(1);
+  if (!phase) return;
+  const [event] = await db
+    .select({ currentPhaseId: events.currentPhaseId })
+    .from(events)
+    .where(eq(events.id, phase.eventId))
+    .limit(1);
+  if (event?.currentPhaseId === phaseId) {
+    throw new Error("This is the current phase — move the event first.");
+  }
+  const all = await db
+    .select({ id: eventPhases.id })
+    .from(eventPhases)
+    .where(eq(eventPhases.eventId, phase.eventId));
+  if (all.length <= 1) throw new Error("An event needs at least one phase.");
+  await db.delete(eventPhases).where(eq(eventPhases.id, phaseId));
+  await logActivity({
+    actorId: actor.id,
+    action: "event.phase.delete",
+    entity: `event:${phase.eventId}`,
+    detail: { name: phase.name },
+    eventId: phase.eventId,
+  });
+}
+
+export async function movePhase(
+  actor: Actor,
+  phaseId: string,
+  direction: "up" | "down",
+) {
+  assertCan(actor, "event.manageWorkflow");
+  const [phase] = await db
+    .select()
+    .from(eventPhases)
+    .where(eq(eventPhases.id, phaseId))
+    .limit(1);
+  if (!phase) return;
+  const siblings = await db
+    .select()
+    .from(eventPhases)
+    .where(eq(eventPhases.eventId, phase.eventId))
+    .orderBy(asc(eventPhases.sortOrder));
+  const index = siblings.findIndex((s) => s.id === phaseId);
+  const swapWith = direction === "up" ? siblings[index - 1] : siblings[index + 1];
+  if (!swapWith) return;
+  await db
+    .update(eventPhases)
+    .set({ sortOrder: swapWith.sortOrder })
+    .where(eq(eventPhases.id, phase.id));
+  await db
+    .update(eventPhases)
+    .set({ sortOrder: phase.sortOrder })
+    .where(eq(eventPhases.id, swapWith.id));
+}
+
+export async function setCurrentPhase(
+  actor: Actor,
+  eventId: string,
+  phaseId: string,
+) {
+  assertCan(actor, "event.updatePhase");
+  const [phase] = await db
+    .select()
+    .from(eventPhases)
+    .where(and(eq(eventPhases.id, phaseId), eq(eventPhases.eventId, eventId)))
+    .limit(1);
+  if (!phase) throw new Error("Phase not found on this event.");
+  await db
+    .update(events)
+    .set({ currentPhaseId: phaseId, updatedAt: new Date() })
+    .where(eq(events.id, eventId));
+  await logActivity({
+    actorId: actor.id,
+    action: "event.updatePhase",
+    entity: `event:${eventId}`,
+    detail: { phase: phase.name },
+    eventId,
+  });
 }
 
 export async function createEvent(
@@ -84,6 +229,22 @@ export async function createEvent(
       .onConflictDoNothing();
   }
 
+  // default workflow — fully editable per event afterwards
+  const phases = await db
+    .insert(eventPhases)
+    .values(
+      DEFAULT_PHASES.map((name, index) => ({
+        eventId: event.id,
+        name,
+        sortOrder: index,
+      })),
+    )
+    .returning();
+  await db
+    .update(events)
+    .set({ currentPhaseId: phases[0].id })
+    .where(eq(events.id, event.id));
+
   await logActivity({
     actorId: actor.id,
     action: "event.create",
@@ -92,25 +253,6 @@ export async function createEvent(
     eventId: event.id,
   });
   return event;
-}
-
-export async function updatePhase(
-  actor: Actor,
-  eventId: string,
-  phase: EventPhase,
-) {
-  assertCan(actor, "event.updatePhase");
-  await db
-    .update(events)
-    .set({ phase, updatedAt: new Date() })
-    .where(eq(events.id, eventId));
-  await logActivity({
-    actorId: actor.id,
-    action: "event.updatePhase",
-    entity: `event:${eventId}`,
-    detail: { phase },
-    eventId,
-  });
 }
 
 export async function setArchived(

@@ -6,15 +6,15 @@ import { PhaseSteps } from "@/components/phase-steps";
 import { Button } from "@/components/ui/button";
 import { sessionActor } from "@/lib/auth/session-actor";
 import {
-  EVENT_PHASES_ORDER,
   getEvent,
   listEventDivisions,
-  PHASE_LABELS,
+  listPhases,
 } from "@/lib/events/service";
 import { listDivisions } from "@/lib/org/service";
 import { can } from "@/lib/permissions";
-import { archiveEventAction, updatePhaseAction } from "../actions";
+import { archiveEventAction, setCurrentPhaseAction } from "../actions";
 import { DivisionsManager } from "./divisions-manager";
+import { WorkflowManager } from "./workflow-manager";
 
 export const metadata: Metadata = { title: "Event" };
 
@@ -35,12 +35,14 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
 
   const canManage = can(actor, "event.updatePhase");
   const canManageDivisions = can(actor, "event.manageDivisions");
-  const currentIndex = EVENT_PHASES_ORDER.indexOf(event.phase);
-  const nextPhase = EVENT_PHASES_ORDER[currentIndex + 1];
-  const [activeDivisions, allDivisions] = await Promise.all([
+  const canManageWorkflow = can(actor, "event.manageWorkflow");
+  const [activeDivisions, allDivisions, phases] = await Promise.all([
     listEventDivisions(actor, event.id),
     canManageDivisions ? listDivisions() : [],
+    listPhases(actor, event.id),
   ]);
+  const currentIndex = phases.findIndex((p) => p.id === event.currentPhaseId);
+  const nextPhase = currentIndex >= 0 ? phases[currentIndex + 1] : phases[0];
 
   return (
     <section className="flex flex-col gap-10">
@@ -86,16 +88,19 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
             />
           </div>
 
-          <PhaseSteps current={event.phase} />
+          <PhaseSteps
+            phases={phases.map((p) => ({ id: p.id, name: p.name }))}
+            currentId={event.currentPhaseId}
+          />
 
           {canManage ? (
             <div className="flex flex-wrap gap-3 pt-4">
               {nextPhase ? (
-                <form action={updatePhaseAction}>
+                <form action={setCurrentPhaseAction}>
                   <input type="hidden" name="eventId" value={event.id} />
-                  <input type="hidden" name="phase" value={nextPhase} />
+                  <input type="hidden" name="phaseId" value={nextPhase.id} />
                   <Button type="submit" variant="outline">
-                    Advance to {PHASE_LABELS[nextPhase]} ↗
+                    Advance to {nextPhase.name} ↗
                   </Button>
                 </form>
               ) : null}
@@ -131,15 +136,22 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
         ))}
       </nav>
 
-      {canManageDivisions ? (
-        <div>
+      <div className="flex flex-wrap gap-3">
+        {canManageWorkflow ? (
+          <WorkflowManager
+            eventId={event.id}
+            phases={phases.map((p) => ({ id: p.id, name: p.name }))}
+            currentId={event.currentPhaseId}
+          />
+        ) : null}
+        {canManageDivisions ? (
           <DivisionsManager
             eventId={event.id}
             allDivisions={allDivisions.map((d) => ({ id: d.id, name: d.name }))}
             activeIds={activeDivisions.map((d) => d.id)}
           />
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </section>
   );
 }

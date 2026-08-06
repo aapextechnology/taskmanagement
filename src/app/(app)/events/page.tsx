@@ -5,7 +5,7 @@ import { Countdown } from "@/components/countdown";
 import { HealthBadge } from "@/components/health-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { sessionActor } from "@/lib/auth/session-actor";
-import { listActiveEvents, PHASE_LABELS } from "@/lib/events/service";
+import { listActiveEvents } from "@/lib/events/service";
 import { can } from "@/lib/permissions";
 
 export const metadata: Metadata = { title: "Events" };
@@ -65,7 +65,7 @@ export default async function EventsPage() {
                   <HealthBadge health={event.health} />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {event.venue} · {PHASE_LABELS[event.phase]}
+                  {event.venue} · {event.phaseName}
                 </p>
                 <Countdown
                   target={event.showDate.toISOString()}

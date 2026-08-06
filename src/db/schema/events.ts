@@ -1,25 +1,19 @@
 import {
   integer,
-  pgEnum,
   pgTable,
+  pgEnum,
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { divisions } from "./org";
 
-// Events (T-020): one concert = one workspace. Lifecycle order is enforced in
-// the service layer (PLAN §6.1); health is recomputed, never hand-set.
-
-export const eventPhaseEnum = pgEnum("event_phase", [
-  "planning",
-  "pre_production",
-  "promotion",
-  "show_week",
-  "show_day",
-  "settlement",
-]);
+// Events (T-020): one concert = one workspace. The lifecycle workflow is
+// PER-EVENT data (Owner request 2026-08-06): each event owns an ordered list
+// of phases (add/rename/delete/reorder) and a pointer to the current one.
 
 export const eventHealthEnum = pgEnum("event_health", [
   "on_track",
@@ -35,7 +29,10 @@ export const events = pgTable("events", {
   venue: text("venue").notNull().default(""),
   showDate: timestamp("show_date", { withTimezone: true }).notNull(),
   capacity: integer("capacity"),
-  phase: eventPhaseEnum("phase").notNull().default("planning"),
+  currentPhaseId: uuid("current_phase_id").references(
+    (): AnyPgColumn => eventPhases.id,
+    { onDelete: "set null" },
+  ),
   health: eventHealthEnum("health").notNull().default("on_track"),
   // stored relative to UPLOADS_DIR, served auth-gated via /api/files
   coverImagePath: text("cover_image_path"),
@@ -47,6 +44,20 @@ export const events = pgTable("events", {
     .notNull()
     .defaultNow(),
 });
+
+// per-event workflow phases, ordered by sortOrder
+export const eventPhases = pgTable(
+  "event_phases",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (t) => [uniqueIndex("event_phases_event_name_idx").on(t.eventId, t.name)],
+);
 
 // Divisions active on an event (defaults to all 11 at creation).
 export const eventDivisions = pgTable(

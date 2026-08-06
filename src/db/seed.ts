@@ -1,6 +1,6 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { hashPassword } from "@/lib/auth/password";
-import { recomputeEventHealth } from "@/lib/events/service";
+import { DEFAULT_PHASES, recomputeEventHealth } from "@/lib/events/service";
 import { DIVISIONS } from "@/lib/org/divisions";
 import { db } from "./index";
 import {
@@ -14,6 +14,7 @@ import {
   divisionMembers,
   divisions,
   eventDivisions,
+  eventPhases,
   events,
   handoffs,
   labels,
@@ -133,7 +134,6 @@ const steps: Array<{ name: string; run: () => Promise<void> }> = [
             venue: e.venue,
             showDate: new Date(now + e.showOffsetHours * 3600_000),
             capacity: e.capacity,
-            phase: e.phase,
           })),
         )
         .onConflictDoNothing();
@@ -147,6 +147,33 @@ const steps: Array<{ name: string; run: () => Promise<void> }> = [
           ),
         )
         .onConflictDoNothing();
+
+      // per-event workflow: seed defaults + point current phase by name
+      for (const e of DEMO_EVENTS) {
+        await db
+          .insert(eventPhases)
+          .values(
+            DEFAULT_PHASES.map((name, index) => ({
+              eventId: e.id,
+              name,
+              sortOrder: index,
+            })),
+          )
+          .onConflictDoNothing();
+        const [current] = await db
+          .select({ id: eventPhases.id })
+          .from(eventPhases)
+          .where(
+            and(eq(eventPhases.eventId, e.id), eq(eventPhases.name, e.currentPhase)),
+          )
+          .limit(1);
+        if (current) {
+          await db
+            .update(events)
+            .set({ currentPhaseId: current.id })
+            .where(and(eq(events.id, e.id), isNull(events.currentPhaseId)));
+        }
+      }
     },
   },
   {

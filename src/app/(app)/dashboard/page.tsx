@@ -14,7 +14,7 @@ import {
   getPortfolio,
   getUpcomingMilestones,
 } from "@/lib/dashboard/service";
-import { PHASE_LABELS } from "@/lib/events/service";
+import { EventChip } from "@/components/event-chip";
 import { can } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { InlineDecide } from "./inline-decide";
@@ -71,7 +71,7 @@ export default async function DashboardPage() {
             </div>
             <Countdown target={event.showDate.toISOString()} className="text-lg" />
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>{PHASE_LABELS[event.phase]}</span>
+              <span>{event.phaseName}</span>
               {event.burnPct !== null ? (
                 <span
                   className={cn(
@@ -133,6 +133,7 @@ export default async function DashboardPage() {
                 >
                   {approval.title}
                 </Link>
+                {approval.eventName ? <EventChip name={approval.eventName} /> : null}
                 <span className="text-xs tabular-nums text-muted-foreground">
                   {formatIDR(approval.amount)}
                 </span>
@@ -163,8 +164,9 @@ export default async function DashboardPage() {
                   >
                     <PriorityIcon priority={m.priority} />
                     <span className="min-w-0 flex-1 truncate">{m.title}</span>
-                    <span className="hidden text-xs text-muted-foreground sm:block">
-                      {m.eventName} · {m.divisionName}
+                    <EventChip name={m.eventName} className="hidden sm:inline-flex" />
+                    <span className="hidden text-xs text-muted-foreground md:block">
+                      {m.divisionName}
                     </span>
                     <span className="text-xs tabular-nums text-muted-foreground">
                       {m.dueDate ? dt.format(m.dueDate) : ""}
@@ -196,8 +198,9 @@ export default async function DashboardPage() {
                     >
                       <span className="size-2 rounded-full bg-status-blocked" />
                       <span className="min-w-0 flex-1 truncate">{b.title}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {b.eventName} · {b.divisionName}
+                      <EventChip name={b.eventName} />
+                      <span className="hidden text-xs text-muted-foreground md:block">
+                        {b.divisionName}
                       </span>
                     </Link>
                   </li>
@@ -221,9 +224,8 @@ export default async function DashboardPage() {
                       href={`/events/${h.eventId}/board?division=${h.divisionId}`}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent/50"
                     >
-                      <span className="min-w-0 flex-1 truncate">
-                        {h.eventName} · {h.divisionName}
-                      </span>
+                      <EventChip name={h.eventName} />
+                      <span className="min-w-0 flex-1 truncate">{h.divisionName}</span>
                       <span className="rounded-full bg-status-blocked/15 px-2 text-xs font-semibold tabular-nums text-status-blocked">
                         {h.count}
                       </span>
@@ -254,6 +256,9 @@ export default async function DashboardPage() {
               <span className="truncate font-medium text-foreground/80">
                 {entry.entityLabel}
               </span>
+              {entry.eventName ? (
+                <EventChip name={entry.eventName} className="hidden sm:inline-flex" />
+              ) : null}
               <span className="ml-auto tabular-nums">
                 {dtLong.format(entry.createdAt)}
               </span>

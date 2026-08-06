@@ -52,7 +52,11 @@ describe("org & events", () => {
   });
 
   it("phase advance + division roster: owner/admin only", () => {
-    for (const cap of ["event.updatePhase", "event.manageDivisions"] as const) {
+    for (const cap of [
+      "event.updatePhase",
+      "event.manageDivisions",
+      "event.manageWorkflow",
+    ] as const) {
       expect(can(owner, cap)).toBe(true);
       expect(can(admin, cap)).toBe(true);
       expect(can(headProduction, cap)).toBe(false);

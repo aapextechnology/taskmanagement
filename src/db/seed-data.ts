@@ -39,7 +39,8 @@ export const DEMO_EVENTS: Array<{
   venue: string;
   showOffsetHours: number;
   capacity: number;
-  phase: "planning" | "pre_production" | "promotion" | "show_week" | "show_day" | "settlement";
+  /** name from the default workflow the seed creates per event */
+  currentPhase: string;
 }> = [
   {
     id: EVENT_IDS.yeLive,
@@ -48,7 +49,7 @@ export const DEMO_EVENTS: Array<{
     venue: "Jakarta International Stadium",
     showOffsetHours: 90 * 24,
     capacity: 60_000,
-    phase: "planning",
+    currentPhase: "Planning",
   },
   {
     id: EVENT_IDS.neonHorizon,
@@ -57,7 +58,7 @@ export const DEMO_EVENTS: Array<{
     venue: "GBK Madya Stadium",
     showOffsetHours: 30 * 24,
     capacity: 25_000,
-    phase: "promotion",
+    currentPhase: "Promotion",
   },
   {
     id: EVENT_IDS.midnightFrequency,
@@ -66,7 +67,7 @@ export const DEMO_EVENTS: Array<{
     venue: "Istora Senayan",
     showOffsetHours: -14 * 24, // already played — settlement phase
     capacity: 8_000,
-    phase: "settlement",
+    currentPhase: "Settlement",
   },
 ];
 
