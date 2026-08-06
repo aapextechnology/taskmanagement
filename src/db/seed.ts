@@ -16,6 +16,7 @@ import {
   eventDivisions,
   eventPhases,
   events,
+  externalInvites,
   handoffs,
   labels,
   notifications,
@@ -33,6 +34,8 @@ import {
   DEMO_COMMENTS,
   DEMO_EVENTS,
   DEMO_EXPENSES,
+  DEMO_GUEST_TOKEN,
+  DEMO_INVITE,
   DEMO_HANDOFFS,
   DEMO_LABELS,
   DEMO_NOTIFICATIONS,
@@ -389,6 +392,36 @@ const steps: Array<{ name: string; run: () => Promise<void> }> = [
           })),
         )
         .onConflictDoNothing();
+    },
+  },
+  {
+    name: "demo guest invite (magic link)",
+    run: async () => {
+      const { createHash } = await import("node:crypto");
+      const [event] = await db
+        .select({ showDate: events.showDate })
+        .from(events)
+        .where(eq(events.id, DEMO_INVITE.eventId))
+        .limit(1);
+      const expiresAt = new Date(
+        (event?.showDate.getTime() ?? Date.now()) + 21 * 86_400_000,
+      );
+      await db
+        .insert(externalInvites)
+        .values({
+          id: DEMO_INVITE.id,
+          profileId: uid(DEMO_INVITE.guestEmail),
+          eventId: DEMO_INVITE.eventId,
+          divisionId: DEMO_INVITE.divisionId,
+          requestedForms: [...DEMO_INVITE.requestedForms],
+          tokenHash: createHash("sha256").update(DEMO_GUEST_TOKEN).digest("hex"),
+          expiresAt,
+          invitedBy: uid("head.production@rawvision.demo"),
+        })
+        .onConflictDoNothing();
+      console.log(
+        `[seed]   guest magic link: /guest/login?token=${DEMO_GUEST_TOKEN}`,
+      );
     },
   },
   {

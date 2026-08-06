@@ -18,6 +18,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorize: async (credentials) =>
         authorizeUser(credentials?.email, credentials?.password),
     }),
+    // Magic-link redemption for external guests (EPIC-007). The token maps
+    // to an invite; scope/revocation are re-checked on every request, so
+    // this only ever mints a session for a currently-valid invite.
+    Credentials({
+      id: "guest-token",
+      credentials: { token: { label: "Token", type: "text" } },
+      authorize: async (credentials) => {
+        const { redeemToken } = await import("@/lib/external/service");
+        return redeemToken(credentials?.token);
+      },
+    }),
   ],
   events: {
     async signIn({ user }) {

@@ -216,6 +216,18 @@ export const DEMO_TASKS: DemoTask[] = [
 
   // ---- Neon Horizon Festival (promotion, +30d) ----------------------------
   {
+    id: "00000000-0000-4000-8000-00000000b008",
+    eventId: E2,
+    divisionId: "production",
+    title: "Deliver PA system specs & stage plot",
+    description: "Vendor deliverable — upload the final specs and stage plot for the main stage PA.",
+    status: "todo",
+    priority: "high",
+    dueOffsetHours: 10 * 24,
+    assigneeEmails: ["vendor@soundsupply.example"],
+    labelIds: ["00000000-0000-4000-8000-00000000f001"],
+  },
+  {
     id: "00000000-0000-4000-8000-00000000b001",
     eventId: E2,
     divisionId: "marketing-communications",
@@ -507,6 +519,21 @@ export const DEMO_EXPENSES: Array<{
     requestedByEmail: "staff.ops@rawvision.demo",
   },
 ];
+
+// demo guest invite (DEV): deterministic token so the magic link is known.
+// Link: {APP_URL}/guest/login?token=<DEMO_GUEST_TOKEN>
+export const DEMO_GUEST_TOKEN =
+  "demo0000demo0000demo0000demo0000demo0000demo0000demo0000demo0000";
+
+export const DEMO_INVITE = {
+  id: "00000000-0000-4000-8000-00000000cc01",
+  guestEmail: "vendor@soundsupply.example",
+  eventId: EVENT_IDS.neonHorizon,
+  divisionId: "production",
+  requestedForms: ["quotation", "logistics_manifest"],
+  // guest's assigned task
+  taskId: "00000000-0000-4000-8000-00000000b008",
+} as const;
 
 export const DEMO_NOTIFICATIONS: Array<{
   userEmail: string;

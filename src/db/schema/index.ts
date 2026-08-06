@@ -9,6 +9,7 @@ export * from "./approvals";
 export * from "./budgets";
 export * from "./collab";
 export * from "./events";
+export * from "./external";
 export * from "./notifications";
 export * from "./org";
 export * from "./tasks";

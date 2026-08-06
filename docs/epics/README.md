@@ -18,7 +18,7 @@
 | [EPIC-004](EPIC-004-approvals-engine.md) | Phase 2 | Approvals Engine | P1 | ready-for-qa |
 | [EPIC-005](EPIC-005-budgets-expenses.md) | Phase 2 | Budgets & Expenses | P1 | ready-for-qa |
 | [EPIC-006](EPIC-006-executive-dashboard.md) | Phase 2 | Executive Dashboard & Activity Log | P1 | ready-for-qa |
-| [EPIC-007](EPIC-007-external-guest-portal.md) | Phase 3 | External Guest Portal & Forms | P1 | backlog |
+| [EPIC-007](EPIC-007-external-guest-portal.md) | Phase 3 | External Guest Portal & Forms | P1 | ready-for-qa |
 | [EPIC-008](EPIC-008-planning-views-run-of-show.md) | Phase 3 | Planning Views, Documents & Run of Show | P1 | backlog |
 | [EPIC-009](EPIC-009-playbooks-ticket-snapshots.md) | Phase 3 | Playbooks & Ticket Snapshots | P1 | backlog |
 | [EPIC-010](EPIC-010-reports-search-polish.md) | Phase 4 | Reports, Search & Polish | P2 | backlog |

@@ -78,6 +78,13 @@
       "when": 1786001407767,
       "tag": "0010_task-cancelled-status",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1786004052237,
+      "tag": "0011_external-guest-portal",
+      "breakpoints": true
     }
   ]
 }

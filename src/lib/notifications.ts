@@ -17,7 +17,9 @@ export type NotificationType =
   | "handoff_request"
   | "handoff_decided"
   | "approval_requested"
-  | "approval_decided";
+  | "approval_decided"
+  | "submission_received"
+  | "submission_decided";
 
 // channel routing per the PLAN §6.10 matrix: everything emails except
 // "unblocked" (in-app only); WhatsApp mirrors the high-value triggers.
@@ -30,6 +32,8 @@ const EMAIL_TYPES: ReadonlySet<NotificationType> = new Set([
   "handoff_decided",
   "approval_requested",
   "approval_decided",
+  "submission_received",
+  "submission_decided",
 ]);
 const WHATSAPP_TYPES: ReadonlySet<NotificationType> = new Set([
   "assigned",

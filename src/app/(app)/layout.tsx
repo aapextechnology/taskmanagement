@@ -15,6 +15,8 @@ export default async function AppLayout({
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
+  // externals live in their own scoped portal — never the internal app
+  if (session.user.role === "external") redirect("/guest");
 
   return (
     <AppShell>
