@@ -201,3 +201,40 @@ export function assertCan(
 ): void {
   if (!can(actor, capability, ctx)) throw new PermissionError(capability);
 }
+
+// ---- approvals engine (EPIC-004) -----------------------------------------
+// Semantic approver keys → who may decide. Centralized HERE so the approvals
+// service never hand-rolls role checks. Admin never approves (PLAN §4);
+// the Owner can decide any step.
+
+export type ApprovalStepRole =
+  | "division_head"
+  | "finance"
+  | "owner"
+  | "legal"
+  | "sponsorship_head"
+  | "marketing_head"
+  | "talent_head";
+
+const STEP_DIVISION: Partial<Record<ApprovalStepRole, string>> = {
+  finance: "finance",
+  legal: "legal-licensing",
+  sponsorship_head: "sponsorship-partnership",
+  marketing_head: "marketing-communications",
+  talent_head: "talent-booking",
+};
+
+export function canDecideApprovalStep(
+  actor: Actor,
+  stepRole: ApprovalStepRole,
+  originDivisionId: string,
+): boolean {
+  if (actor.role === "external") return false;
+  if (actor.role === "owner") return true;
+  if (actor.role === "admin") return false; // deliberately powerless here
+
+  if (stepRole === "owner") return false;
+  if (stepRole === "division_head") return isHeadOf(actor, originDivisionId);
+  const divisionId = STEP_DIVISION[stepRole];
+  return divisionId !== undefined && isHeadOf(actor, divisionId);
+}

@@ -5,6 +5,8 @@ import { DIVISIONS } from "@/lib/org/divisions";
 import { db } from "./index";
 import {
   appSettings,
+  approvals,
+  approvalSteps,
   comments,
   divisionMembers,
   divisions,
@@ -22,6 +24,7 @@ import {
   taskWatchers,
 } from "./schema";
 import {
+  DEMO_APPROVALS,
   DEMO_COMMENTS,
   DEMO_EVENTS,
   DEMO_HANDOFFS,
@@ -268,6 +271,38 @@ const steps: Array<{ name: string; run: () => Promise<void> }> = [
           })),
         )
         .onConflictDoNothing();
+    },
+  },
+  {
+    name: `demo approvals (${DEMO_APPROVALS.length})`,
+    run: async () => {
+      for (const a of DEMO_APPROVALS) {
+        const inserted = await db
+          .insert(approvals)
+          .values({
+            id: a.id,
+            type: a.type,
+            title: a.title,
+            description: a.description ?? "",
+            amount: a.amount ?? null,
+            divisionId: a.divisionId,
+            eventId: a.eventId ?? null,
+            requestedBy: uid(a.requestedByEmail),
+          })
+          .onConflictDoNothing()
+          .returning({ id: approvals.id });
+        // steps have random ids — only create them alongside a fresh approval
+        if (inserted.length > 0) {
+          await db.insert(approvalSteps).values(
+            a.chain.map((approverRole, index) => ({
+              approvalId: a.id,
+              index,
+              approverRole,
+              status: index === 0 ? ("pending" as const) : ("waiting" as const),
+            })),
+          );
+        }
+      }
     },
   },
   {

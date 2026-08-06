@@ -20,6 +20,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
   const items: NavItem[] = [
     { href: "/my-tasks", label: "My Tasks", icon: "my-tasks" },
     { href: "/events", label: "Events", icon: "events" },
+    { href: "/approvals", label: "Approvals", icon: "approvals" },
     { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
     ...(actor && can(actor, "org.manage")
       ? [{ href: "/admin", label: "Admin", icon: "admin" as const }]

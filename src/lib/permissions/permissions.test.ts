@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { assertCan, can, PermissionError, type Actor } from "./index";
+import {
+  assertCan,
+  can,
+  canDecideApprovalStep,
+  PermissionError,
+  type Actor,
+} from "./index";
 
 // Fixtures mirror the seeded demo org: production, marketing, finance.
 const owner: Actor = { id: "u-owner", role: "owner", memberships: [] };
@@ -216,6 +222,54 @@ describe("approvals — Admin is deliberately powerless here", () => {
     expect(can(headProduction, "approve.final")).toBe(false);
     expect(can(staffFinance, "approve.final")).toBe(false);
     expect(can(external, "approve.final")).toBe(false);
+  });
+});
+
+describe("canDecideApprovalStep (EPIC-004)", () => {
+  const headFinance: Actor = {
+    id: "u-head-fin",
+    role: "member",
+    memberships: [{ divisionId: "finance", role: "head" }],
+  };
+  const headLegal: Actor = {
+    id: "u-head-legal",
+    role: "member",
+    memberships: [{ divisionId: "legal-licensing", role: "head" }],
+  };
+
+  it("owner decides ANY step", () => {
+    for (const step of ["division_head", "finance", "owner", "legal"] as const) {
+      expect(canDecideApprovalStep(owner, step, "production")).toBe(true);
+    }
+  });
+
+  it("admin decides NOTHING", () => {
+    for (const step of ["division_head", "finance", "owner", "legal"] as const) {
+      expect(canDecideApprovalStep(admin, step, "production")).toBe(false);
+    }
+  });
+
+  it("division_head step: the origin division's head only", () => {
+    expect(canDecideApprovalStep(headProduction, "division_head", "production")).toBe(true);
+    expect(canDecideApprovalStep(headProduction, "division_head", "marketing-communications")).toBe(false);
+    expect(canDecideApprovalStep(staffProduction, "division_head", "production")).toBe(false);
+  });
+
+  it("finance step: finance HEAD, not finance staff", () => {
+    expect(canDecideApprovalStep(headFinance, "finance", "production")).toBe(true);
+    expect(canDecideApprovalStep(staffFinance, "finance", "production")).toBe(false);
+    expect(canDecideApprovalStep(headProduction, "finance", "production")).toBe(false);
+  });
+
+  it("owner step: nobody but the owner", () => {
+    expect(canDecideApprovalStep(headFinance, "owner", "finance")).toBe(false);
+    expect(canDecideApprovalStep(headLegal, "owner", "legal-licensing")).toBe(false);
+  });
+
+  it("legal step: legal head; external never anything", () => {
+    expect(canDecideApprovalStep(headLegal, "legal", "production")).toBe(true);
+    expect(canDecideApprovalStep(external, "division_head", "production")).toBe(false);
+    expect(canDecideApprovalStep(external, "legal", "production")).toBe(false);
   });
 });
 

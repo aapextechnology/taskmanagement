@@ -12,7 +12,9 @@ export type NotificationType =
   | "overdue"
   | "unblocked"
   | "handoff_request"
-  | "handoff_decided";
+  | "handoff_decided"
+  | "approval_requested"
+  | "approval_decided";
 
 export async function notify(input: {
   userId: string;

@@ -403,6 +403,49 @@ export const DEMO_HANDOFFS: Array<{
   },
 ];
 
+export const DEMO_APPROVALS: Array<{
+  id: string;
+  type: "expense" | "artist_offer" | "contract" | "sponsorship_deal" | "public_content";
+  title: string;
+  description?: string;
+  amount?: number;
+  divisionId: string;
+  eventId?: string;
+  requestedByEmail: string;
+  chain: string[]; // approver role keys, index 0 = current pending step
+}> = [
+  {
+    id: "00000000-0000-4000-8000-00000000ab01",
+    type: "expense",
+    title: "PA system rental — main stage",
+    description: "Quote from Sound Supply Co. attached to the task. 3-day rental incl. crew.",
+    amount: 85_000_000,
+    divisionId: "production",
+    eventId: EVENT_IDS.neonHorizon,
+    requestedByEmail: "staff.production@rawvision.demo",
+    chain: ["division_head", "finance"],
+  },
+  {
+    id: "00000000-0000-4000-8000-00000000ab02",
+    type: "contract",
+    title: "Media partner agreement — Kult Radio",
+    divisionId: "marketing-communications",
+    eventId: EVENT_IDS.neonHorizon,
+    requestedByEmail: "head.marketing@rawvision.demo",
+    chain: ["legal", "owner"],
+  },
+  {
+    id: "00000000-0000-4000-8000-00000000ab03",
+    type: "expense",
+    title: "Crew catering — load-in week",
+    amount: 7_500_000,
+    divisionId: "operations-logistics",
+    eventId: EVENT_IDS.yeLive,
+    requestedByEmail: "staff.ops@rawvision.demo",
+    chain: ["division_head"],
+  },
+];
+
 export const DEMO_NOTIFICATIONS: Array<{
   userEmail: string;
   type: "assigned" | "mentioned" | "handoff_request" | "overdue";

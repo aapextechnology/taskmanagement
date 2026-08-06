@@ -15,7 +15,7 @@
 | [EPIC-001](EPIC-001-auth-org-permissions.md) | Phase 1 | Auth, Org & Permissions | P0 | ready-for-qa |
 | [EPIC-002](EPIC-002-events-workspace.md) | Phase 1 | Events Workspace | P0 | ready-for-qa |
 | [EPIC-003](EPIC-003-tasks-collaboration.md) | Phase 1 | Tasks Core & Collaboration | P0 | ready-for-qa |
-| [EPIC-004](EPIC-004-approvals-engine.md) | Phase 2 | Approvals Engine | P1 | backlog |
+| [EPIC-004](EPIC-004-approvals-engine.md) | Phase 2 | Approvals Engine | P1 | ready-for-qa |
 | [EPIC-005](EPIC-005-budgets-expenses.md) | Phase 2 | Budgets & Expenses | P1 | backlog |
 | [EPIC-006](EPIC-006-executive-dashboard.md) | Phase 2 | Executive Dashboard & Activity Log | P1 | backlog |
 | [EPIC-007](EPIC-007-external-guest-portal.md) | Phase 3 | External Guest Portal & Forms | P1 | backlog |

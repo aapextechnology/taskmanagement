@@ -2,6 +2,7 @@
 
 import {
   CalendarRange,
+  ClipboardCheck,
   LayoutDashboard,
   ListChecks,
   Settings,
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 const ICONS: Record<string, LucideIcon> = {
   "my-tasks": ListChecks,
   events: CalendarRange,
+  approvals: ClipboardCheck,
   dashboard: LayoutDashboard,
   admin: Settings,
 };
