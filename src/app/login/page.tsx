@@ -1,14 +1,61 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Logo } from "@/components/logo";
-import { auth } from "@/lib/auth";
+import { UserAvatar } from "@/components/task-meta";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { auth, signOut } from "@/lib/auth";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Sign in" };
 
 export default async function LoginPage() {
   const session = await auth();
-  if (session?.user) redirect("/my-tasks");
+
+  // Already signed in? Say so instead of silently redirecting — switching
+  // accounts was invisible before (Owner got stuck "unable to log in").
+  if (session?.user) {
+    return (
+      <div className="flex min-h-svh flex-col items-center justify-center px-4">
+        <div className="flex w-full max-w-sm flex-col gap-8">
+          <Logo className="text-sm" />
+          <div className="flex flex-col gap-4 rounded-lg border bg-card p-5">
+            <div className="flex items-center gap-3">
+              <UserAvatar
+                name={session.user.name ?? "?"}
+                className="size-9 text-xs"
+              />
+              <div className="flex min-w-0 flex-col">
+                <span className="truncate text-sm font-medium">
+                  {session.user.name}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {session.user.email} · {session.user.role}
+                </span>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              You are already signed in with this account.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/my-tasks" className={buttonVariants({ size: "sm" })}>
+                Continue ↗
+              </Link>
+              <form
+                action={async () => {
+                  "use server";
+                  await signOut({ redirectTo: "/login" });
+                }}
+              >
+                <Button type="submit" size="sm" variant="outline">
+                  Sign out & switch account
+                </Button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-svh flex-col items-center justify-center px-4">
