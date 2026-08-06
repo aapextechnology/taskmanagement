@@ -35,7 +35,7 @@ the security core every later epic builds on.
 
 ### Central permission module (protected path)
 
-- [ ] **T-012** `src/lib/permissions`: capability checks for the full PLAN §4 matrix (role × division × event). Unit tests per matrix row **including negative cases** (Staff cross-division read denied, non-finance Head reading another division's budget denied, External reaching internal data denied).
+- [x] **T-012** `src/lib/permissions`: capability checks for the full PLAN §4 matrix (role × division × event). Unit tests per matrix row **including negative cases** (Staff cross-division read denied, non-finance Head reading another division's budget denied, External reaching internal data denied).
 
 ### Admin UI
 
