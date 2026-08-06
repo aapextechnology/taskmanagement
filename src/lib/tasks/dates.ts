@@ -4,7 +4,7 @@ export const WIB_OFFSET_MINUTES = 7 * 60;
 
 export type DueBucket = "overdue" | "today" | "this_week" | "later" | "none";
 
-function toWibParts(date: Date): { y: number; m: number; d: number; dow: number } {
+export function toWibParts(date: Date): { y: number; m: number; d: number; dow: number } {
   const shifted = new Date(date.getTime() + WIB_OFFSET_MINUTES * 60_000);
   return {
     y: shifted.getUTCFullYear(),

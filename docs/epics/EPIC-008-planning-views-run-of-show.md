@@ -1,6 +1,6 @@
 # EPIC-008: Planning Views, Documents & Run of Show
 
-status: backlog
+status: on-progress
 environment: dev
 phase: 3
 priority: P1
@@ -29,9 +29,9 @@ show — replacing planning spreadsheets.
 
 - [ ] **T-080** Per-event timeline: bars from task start/due dates, dependency arrows, critical-path highlight to show day; reflects live task edits.
 
-### Calendar
+### Calendar ✅
 
-- [ ] **T-081** Calendar view: per-event and global; deadlines, milestones, show dates; entries deep-link to tasks/events.
+- [x] **T-081** Calendar view: per-event and global; deadlines, milestones, show dates; entries deep-link to tasks/events.
 
 ### Document library
 
@@ -62,6 +62,7 @@ show — replacing planning spreadsheets.
 ## Automation Log
 
 - 2026-08-06 Epic created by `/agentic-init` from PLAN §6.5–§6.7 — pending kickoff.
+- 2026-08-06 /epic-loop EPIC-008 #2 "Calendar" → PASS (attempts: 3), PR: — (no remote; merged to develop locally). Decision: all calendar-day bucketing is explicit WIB via shared `dayKey` (`toWibParts`), grid-cell identity via component-based `cellKey`, today = `dayKey(now)`; review caught server-TZ bucketing twice (west- AND east-of-WIB holes) — lesson: date tests must straddle 17:00Z and run in an east-of-WIB TZ. Deep links reuse `/tasks/[id]` drawer route (no `?task=` param exists).
 
 ## Dependencies
 
