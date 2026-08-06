@@ -106,14 +106,34 @@ function baseQuery() {
     .leftJoin(profiles, eq(comments.authorId, profiles.id));
 }
 
+// One card per task-thread (socmed model): the latest comment previews the
+// thread — replies bump it up instead of spawning new posts.
 export async function listTimeline(actor: Actor, limit = 50) {
   const scope = visibleDivisionIds(actor);
   if (scope !== null && scope.length === 0) return [];
   const rows = await baseQuery()
     .where(scope === null ? undefined : inArray(tasks.divisionId, scope))
     .orderBy(desc(comments.createdAt))
-    .limit(limit);
-  return hydrate(rows);
+    .limit(limit * 4); // headroom before per-task dedupe
+  const seen = new Set<string>();
+  const deduped: typeof rows = [];
+  for (const row of rows) {
+    if (seen.has(row.taskId)) continue;
+    seen.add(row.taskId);
+    deduped.push(row);
+    if (deduped.length >= limit) break;
+  }
+  return hydrate(deduped);
+}
+
+// full existing thread of a task, oldest first
+export async function getThread(actor: Actor, taskId: string) {
+  const { getTaskScoped } = await import("@/lib/tasks/service");
+  const task = await getTaskScoped(actor, taskId);
+  if (!task) return null;
+  const rows = await baseQuery().where(eq(comments.taskId, taskId));
+  const posts = await hydrate(rows);
+  return posts.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 }
 
 export async function listMentions(actor: Actor, limit = 50) {

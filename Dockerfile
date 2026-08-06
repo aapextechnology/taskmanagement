@@ -25,6 +25,8 @@ RUN addgroup -S app && adduser -S app -G app
 COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
 COPY --from=build --chown=app:app /app/public ./public
+# uploads volume mounts here — must be writable by the app user
+RUN mkdir -p /data/uploads && chown -R app:app /data/uploads
 USER app
 EXPOSE 3000
 ENV PORT=3000 HOSTNAME=0.0.0.0

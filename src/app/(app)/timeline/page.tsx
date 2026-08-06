@@ -14,7 +14,7 @@ import {
   type TimelinePost,
 } from "@/lib/timeline/service";
 import { cn } from "@/lib/utils";
-import { ReplyComposer } from "./reply-composer";
+import { ThreadView } from "./thread-view";
 
 export const metadata: Metadata = { title: "Timeline" };
 
@@ -56,7 +56,7 @@ function Post({ post }: { post: TimelinePost }) {
         {post.attachmentPath ? (
           <AttachmentView path={post.attachmentPath} name={post.attachmentName} />
         ) : null}
-        <ReplyComposer taskId={post.taskId} commentCount={post.commentCount} />
+        <ThreadView taskId={post.taskId} commentCount={post.commentCount} />
       </div>
     </li>
   );
