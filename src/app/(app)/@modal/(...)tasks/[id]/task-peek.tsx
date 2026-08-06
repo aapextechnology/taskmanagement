@@ -16,7 +16,7 @@ export function TaskPeek({ children }: { children: ReactNode }) {
     >
       <SheetContent
         side="right"
-        className="w-full gap-0 overflow-y-auto p-5 pt-10 sm:max-w-2xl"
+        className="w-full gap-0 overflow-y-auto p-6 pt-10 sm:max-w-4xl"
       >
         <SheetTitle className="sr-only">Task detail</SheetTitle>
         {children}

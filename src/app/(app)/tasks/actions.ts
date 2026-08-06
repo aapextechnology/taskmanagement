@@ -8,6 +8,7 @@ import {
   addAttachment,
   addChecklistItem,
   addComment,
+  deleteChecklistItem,
   addDependency,
   addLabelToTask,
   assignUser,
@@ -144,7 +145,26 @@ export async function checklistAddAction(formData: FormData): Promise<void> {
   const actor = await requireActor();
   const taskId = String(formData.get("taskId"));
   const title = String(formData.get("title") ?? "").trim();
-  if (title) await addChecklistItem(actor, taskId, title);
+  if (title) {
+    const startRaw = String(formData.get("startDate") ?? "");
+    const dueRaw = String(formData.get("dueDate") ?? "");
+    const priorityRaw = String(formData.get("priority") ?? "");
+    await addChecklistItem(actor, taskId, {
+      title,
+      startDate: startRaw ? new Date(`${startRaw}T00:00:00+07:00`) : undefined,
+      dueDate: dueRaw ? new Date(`${dueRaw}T23:59:59+07:00`) : undefined,
+      priority: priorityRaw
+        ? (priorityRaw as "low" | "medium" | "high" | "urgent")
+        : undefined,
+    });
+  }
+  revalidatePath(`/tasks/${taskId}`);
+}
+
+export async function checklistDeleteAction(formData: FormData): Promise<void> {
+  const actor = await requireActor();
+  const taskId = String(formData.get("taskId"));
+  await deleteChecklistItem(actor, String(formData.get("itemId")));
   revalidatePath(`/tasks/${taskId}`);
 }
 

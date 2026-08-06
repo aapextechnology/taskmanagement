@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { LabelChip } from "@/components/label-chip";
+import { PriorityPicker } from "@/components/priority-picker";
 import { AvatarStack, PriorityIcon, StatusChip } from "@/components/task-meta";
 import { Button } from "@/components/ui/button";
 import { LABEL_COLORS } from "@/lib/label-colors";
@@ -17,6 +18,7 @@ import {
 import {
   assignAction,
   checklistAddAction,
+  checklistDeleteAction,
   checklistToggleAction,
   labelAddAction,
   labelRemoveAction,
@@ -32,6 +34,11 @@ import { EditTaskForm } from "./edit-form";
 const dt = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
   timeStyle: "short",
+  timeZone: "Asia/Jakarta",
+});
+const dtShort = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "short",
   timeZone: "Asia/Jakarta",
 });
 
@@ -181,40 +188,140 @@ export async function TaskDetailPanel({
         </div>
       </div>
 
-      {/* checklist */}
+      {/* checklist with progress (Owner request) */}
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
-          Checklist
-        </h2>
-        <ul className="flex flex-col gap-1">
-          {task.checklist.map((item) => (
-            <li key={item.id}>
-              <form action={checklistToggleAction}>
-                <input type="hidden" name="itemId" value={item.id} />
-                <input type="hidden" name="taskId" value={task.id} />
-                <button
-                  type="submit"
-                  disabled={!canMove}
-                  className="flex items-center gap-2 text-sm disabled:pointer-events-none"
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider">
+            Checklist
+          </h2>
+          {task.checklist.length > 0 ? (
+            <>
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {task.checklist.filter((i) => i.done).length}/
+                {task.checklist.length}
+              </span>
+              <div className="h-1.5 max-w-48 flex-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-status-done transition-all duration-300"
+                  style={{
+                    width: `${Math.round(
+                      (task.checklist.filter((i) => i.done).length /
+                        task.checklist.length) *
+                        100,
+                    )}%`,
+                  }}
+                />
+              </div>
+            </>
+          ) : null}
+        </div>
+        <ul className="flex flex-col divide-y rounded-md border">
+          {task.checklist.length === 0 ? (
+            <li className="px-3 py-3 text-xs text-muted-foreground">
+              No checklist items yet.
+            </li>
+          ) : (
+            task.checklist.map((item) => {
+              const overdue =
+                !item.done && item.dueDate !== null && item.dueDate < new Date();
+              return (
+                <li
+                  key={item.id}
+                  className="flex flex-wrap items-center gap-2.5 px-3 py-2"
                 >
-                  <span className="flex size-4 items-center justify-center rounded-sm border text-[10px]">
-                    {item.done ? "✕" : ""}
-                  </span>
-                  <span className={item.done ? "text-muted-foreground line-through" : ""}>
+                  <form action={checklistToggleAction} className="flex">
+                    <input type="hidden" name="itemId" value={item.id} />
+                    <input type="hidden" name="taskId" value={task.id} />
+                    <button
+                      type="submit"
+                      disabled={!canMove}
+                      aria-label={item.done ? "Mark undone" : "Mark done"}
+                      className={
+                        "flex size-4.5 items-center justify-center rounded-full border transition-all disabled:pointer-events-none " +
+                        (item.done
+                          ? "border-status-done bg-status-done text-background"
+                          : "hover:border-foreground/50")
+                      }
+                    >
+                      {item.done ? (
+                        <span className="text-[10px] leading-none">✓</span>
+                      ) : null}
+                    </button>
+                  </form>
+                  <span
+                    className={
+                      "min-w-0 flex-1 text-sm " +
+                      (item.done ? "text-muted-foreground line-through" : "")
+                    }
+                  >
                     {item.title}
                   </span>
-                </button>
-              </form>
-            </li>
-          ))}
+                  {item.priority ? <PriorityIcon priority={item.priority} /> : null}
+                  {item.startDate || item.dueDate ? (
+                    <span
+                      className={
+                        "text-[11px] tabular-nums " +
+                        (overdue ? "text-priority-urgent" : "text-muted-foreground")
+                      }
+                    >
+                      {item.startDate ? dtShort.format(item.startDate) : "…"}
+                      {" → "}
+                      {item.dueDate ? dtShort.format(item.dueDate) : "…"}
+                    </span>
+                  ) : null}
+                  {canMove ? (
+                    <form action={checklistDeleteAction}>
+                      <input type="hidden" name="itemId" value={item.id} />
+                      <input type="hidden" name="taskId" value={task.id} />
+                      <button
+                        type="submit"
+                        aria-label={`Delete ${item.title}`}
+                        className="text-xs text-muted-foreground transition-colors hover:text-destructive"
+                      >
+                        ×
+                      </button>
+                    </form>
+                  ) : null}
+                </li>
+              );
+            })
+          )}
         </ul>
         {canMove ? (
-          <form action={checklistAddAction} className="flex items-center gap-2">
+          <form
+            action={checklistAddAction}
+            className="flex flex-col gap-2.5 rounded-md border bg-muted/30 p-3"
+          >
             <input type="hidden" name="taskId" value={task.id} />
-            <Input name="title" placeholder="Add checklist item…" className="h-8 max-w-xs text-xs" />
-            <Button type="submit" size="sm" variant="outline">
-              Add
-            </Button>
+            <Input
+              name="title"
+              required
+              placeholder="Add checklist item…"
+              className="h-8 text-xs"
+            />
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+                  Start
+                </span>
+                <Input name="startDate" type="date" className="h-8 w-36 text-xs" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+                  Due
+                </span>
+                <Input name="dueDate" type="date" className="h-8 w-36 text-xs" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+                  Priority
+                </span>
+                <PriorityPicker allowEmpty compact defaultValue="" />
+              </div>
+              <Button type="submit" size="sm" variant="outline">
+                Add item
+              </Button>
+            </div>
           </form>
         ) : null}
       </div>

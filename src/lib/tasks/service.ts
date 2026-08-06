@@ -451,16 +451,42 @@ export async function toggleWatch(actor: Actor, taskId: string) {
 
 // ---- checklist ------------------------------------------------------------
 
-export async function addChecklistItem(actor: Actor, taskId: string, title: string) {
+export async function addChecklistItem(
+  actor: Actor,
+  taskId: string,
+  input: {
+    title: string;
+    startDate?: Date;
+    dueDate?: Date;
+    priority?: "low" | "medium" | "high" | "urgent";
+  },
+) {
   const task = await requireTask(actor, taskId);
   if (!canMutate(actor, task)) throw new PermissionError("task.edit");
   const [{ max }] = await db
     .select({ max: sql<number>`coalesce(max(sort_order), 0)::int` })
     .from(taskChecklistItems)
     .where(eq(taskChecklistItems.taskId, taskId));
-  await db
-    .insert(taskChecklistItems)
-    .values({ taskId, title: title.trim(), sortOrder: max + 1 });
+  await db.insert(taskChecklistItems).values({
+    taskId,
+    title: input.title.trim(),
+    startDate: input.startDate ?? null,
+    dueDate: input.dueDate ?? null,
+    priority: input.priority ?? null,
+    sortOrder: max + 1,
+  });
+}
+
+export async function deleteChecklistItem(actor: Actor, itemId: string) {
+  const [item] = await db
+    .select()
+    .from(taskChecklistItems)
+    .where(eq(taskChecklistItems.id, itemId))
+    .limit(1);
+  if (!item) return;
+  const task = await requireTask(actor, item.taskId);
+  if (!canMutate(actor, task)) throw new PermissionError("task.edit");
+  await db.delete(taskChecklistItems).where(eq(taskChecklistItems.id, itemId));
 }
 
 export async function toggleChecklistItem(actor: Actor, itemId: string) {

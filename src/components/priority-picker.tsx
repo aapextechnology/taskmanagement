@@ -18,15 +18,36 @@ const SELECTED_RING: Record<PriorityKey, string> = {
 export function PriorityPicker({
   name = "priority",
   defaultValue = "medium",
+  allowEmpty = false,
+  compact = false,
 }: {
   name?: string;
-  defaultValue?: PriorityKey;
+  defaultValue?: PriorityKey | "";
+  /** adds a "—" option that submits an empty value */
+  allowEmpty?: boolean;
+  compact?: boolean;
 }) {
-  const [value, setValue] = useState<PriorityKey>(defaultValue);
+  const [value, setValue] = useState<PriorityKey | "">(defaultValue);
 
   return (
     <div className="flex gap-1.5">
       <input type="hidden" name={name} value={value} />
+      {allowEmpty ? (
+        <button
+          type="button"
+          onClick={() => setValue("")}
+          aria-pressed={value === ""}
+          className={cn(
+            "rounded-md border text-xs transition-colors",
+            compact ? "px-2 py-1" : "px-2.5 py-1.5",
+            value === ""
+              ? "bg-accent font-medium"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          —
+        </button>
+      ) : null}
       {OPTIONS.map((option) => (
         <button
           key={option}
@@ -34,14 +55,15 @@ export function PriorityPicker({
           onClick={() => setValue(option)}
           aria-pressed={value === option}
           className={cn(
-            "flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs capitalize transition-colors",
+            "flex items-center gap-1 rounded-md border text-xs capitalize transition-colors",
+            compact ? "px-2 py-1" : "px-2.5 py-1.5",
             value === option
               ? cn("bg-accent font-medium", SELECTED_RING[option])
               : "text-muted-foreground hover:text-foreground",
           )}
         >
           <PriorityIcon priority={option} />
-          {option}
+          {compact ? null : option}
         </button>
       ))}
     </div>

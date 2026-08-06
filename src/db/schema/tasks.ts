@@ -113,6 +113,10 @@ export const taskChecklistItems = pgTable("task_checklist_items", {
     .references(() => tasks.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   done: boolean("done").notNull().default(false),
+  // per-item planning (Owner request 2026-08-06)
+  startDate: timestamp("start_date", { withTimezone: true }),
+  dueDate: timestamp("due_date", { withTimezone: true }),
+  priority: taskPriorityEnum("priority"),
   sortOrder: integer("sort_order").notNull().default(0),
 });
 
