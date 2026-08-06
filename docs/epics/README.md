@@ -21,7 +21,7 @@
 | [EPIC-007](EPIC-007-external-guest-portal.md) | Phase 3 | External Guest Portal & Forms | P1 | ready-for-qa |
 | [EPIC-008](EPIC-008-planning-views-run-of-show.md) | Phase 3 | Planning Views, Documents & Run of Show | P1 | ready-for-qa |
 | [EPIC-009](EPIC-009-playbooks-ticket-snapshots.md) | Phase 3 | Playbooks & Ticket Snapshots | P1 | ready-for-qa |
-| [EPIC-010](EPIC-010-reports-search-polish.md) | Phase 4 | Reports, Search & Polish | P2 | backlog |
+| [EPIC-010](EPIC-010-reports-search-polish.md) | Phase 4 | Reports, Search & Polish | P2 | ready-for-qa |
 | [EPIC-011](EPIC-011-ui-overhaul.md) | Phase 1 | Plane-like UI/UX Overhaul (Owner feedback) | P0 | on-progress |
 
 **Definition of MVP:** completion of **EPIC-000 → EPIC-003** (Phase 0 + Phase 1 — a division can run its event work end-to-end).
