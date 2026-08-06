@@ -11,6 +11,10 @@ import {
 } from "@/db/schema";
 import { portfolioRollup } from "@/lib/budgets/service";
 import { assertCan, type Actor } from "@/lib/permissions";
+import {
+  summarizeTaskProgress,
+  type StatusCounts,
+} from "@/lib/tasks/progress";
 
 // Executive dashboard queries (T-060/T-061). Owner/Admin only.
 
@@ -27,6 +31,32 @@ export async function getPortfolio(actor: Actor) {
     );
   const budgets = (await portfolioRollup(actor)) ?? [];
   const budgetByEvent = new Map(budgets.map((b) => [b.eventId, b]));
+
+  // task progress for every event in ONE grouped query — a per-event count
+  // would be an N+1 across the whole portfolio
+  const progressByEvent = new Map<string, StatusCounts>();
+  if (active.length > 0) {
+    const counts = await db
+      .select({
+        eventId: tasks.eventId,
+        status: tasks.status,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(tasks)
+      .where(
+        inArray(
+          tasks.eventId,
+          active.map((event) => event.id),
+        ),
+      )
+      .groupBy(tasks.eventId, tasks.status);
+    for (const row of counts) {
+      const bucket = progressByEvent.get(row.eventId) ?? {};
+      bucket[row.status] = row.count;
+      progressByEvent.set(row.eventId, bucket);
+    }
+  }
+
   return active.map((event) => {
     const budget = budgetByEvent.get(event.id);
     const planned = budget?.planned ?? 0;
@@ -36,6 +66,7 @@ export async function getPortfolio(actor: Actor) {
       planned,
       burn,
       burnPct: planned > 0 ? Math.round((burn / planned) * 100) : null,
+      progress: summarizeTaskProgress(progressByEvent.get(event.id) ?? {}),
     };
   });
 }

@@ -15,6 +15,7 @@ import {
 import { eventBudgetRollup } from "@/lib/budgets/service";
 import { getEvent, listPhases } from "@/lib/events/service";
 import { assertCan, type Actor } from "@/lib/permissions";
+import { summarizeStatuses } from "@/lib/tasks/progress";
 import { STATUS_LABELS, type TaskStatus } from "@/lib/tasks/service";
 
 // Event progress report data (Owner request 2026-08-06): one comprehensive
@@ -37,7 +38,11 @@ export interface EventReport {
   tasks: {
     total: number;
     done: number;
-    completionPct: number;
+    /** the completion denominator: total minus backlog and cancelled */
+    committed: number;
+    backlog: number;
+    /** null when nothing is committed yet */
+    completionPct: number | null;
     byStatus: Array<{ label: string; count: number }>;
     byDivision: Array<{
       division: string;
@@ -172,10 +177,9 @@ export async function gatherEventReport(
           .from(taskChecklistItems)
           .where(inArray(taskChecklistItems.taskId, allTaskIds));
 
-  const doneCount = taskRows.filter((r) => r.task.status === "done").length;
-  const activeTotal = taskRows.filter(
-    (r) => r.task.status !== "cancelled",
-  ).length;
+  // same rule as the dashboard card — see src/lib/tasks/progress.ts. Shared
+  // so an event can never report two different completion figures.
+  const progress = summarizeStatuses(taskRows.map((r) => r.task.status));
 
   // ---- budget -------------------------------------------------------------
   const rollup = await eventBudgetRollup(actor, eventId);
@@ -254,9 +258,10 @@ export async function gatherEventReport(
     },
     tasks: {
       total: taskRows.length,
-      done: doneCount,
-      completionPct:
-        activeTotal > 0 ? Math.round((doneCount / activeTotal) * 100) : 0,
+      done: progress.done,
+      committed: progress.committed,
+      backlog: progress.backlog,
+      completionPct: progress.pct,
       byStatus,
       byDivision,
       overdue: overdueRows.map((r) => ({

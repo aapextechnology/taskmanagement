@@ -66,6 +66,28 @@ the Owner layer.
 
 ## Automation Log
 
+- 2026-08-06 **Owner request: task-progress bar on the portfolio cards.** The rule
+  now lives in ONE place — `src/lib/tasks/progress.ts`, unit-tested — and both the
+  dashboard card and the Owner's progress-report PDF call it, so an event can never
+  show two different completion figures. **Rule: `pct = done / (total − backlog −
+  cancelled)`.** Backlog is out of the denominator (an idea, not a commitment) and
+  cancelled is out of both sides; **`blocked` deliberately stays in** — it is
+  committed, unfinished work, which is exactly what the Owner needs to see.
+  Two guards make the number safe on a cockpit: (1) the backlog count is always
+  rendered next to the bar, so `100% · +12 backlog` can never be misread as
+  "finished"; (2) with **no** committed work the card shows "No tasks planned yet"
+  and the PDF "no tasks committed yet" — never a dishonest 0% or 100%.
+  Status-weighting (`in_review` = 0.75) was considered and **rejected**: it is
+  unexplainable to a crew and invites arguing about the weights.
+  **This changed an already-delivered artifact** — the progress-report PDF
+  previously counted backlog in the denominator, so its percentage will now read
+  higher for events with a groomed backlog. Portfolio counts come from one grouped
+  query (`group by event_id, status`), not per-event, to avoid an N+1.
+  Verified live against seed data: 1/4 → 25%, 0/36 → 0%, 1/9 with +2 backlog → 11%,
+  and an event with only backlog → "No tasks planned yet"; PDF prints
+  `25% (1/4 committed tasks done)`, matching its card. Dashboard still measures
+  390px at a phone viewport with the extra bar.
+
 - 2026-08-06 **T-060..T-064 done — EPIC COMPLETE → ready-for-qa (Phase 2 complete)** — `/dashboard` (Owner/Admin gate): portfolio cards with countdown/phase/health/**burn-bar** (committed+actual vs planned, amber >90% red >100%), inline approvals queue calling the SAME `decideAction` as the approvals page, milestones-14d (high/urgent), cross-division blockers, overdue hotspots, activity feed. Channel fan-out in `notify()`: email (nodemailer→SMTP; matrix routing — everything except `unblocked`) + WhatsApp adapter (Meta Cloud API when `WHATSAPP_TOKEN`/`WHATSAPP_PHONE_ID` set, no-op otherwise — provider choice still open with Owner); per-user prefs on profiles (`email_notifications` default ON, `whatsapp_notifications` opt-in, migration 0007); fan-out only fires when the in-app row is new (dedup holds across channels) and never fails the caller. **mailpit** added to compose (UI localhost:8025, SMTP 1025) — verified live: `assigned` email landed in mailpit, `unblocked` correctly in-app only. Audit UI `/admin/audit` (filters: actor/entity/event/date, WIB). Ops gotchas: nginx needs a restart after app-container recreate (stale upstream IP → 502); **owner demo account was found deactivated (is_active=false, likely mis-clicked /admin toggle during QA) → reactivated via SQL** — consider a confirm-dialog on that toggle. **Human QA:** open the dashboard as owner, approve something inline, check mailpit at `localhost:8025` (server-side) for the emails; WhatsApp activates once credentials are provided.
 
 - 2026-08-06 **Owner decisions recorded**: notification channels = email + WhatsApp → added T-064 (WhatsApp adapter, P1, depends T-062). Currency = IDR default; threshold figures remain proposed defaults in `app_settings` until Owner confirms.

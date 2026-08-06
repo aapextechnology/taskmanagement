@@ -177,7 +177,13 @@ export function buildEventReportPdf(report: EventReport): Promise<Buffer> {
       ["Health", HEALTH_LABEL[report.event.health] ?? report.event.health],
       [
         "Task completion",
-        `${report.tasks.completionPct}%  (${report.tasks.done}/${report.tasks.total} tasks done)`,
+        report.tasks.completionPct === null
+          ? `no tasks committed yet${report.tasks.backlog > 0 ? ` (${report.tasks.backlog} in backlog)` : ""}`
+          : `${report.tasks.completionPct}%  (${report.tasks.done}/${report.tasks.committed} committed tasks done${
+              report.tasks.backlog > 0
+                ? `, ${report.tasks.backlog} still in backlog`
+                : ""
+            })`,
       ],
       [
         "Budget burn",

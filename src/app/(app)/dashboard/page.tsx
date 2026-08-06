@@ -72,6 +72,40 @@ export default async function DashboardPage() {
               <HealthBadge health={event.health} />
             </div>
             <Countdown target={event.showDate.toISOString()} className="text-lg" />
+
+            {/* task progress — done against COMMITTED work (backlog and
+                cancelled are out of the denominator). The backlog count is
+                always shown so 100% can never read as "nothing left". */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span>
+                  {event.progress.pct === null
+                    ? "No tasks planned yet"
+                    : `${event.progress.done}/${event.progress.committed} tasks done`}
+                </span>
+                <span className="flex shrink-0 items-center gap-2 tabular-nums">
+                  {event.progress.backlog > 0 ? (
+                    <span title="Backlog items are not counted in the percentage">
+                      +{event.progress.backlog} backlog
+                    </span>
+                  ) : null}
+                  {event.progress.pct !== null ? (
+                    <span className="font-medium text-foreground">
+                      {event.progress.pct}%
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+              <div className="h-1 overflow-hidden rounded-full bg-muted">
+                {event.progress.pct !== null ? (
+                  <div
+                    className="h-full bg-status-done"
+                    style={{ width: `${event.progress.pct}%` }}
+                  />
+                ) : null}
+              </div>
+            </div>
+
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{event.phaseName}</span>
               {event.burnPct !== null ? (
