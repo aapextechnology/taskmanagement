@@ -40,7 +40,7 @@ gates — so that every feature epic ships against one stack with consistent qua
 
 ### RVC theme foundation
 
-- [ ] **T-004** Design tokens from the RVC design language (monochrome, dark default + light), typography scale, ↗ motif link/action components, app shell (nav + page frame). No hardcoded colors outside tokens.
+- [x] **T-004** Design tokens from the RVC design language (monochrome, dark default + light), typography scale, ↗ motif link/action components, app shell (nav + page frame). No hardcoded colors outside tokens.
 
 ### CI pipeline
 
@@ -73,6 +73,7 @@ gates — so that every feature epic ships against one stack with consistent qua
 
 ## Automation Log
 
+- 2026-08-06 **T-004 done** — Monochrome tokens documented in `globals.css` (dark default `oklch(0.13 0 0)`, tight radius 0.375rem, no accent hues in chrome); next-themes with class attribute + shell toggle (icon swap is pure CSS `dark:` variant — the `setMounted`-in-effect pattern is now an eslint error under react-hooks v7); `ActionLink` ↗ motif, `Logo` lockup, `AppShell`; landing page on-brand. Token audit: zero hardcoded colors outside `globals.css`. Gotcha: pnpm 11 gates dependency build scripts via **`allowBuilds` in `pnpm-workspace.yaml`** (not package.json `pnpm.onlyBuiltDependencies`) — docker `--frozen-lockfile` install fails with ERR_PNPM_IGNORED_BUILDS until esbuild is allowed there. Deployed to DEV; smoke PASS.
 - 2026-08-06 **T-003 done** — Drizzle + postgres.js wired; first migration (`app_settings` org config KV) applied to the compose DB (host port 5438) and idempotent seed verified via psql; scripts `db:generate`/`db:migrate`/`seed`. Env loader `src/lib/env.ts` (zod): **lazy singleton via Proxy** — module import never throws (test envs stay clean) but first real access fails fast listing every missing var; 5 unit tests. Gotcha: Next augments `NodeJS.ProcessEnv` (required `NODE_ENV`), so `parseEnv` takes `Record<string, string|undefined>`. Seeded proposed approval thresholds A=10jt/B=100jt IDR — placeholder until Owner confirms (PRD open question).
 - 2026-08-06 **T-002 done** — Compose stack (postgres:17 + standalone Next image + nginx:1.27) up healthy; `scripts/deploy-dev.sh` smoke PASS at `http://localhost:3000/api/health` (nginx → app, SSE-ready `proxy_buffering off`). Decisions: Next `output: "standalone"` for the image; **host DB port 5438** — 5432–5437 are all occupied on this dev server, so `DATABASE_URL` for local tooling uses `localhost:5438` while in-network uses `db:5432`.
 - 2026-08-06 **T-001 done** — Next.js 16.3 (App Router, TS) + Tailwind 4 + shadcn/ui (radix base) scaffolded on `develop`; layout `src/{app,components,db,lib}` with `lib/types` seed enums; vitest wired (`utils.test.ts`, 3 passing); scripts `lint`/`typecheck` (`next typegen && tsc`)/`test`/`build` all green; gates qa+test+security PASS on real commands. Decision: `typecheck` must run `next typegen` first — Next 16 route types (`LayoutProps`) are generated, plain `tsc` fails without it.
