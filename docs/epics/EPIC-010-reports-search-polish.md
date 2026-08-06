@@ -61,6 +61,8 @@ polish for backstage use.
 
 ## Automation Log
 
+- 2026-08-06 **Early delivery (Owner request): Event Progress Report PDF** — `/api/events/[id]/report` (owner/admin, dashboard.view gate; downloads logged to audit). Data in `src/lib/reports/service.ts` (event/phase/health, task progress per division + overdue table + checklist rollup, budget rollup per line, approvals incl. pending items, handoffs, guest invites+submissions, run-of-show span); renderer `src/lib/reports/pdf.ts` (pdfkit, monochrome A4, auto-paginating tables; `serverExternalPackages: ["pdfkit"]` so standalone tracing ships the AFM fonts). Button "Progress report (PDF)" on the event workspace. Verified live: owner downloads valid PDF, staff gets 403. Distinct from T-101 settlement report (financial close-out) — that remains open.
+
 - 2026-08-06 Epic created by `/agentic-init` from PLAN §9 Phase 4 — pending kickoff.
 
 ## Dependencies

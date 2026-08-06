@@ -3,7 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { Countdown } from "@/components/countdown";
 import { HealthBadge } from "@/components/health-badge";
 import { PhaseSteps } from "@/components/phase-steps";
-import { Button } from "@/components/ui/button";
+import { FileDown } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { sessionActor } from "@/lib/auth/session-actor";
 import {
   getEvent,
@@ -141,7 +142,7 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
         ))}
       </nav>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-start gap-3">
         {canManageWorkflow ? (
           <WorkflowManager
             eventId={event.id}
@@ -155,6 +156,14 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
             allDivisions={allDivisions.map((d) => ({ id: d.id, name: d.name }))}
             activeIds={activeDivisions.map((d) => d.id)}
           />
+        ) : null}
+        {can(actor, "dashboard.view") ? (
+          <a
+            href={`/api/events/${event.id}/report`}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            <FileDown className="size-3.5" /> Progress report (PDF)
+          </a>
         ) : null}
       </div>
     </section>
