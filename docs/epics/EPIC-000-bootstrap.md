@@ -1,6 +1,6 @@
 # EPIC-000: Bootstrap & Foundation
 
-status: on-progress
+status: ready-for-qa
 environment: dev
 phase: 0
 priority: P0
@@ -44,11 +44,11 @@ gates — so that every feature epic ships against one stack with consistent qua
 
 ### CI pipeline
 
-- [ ] **T-005** CI on PR + `develop`: lint + typecheck + build + test with caching; required status check.
+- [x] **T-005** CI on PR + `develop`: lint + typecheck + build + test with caching; required status check.
 
 ### Gates & shared components
 
-- [ ] **T-006** Point `scripts/{qa,test,security-check}.sh` at the real project commands; build the shared countdown-timer component (used by every event workspace).
+- [x] **T-006** Point `scripts/{qa,test,security-check}.sh` at the real project commands; build the shared countdown-timer component (used by every event workspace).
 
 ## Acceptance Criteria
 
@@ -73,6 +73,7 @@ gates — so that every feature epic ships against one stack with consistent qua
 
 ## Automation Log
 
+- 2026-08-06 **T-005 + T-006 done — EPIC COMPLETE → ready-for-qa** — CI workflow `.github/workflows/ci.yml` (pnpm cache, lint/typecheck/test/build on PR + develop/main); countdown: pure `src/lib/countdown.ts` (4 unit tests) + `Countdown` client component (SSR-safe, ticks 1s). Gates qa/test/security all PASS; suite 12 tests green. **Human QA notes:** (1) the "broken PR goes red" + required-status-check checks need a GitHub remote — repo has none yet; add origin, push, and mark the check required; (2) visual review of dark/light themes in a browser recommended.
 - 2026-08-06 **T-004 done** — Monochrome tokens documented in `globals.css` (dark default `oklch(0.13 0 0)`, tight radius 0.375rem, no accent hues in chrome); next-themes with class attribute + shell toggle (icon swap is pure CSS `dark:` variant — the `setMounted`-in-effect pattern is now an eslint error under react-hooks v7); `ActionLink` ↗ motif, `Logo` lockup, `AppShell`; landing page on-brand. Token audit: zero hardcoded colors outside `globals.css`. Gotcha: pnpm 11 gates dependency build scripts via **`allowBuilds` in `pnpm-workspace.yaml`** (not package.json `pnpm.onlyBuiltDependencies`) — docker `--frozen-lockfile` install fails with ERR_PNPM_IGNORED_BUILDS until esbuild is allowed there. Deployed to DEV; smoke PASS.
 - 2026-08-06 **T-003 done** — Drizzle + postgres.js wired; first migration (`app_settings` org config KV) applied to the compose DB (host port 5438) and idempotent seed verified via psql; scripts `db:generate`/`db:migrate`/`seed`. Env loader `src/lib/env.ts` (zod): **lazy singleton via Proxy** — module import never throws (test envs stay clean) but first real access fails fast listing every missing var; 5 unit tests. Gotcha: Next augments `NodeJS.ProcessEnv` (required `NODE_ENV`), so `parseEnv` takes `Record<string, string|undefined>`. Seeded proposed approval thresholds A=10jt/B=100jt IDR — placeholder until Owner confirms (PRD open question).
 - 2026-08-06 **T-002 done** — Compose stack (postgres:17 + standalone Next image + nginx:1.27) up healthy; `scripts/deploy-dev.sh` smoke PASS at `http://localhost:3000/api/health` (nginx → app, SSE-ready `proxy_buffering off`). Decisions: Next `output: "standalone"` for the image; **host DB port 5438** — 5432–5437 are all occupied on this dev server, so `DATABASE_URL` for local tooling uses `localhost:5438` while in-network uses `db:5432`.
