@@ -28,7 +28,7 @@ gates — so that every feature epic ships against one stack with consistent qua
 
 ### App scaffold & repo layout
 
-- [ ] **T-001** Scaffold Next.js (App Router, TypeScript) + Tailwind + shadcn/ui; layout `src/{app,lib,db,components}`; `lint` / `typecheck` / `test` / `build` scripts; pnpm.
+- [x] **T-001** Scaffold Next.js (App Router, TypeScript) + Tailwind + shadcn/ui; layout `src/{app,lib,db,components}`; `lint` / `typecheck` / `test` / `build` scripts; pnpm.
 
 ### Local dev stack
 
@@ -73,6 +73,7 @@ gates — so that every feature epic ships against one stack with consistent qua
 
 ## Automation Log
 
+- 2026-08-06 **T-001 done** — Next.js 16.3 (App Router, TS) + Tailwind 4 + shadcn/ui (radix base) scaffolded on `develop`; layout `src/{app,components,db,lib}` with `lib/types` seed enums; vitest wired (`utils.test.ts`, 3 passing); scripts `lint`/`typecheck` (`next typegen && tsc`)/`test`/`build` all green; gates qa+test+security PASS on real commands. Decision: `typecheck` must run `next typegen` first — Next 16 route types (`LayoutProps`) are generated, plain `tsc` fails without it.
 - 2026-08-06 `/agentic-init new` bootstrapped the repo — manifest, gates, `.claude/` wiring, and the full docs set (PRD → stories → AC → tasks → backlog → 11 epics across phases 0–4) synthesized from `docs/PLAN.en.md`. Git repo initialized (`main`); loop disabled by default; no hooks template in kit (skipped gracefully).
 
 ## Dependencies
