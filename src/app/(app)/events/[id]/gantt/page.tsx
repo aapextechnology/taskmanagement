@@ -235,7 +235,7 @@ function GanttGridRow({
     return (
       <>
         <div
-          className="sticky left-0 z-10 border-b bg-card px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+          className="sticky left-0 z-20 border-b bg-card px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
           style={{ gridColumn: 1, gridRow }}
         >
           Task
@@ -258,13 +258,22 @@ function GanttGridRow({
   }
 
   if (item.kind === "division") {
+    // name lives in the FROZEN first column (Owner bug report: it used to
+    // span the whole grid and scrolled away); the filler keeps the band
     return (
-      <div
-        className="border-b bg-muted/40 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
-        style={{ gridColumn: "1 / -1", gridRow }}
-      >
-        {item.name}
-      </div>
+      <>
+        <div
+          className="sticky left-0 z-20 border-b bg-card px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
+          style={{ gridColumn: 1, gridRow }}
+        >
+          {item.name}
+        </div>
+        <div
+          aria-hidden
+          className="border-b bg-muted/40"
+          style={{ gridColumn: "2 / -1", gridRow }}
+        />
+      </>
     );
   }
 
@@ -275,7 +284,7 @@ function GanttGridRow({
   return (
     <>
       <div
-        className="sticky left-0 z-10 flex items-center gap-1.5 truncate border-b bg-card px-3 py-1.5 text-xs"
+        className="sticky left-0 z-20 flex items-center gap-1.5 truncate border-b bg-card px-3 py-1.5 text-xs"
         style={{ gridColumn: 1, gridRow }}
       >
         <StatusDot status={row.status} />
