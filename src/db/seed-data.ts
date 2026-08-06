@@ -446,6 +446,67 @@ export const DEMO_APPROVALS: Array<{
   },
 ];
 
+export const DEMO_BUDGETS: Array<{
+  id: string;
+  eventId: string;
+  lines: Array<{ id: string; divisionId: string; name: string; plannedAmount: number }>;
+}> = [
+  {
+    id: "00000000-0000-4000-8000-00000000b901",
+    eventId: EVENT_IDS.neonHorizon,
+    lines: [
+      { id: "00000000-0000-4000-8000-00000000bd01", divisionId: "production", name: "Stage & production", plannedAmount: 600_000_000 },
+      { id: "00000000-0000-4000-8000-00000000bd02", divisionId: "marketing-communications", name: "Campaign & content", plannedAmount: 250_000_000 },
+      { id: "00000000-0000-4000-8000-00000000bd03", divisionId: "operations-logistics", name: "Logistics & freight", plannedAmount: 200_000_000 },
+    ],
+  },
+  {
+    id: "00000000-0000-4000-8000-00000000b902",
+    eventId: EVENT_IDS.yeLive,
+    lines: [
+      { id: "00000000-0000-4000-8000-00000000bd04", divisionId: "production", name: "Stage, sound & lights", plannedAmount: 1_500_000_000 },
+      { id: "00000000-0000-4000-8000-00000000bd05", divisionId: "legal-licensing", name: "Permits & licensing", plannedAmount: 100_000_000 },
+      { id: "00000000-0000-4000-8000-00000000bd06", divisionId: "operations-logistics", name: "Crew & catering", plannedAmount: 150_000_000 },
+    ],
+  },
+];
+
+// expenses linked to the seeded pending approvals (ab01/ab03)
+export const DEMO_EXPENSES: Array<{
+  id: string;
+  approvalId: string;
+  eventId: string;
+  divisionId: string;
+  budgetLineId?: string;
+  title: string;
+  vendor?: string;
+  amount: number;
+  requestedByEmail: string;
+}> = [
+  {
+    id: "00000000-0000-4000-8000-00000000ef01",
+    approvalId: "00000000-0000-4000-8000-00000000ab01",
+    eventId: EVENT_IDS.neonHorizon,
+    divisionId: "production",
+    budgetLineId: "00000000-0000-4000-8000-00000000bd01",
+    title: "PA system rental — main stage",
+    vendor: "Sound Supply Co.",
+    amount: 85_000_000,
+    requestedByEmail: "staff.production@rawvision.demo",
+  },
+  {
+    id: "00000000-0000-4000-8000-00000000ef02",
+    approvalId: "00000000-0000-4000-8000-00000000ab03",
+    eventId: EVENT_IDS.yeLive,
+    divisionId: "operations-logistics",
+    budgetLineId: "00000000-0000-4000-8000-00000000bd06",
+    title: "Crew catering — load-in week",
+    vendor: "Dapur Kita Catering",
+    amount: 7_500_000,
+    requestedByEmail: "staff.ops@rawvision.demo",
+  },
+];
+
 export const DEMO_NOTIFICATIONS: Array<{
   userEmail: string;
   type: "assigned" | "mentioned" | "handoff_request" | "overdue";

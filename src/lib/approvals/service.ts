@@ -231,6 +231,11 @@ export async function decide(
       .update(approvals)
       .set({ status: finalStatus, decidedAt: new Date() })
       .where(eq(approvals.id, approvalId));
+    if (approval.type === "expense") {
+      // lazy import avoids a static service cycle (budgets → approvals)
+      const { syncExpenseWithApproval } = await import("@/lib/budgets/service");
+      await syncExpenseWithApproval(approvalId, finalStatus);
+    }
     await notify({
       userId: approval.requestedBy,
       type: "approval_decided",

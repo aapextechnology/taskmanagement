@@ -133,9 +133,12 @@ export async function setArchived(
 
 // ---- health (T-023) -------------------------------------------------------
 
-// Signal gathering. Task signals live (EPIC-003); budget joins with EPIC-005.
+// Signal gathering. Task signals live (EPIC-003); budget signals live (EPIC-005).
 async function gatherSignals(eventId: string): Promise<HealthSignals> {
   const now = new Date();
+  // lazy import avoids a static service cycle (budgets → events)
+  const { budgetHealthSignals } = await import("@/lib/budgets/service");
+  const budget = await budgetHealthSignals(eventId);
 
   const [overdueRow] = await db
     .select({ count: sql<number>`count(*)::int` })
@@ -155,6 +158,7 @@ async function gatherSignals(eventId: string): Promise<HealthSignals> {
   return {
     overdueTasks: overdueRow?.count ?? 0,
     blockedOnCriticalPath: (blockedRow?.count ?? 0) > 0,
+    ...budget,
   };
 }
 

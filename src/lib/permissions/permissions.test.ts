@@ -202,6 +202,17 @@ describe("finance — the sharpest visibility rules", () => {
     expect(can(staffProduction, "expense.create", prod)).toBe(true);
     expect(can(staffProduction, "expense.create", marketing)).toBe(false);
   });
+
+  it("budget.manage + expense.markPaid: owner/admin/finance members only", () => {
+    for (const cap of ["budget.manage", "expense.markPaid"] as const) {
+      expect(can(owner, cap)).toBe(true);
+      expect(can(admin, cap)).toBe(true);
+      expect(can(staffFinance, cap)).toBe(true);
+      expect(can(headProduction, cap)).toBe(false);
+      expect(can(staffProduction, cap)).toBe(false);
+      expect(can(external, cap)).toBe(false);
+    }
+  });
 });
 
 describe("approvals — Admin is deliberately powerless here", () => {

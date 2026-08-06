@@ -1,6 +1,6 @@
 # EPIC-005: Budgets & Expenses
 
-status: backlog
+status: ready-for-qa
 environment: dev
 phase: 2
 priority: P1
@@ -27,19 +27,19 @@ Owner — with financial data scoped exactly per the permission matrix.
 
 ### Schema
 
-- [ ] **T-050** Schema `budgets`, `budget_lines`, `expense_requests`; amounts in integer minor units; currency from org settings.
+- [x] **T-050** Schema `budgets`, `budget_lines`, `expense_requests`; amounts in integer minor units; currency from org settings.
 
 ### Budget setup & visibility
 
-- [ ] **T-051** Budget setup UI (event → division lines); visibility via permission module: Owner/Admin/Finance all, Head own division only, Staff/External none.
+- [x] **T-051** Budget setup UI (event → division lines); visibility via permission module: Owner/Admin/Finance all, Head own division only, Staff/External none.
 
 ### Expense flow
 
-- [ ] **T-052** Expense request → threshold-routed approval chain (EPIC-004); on approve → committed; on payment marked → actual. State transitions logged.
+- [x] **T-052** Expense request → threshold-routed approval chain (EPIC-004); on approve → committed; on payment marked → actual. State transitions logged.
 
 ### Rollup views
 
-- [ ] **T-053** Views: per event, per division, portfolio totals — committed vs actual vs budget, reconciling with line data.
+- [x] **T-053** Views: per event, per division, portfolio totals — committed vs actual vs budget, reconciling with line data.
 
 ## Acceptance Criteria
 
@@ -60,6 +60,8 @@ Owner — with financial data scoped exactly per the permission matrix.
 > Each task also satisfies `../DEFINITION-OF-DONE.md`.
 
 ## Automation Log
+
+- 2026-08-06 **T-050..T-053 done — EPIC COMPLETE → ready-for-qa** — `budgets` (one per event, unique) + `budget_lines` + `expense_requests` (migration 0006), integer IDR everywhere. Money flow: planned → committed (approval chain fully approved, synced from EPIC-004 `decide()` via lazy import) → actual (`markExpensePaid`). New caps `budget.manage` + `expense.markPaid` = owner/admin/finance members (75 tests green). Committed/actual always DERIVED from expense rows, never stored. Budget burn now feeds event health (`budgetHealthSignals` → gatherSignals). Live service E2E verified: line guard (head cannot manage), full flow pending→committed→paid with correct rollups, visibility matrix (marketing head blind to production lines, staff sees no lines but own expenses), pay guard. UI: `/events/[id]/budget` — totals strip (Planned/Committed/Actual/Remaining), per-line table with over-budget highlighting, line management (finance), expense form wired into the approval engine with "chain ↗" links, Mark-paid button. Demo: 6 lines across 2 events + 2 expenses linked to the pending demo approvals. Seed gotcha: budgets are unique per event — resolve the existing budget id instead of assuming the fixed seed id. **Human QA:** approve "PA system rental" as head.production@ + head.finance@ → watch it turn Committed on the budget page → Mark paid as finance → Actual moves; check a Head sees only their division's lines.
 
 - 2026-08-06 Epic created by `/agentic-init` from PLAN §6.8 — pending kickoff.
 

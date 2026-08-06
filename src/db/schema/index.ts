@@ -6,6 +6,7 @@
 export * from "./activity";
 export * from "./app-settings";
 export * from "./approvals";
+export * from "./budgets";
 export * from "./collab";
 export * from "./events";
 export * from "./notifications";

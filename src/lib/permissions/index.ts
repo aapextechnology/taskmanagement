@@ -52,7 +52,9 @@ export type Capability =
   | "submission.review" // review queue of a division (ctx.divisionId)
   // finance
   | "expense.create" // in a division (ctx.divisionId)
+  | "expense.markPaid" // committed → paid (finance operation)
   | "budget.view" // a division's budget (ctx.divisionId)
+  | "budget.manage" // create/edit budget lines (finance operation)
   // approvals
   | "approve.tier1" // division-level (ctx.divisionId)
   | "approve.final"; // high-value / contracts / artist offers
@@ -177,6 +179,11 @@ export function can(
       if (isOwnerOrAdmin || isFinanceMember(actor)) return true;
       // a Head sees only their own division's budget
       return isHeadOf(actor, ctx.divisionId);
+
+    case "budget.manage":
+    case "expense.markPaid":
+      // structuring budgets and recording payments is a Finance operation
+      return isOwnerOrAdmin || isFinanceMember(actor);
 
     // ---- approvals ----------------------------------------------------
     case "approve.tier1":

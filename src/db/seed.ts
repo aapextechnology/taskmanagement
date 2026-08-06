@@ -7,7 +7,10 @@ import {
   appSettings,
   approvals,
   approvalSteps,
+  budgetLines,
+  budgets,
   comments,
+  expenseRequests,
   divisionMembers,
   divisions,
   eventDivisions,
@@ -25,8 +28,10 @@ import {
 } from "./schema";
 import {
   DEMO_APPROVALS,
+  DEMO_BUDGETS,
   DEMO_COMMENTS,
   DEMO_EVENTS,
+  DEMO_EXPENSES,
   DEMO_HANDOFFS,
   DEMO_LABELS,
   DEMO_NOTIFICATIONS,
@@ -303,6 +308,52 @@ const steps: Array<{ name: string; run: () => Promise<void> }> = [
           );
         }
       }
+    },
+  },
+  {
+    name: `demo budgets (${DEMO_BUDGETS.length}) + expenses (${DEMO_EXPENSES.length})`,
+    run: async () => {
+      for (const b of DEMO_BUDGETS) {
+        // one budget per event (unique) — a row may already exist with a
+        // different id, so resolve the real id instead of assuming ours
+        await db
+          .insert(budgets)
+          .values({ id: b.id, eventId: b.eventId })
+          .onConflictDoNothing();
+        const [budget] = await db
+          .select({ id: budgets.id })
+          .from(budgets)
+          .where(eq(budgets.eventId, b.eventId))
+          .limit(1);
+        await db
+          .insert(budgetLines)
+          .values(
+            b.lines.map((l) => ({
+              id: l.id,
+              budgetId: budget.id,
+              divisionId: l.divisionId,
+              name: l.name,
+              plannedAmount: l.plannedAmount,
+            })),
+          )
+          .onConflictDoNothing();
+      }
+      await db
+        .insert(expenseRequests)
+        .values(
+          DEMO_EXPENSES.map((e) => ({
+            id: e.id,
+            approvalId: e.approvalId,
+            eventId: e.eventId,
+            divisionId: e.divisionId,
+            budgetLineId: e.budgetLineId ?? null,
+            title: e.title,
+            vendor: e.vendor ?? "",
+            amount: e.amount,
+            requestedBy: uid(e.requestedByEmail),
+          })),
+        )
+        .onConflictDoNothing();
     },
   },
   {
