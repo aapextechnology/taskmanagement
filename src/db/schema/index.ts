@@ -8,6 +8,7 @@ export * from "./app-settings";
 export * from "./approvals";
 export * from "./budgets";
 export * from "./collab";
+export * from "./documents";
 export * from "./events";
 export * from "./external";
 export * from "./notifications";

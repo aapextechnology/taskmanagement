@@ -33,9 +33,9 @@ show — replacing planning spreadsheets.
 
 - [x] **T-081** Calendar view: per-event and global; deadlines, milestones, show dates; entries deep-link to tasks/events.
 
-### Document library
+### Document library ✅
 
-- [ ] **T-082** `documents` schema + `/events/[id]/documents`: upload, categorize (contract / permit / rider / stage plot), division-level access control via permission module; files auth-gated on `/uploads`.
+- [x] **T-082** `documents` schema + `/events/[id]/documents`: upload, categorize (contract / permit / rider / stage plot), division-level access control via permission module; files auth-gated on `/uploads`.
 
 ### Run of show
 

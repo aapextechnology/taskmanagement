@@ -242,6 +242,41 @@ describe("approvals — Admin is deliberately powerless here", () => {
   });
 });
 
+describe("documents — division scoped (EPIC-008 T-082)", () => {
+  it("document.view: owner/admin/org.viewAllDivisions holders reach any division", () => {
+    expect(can(owner, "document.view", marketing)).toBe(true);
+    expect(can(admin, "document.view", marketing)).toBe(true);
+  });
+
+  it("document.view: a head or staff member of the target division PASSes", () => {
+    expect(can(headProduction, "document.view", prod)).toBe(true);
+    expect(can(staffProduction, "document.view", prod)).toBe(true);
+  });
+
+  it("document.view: CROSS-DIVISION access is denied for members", () => {
+    expect(can(headProduction, "document.view", marketing)).toBe(false);
+    expect(can(staffProduction, "document.view", marketing)).toBe(false);
+    expect(can(memberNoDivision, "document.view", prod)).toBe(false);
+  });
+
+  it("document.manage: owner, admin, head, and staff of the division PASS", () => {
+    expect(can(owner, "document.manage", prod)).toBe(true);
+    expect(can(admin, "document.manage", prod)).toBe(true);
+    expect(can(headProduction, "document.manage", prod)).toBe(true);
+    expect(can(staffProduction, "document.manage", prod)).toBe(true);
+  });
+
+  it("document.manage: CROSS-DIVISION access is denied for members", () => {
+    expect(can(staffFinance, "document.manage", prod)).toBe(false);
+    expect(can(memberNoDivision, "document.manage", prod)).toBe(false);
+  });
+
+  it("externals are denied both document.view and document.manage", () => {
+    expect(can(external, "document.view", prod)).toBe(false);
+    expect(can(external, "document.manage", prod)).toBe(false);
+  });
+});
+
 describe("canDecideApprovalStep (EPIC-004)", () => {
   const headFinance: Actor = {
     id: "u-head-fin",

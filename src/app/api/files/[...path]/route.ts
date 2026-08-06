@@ -1,13 +1,19 @@
 import { createReadStream, existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { Readable } from "node:stream";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { db } from "@/db";
+import { documents } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { sessionActor } from "@/lib/auth/session-actor";
 import { env } from "@/lib/env";
+import { can } from "@/lib/permissions";
 
 // Auth-gated file serving (posters now, attachments in EPIC-003). Files live
 // under UPLOADS_DIR and are NEVER served by nginx directly — every download
-// passes this session check.
+// passes this session check. Paths under documents/ get an EXTRA
+// division-scoped check (EPIC-008 T-082) via document.view.
 
 const CONTENT_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -36,6 +42,25 @@ export async function GET(
   }
   if (!existsSync(target) || !statSync(target).isFile()) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const relativePath = path.relative(uploadsRoot, target).split(path.sep).join("/");
+  if (relativePath.startsWith("documents/")) {
+    const [row] = await db
+      .select({ divisionId: documents.divisionId })
+      .from(documents)
+      .where(eq(documents.filePath, relativePath))
+      .limit(1);
+    if (!row) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    const actor = await sessionActor();
+    if (!actor) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!can(actor, "document.view", { divisionId: row.divisionId })) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   const contentType =

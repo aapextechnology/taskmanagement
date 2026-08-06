@@ -59,7 +59,10 @@ export type Capability =
   | "budget.manage" // create/edit budget lines (finance operation)
   // approvals
   | "approve.tier1" // division-level (ctx.divisionId)
-  | "approve.final"; // high-value / contracts / artist offers
+  | "approve.final" // high-value / contracts / artist offers
+  // documents (EPIC-008 T-082)
+  | "document.view" // a division's document library (ctx.divisionId)
+  | "document.manage"; // upload into a division (ctx.divisionId)
 
 export interface PermissionContext {
   /** division the action targets (source division for handoffs) */
@@ -196,6 +199,17 @@ export function can(
 
     case "approve.final":
       return role === "owner";
+
+    // ---- documents ------------------------------------------------------
+    case "document.view":
+      return (
+        isOwnerOrAdmin ||
+        can(actor, "org.viewAllDivisions") ||
+        membershipIn(actor, ctx.divisionId) !== undefined
+      );
+
+    case "document.manage":
+      return isOwnerOrAdmin || membershipIn(actor, ctx.divisionId) !== undefined;
 
     default: {
       // exhaustiveness guard — a new Capability must be handled explicitly
