@@ -64,7 +64,9 @@ export type Capability =
   | "document.view" // a division's document library (ctx.divisionId)
   | "document.manage" // upload into a division (ctx.divisionId)
   // run of show (EPIC-008 T-083)
-  | "runofshow.manage"; // edit the show-day rundown (Production/Ops)
+  | "runofshow.manage" // edit the show-day rundown (Production/Ops)
+  // ticket sales (EPIC-009 T-093)
+  | "tickets.record"; // daily ticket sales snapshots (Ticketing division)
 
 export interface PermissionContext {
   /** division the action targets (source division for handoffs) */
@@ -202,6 +204,13 @@ export function can(
 
     case "approve.final":
       return role === "owner";
+
+    case "tickets.record":
+      // Ticketing & Sales enters the dailies (PLAN §6.11); owner/admin too
+      return (
+        isOwnerOrAdmin ||
+        actor.memberships.some((m) => m.divisionId === "ticketing-sales")
+      );
 
     // ---- documents ------------------------------------------------------
     case "document.view":

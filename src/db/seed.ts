@@ -16,6 +16,8 @@ import {
   eventDivisions,
   eventPhases,
   events,
+  eventTemplateItems,
+  eventTemplates,
   externalInvites,
   runOfShowItems,
   handoffs,
@@ -28,6 +30,7 @@ import {
   taskLabels,
   tasks,
   taskWatchers,
+  ticketSalesSnapshots,
 } from "./schema";
 import {
   DEMO_APPROVALS,
@@ -37,6 +40,10 @@ import {
   DEMO_EXPENSES,
   DEMO_GUEST_TOKEN,
   DEMO_INVITE,
+  DEMO_TICKET_DAYS,
+  EVENT_IDS,
+  PLAYBOOK_ITEMS,
+  PLAYBOOK_TEMPLATE_ID,
   DEMO_RUN_OF_SHOW,
   DEMO_HANDOFFS,
   DEMO_LABELS,
@@ -439,6 +446,60 @@ const steps: Array<{ name: string; run: () => Promise<void> }> = [
             durationMinutes: item.durationMinutes ?? null,
             title: item.title,
             note: item.note ?? "",
+          })),
+        )
+        .onConflictDoNothing();
+    },
+  },
+  {
+    name: `"International Concert" playbook (${PLAYBOOK_ITEMS.length} items)`,
+    run: async () => {
+      await db
+        .insert(eventTemplates)
+        .values({
+          id: PLAYBOOK_TEMPLATE_ID,
+          name: "International Concert",
+          description:
+            "Standard checklist for an international-scale concert — every division, lead times counted back from show day.",
+        })
+        .onConflictDoNothing();
+      await db
+        .insert(eventTemplateItems)
+        .values(
+          PLAYBOOK_ITEMS.map((item, index) => ({
+            id: item.id,
+            templateId: PLAYBOOK_TEMPLATE_ID,
+            divisionId: item.divisionId,
+            title: item.title,
+            priority: item.priority,
+            offsetDays: item.offsetDays,
+            sortOrder: index,
+          })),
+        )
+        .onConflictDoNothing();
+    },
+  },
+  {
+    name: `demo ticket snapshots (${DEMO_TICKET_DAYS.length} days)`,
+    run: async () => {
+      const [event] = await db
+        .select({ showDate: events.showDate })
+        .from(events)
+        .where(eq(events.id, EVENT_IDS.neonHorizon))
+        .limit(1);
+      if (!event) return;
+      const { wibDayKey } = await import("@/lib/tickets/service");
+      await db
+        .insert(ticketSalesSnapshots)
+        .values(
+          DEMO_TICKET_DAYS.map((d) => ({
+            eventId: EVENT_IDS.neonHorizon,
+            day: wibDayKey(
+              new Date(event.showDate.getTime() - d.offsetFromShowDays * 86_400_000),
+            ),
+            ticketsSold: d.ticketsSold,
+            revenue: d.revenue,
+            recordedBy: uid("head.ticketing@rawvision.demo"),
           })),
         )
         .onConflictDoNothing();

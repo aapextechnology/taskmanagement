@@ -347,6 +347,26 @@ describe("run of show (EPIC-008 T-083)", () => {
   });
 });
 
+describe("tickets.record (EPIC-009)", () => {
+  const staffTicketing: Actor = {
+    id: "u-staff-tix",
+    role: "member",
+    memberships: [{ divisionId: "ticketing-sales", role: "staff" }],
+  };
+
+  it("ticketing members (any role) + owner/admin record dailies", () => {
+    expect(can(staffTicketing, "tickets.record")).toBe(true);
+    expect(can(owner, "tickets.record")).toBe(true);
+    expect(can(admin, "tickets.record")).toBe(true);
+  });
+
+  it("other divisions and externals cannot", () => {
+    expect(can(headProduction, "tickets.record")).toBe(false);
+    expect(can(staffFinance, "tickets.record")).toBe(false);
+    expect(can(external, "tickets.record")).toBe(false);
+  });
+});
+
 describe("assertCan", () => {
   it("passes silently when allowed", () => {
     expect(() => assertCan(owner, "org.manage")).not.toThrow();

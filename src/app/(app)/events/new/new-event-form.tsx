@@ -1,12 +1,17 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createEventAction, type EventActionState } from "../actions";
 
-export function NewEventForm() {
+export function NewEventForm({
+  templates = [],
+}: {
+  templates?: Array<{ id: string; name: string; itemCount: number }>;
+}) {
+  const [templateId, setTemplateId] = useState("");
   const [state, formAction, pending] = useActionState<EventActionState, FormData>(
     createEventAction,
     {},
@@ -14,6 +19,43 @@ export function NewEventForm() {
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
+      <input type="hidden" name="templateId" value={templateId} />
+      {templates.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          <Label>Playbook — pre-fill every division&apos;s checklist</Label>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setTemplateId("")}
+              aria-pressed={templateId === ""}
+              className={
+                "rounded-full border px-3 py-1.5 text-xs transition-all " +
+                (templateId === ""
+                  ? "border-foreground bg-foreground font-medium text-background"
+                  : "text-muted-foreground hover:border-foreground/40 hover:text-foreground")
+              }
+            >
+              Blank event
+            </button>
+            {templates.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTemplateId(t.id)}
+                aria-pressed={templateId === t.id}
+                className={
+                  "rounded-full border px-3 py-1.5 text-xs transition-all " +
+                  (templateId === t.id
+                    ? "border-foreground bg-foreground font-medium text-background"
+                    : "text-muted-foreground hover:border-foreground/40 hover:text-foreground")
+                }
+              >
+                {t.name} · {t.itemCount} tasks
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="flex flex-col gap-2">
         <Label htmlFor="ev-name">Event name</Label>
         <Input id="ev-name" name="name" required placeholder="YE Live in Jakarta" />

@@ -552,6 +552,77 @@ export const DEMO_RUN_OF_SHOW: Array<{
   { id: "00000000-0000-4000-8000-00000000dd06", eventId: EVENT_IDS.neonHorizon, startTime: "22:00", title: "Curfew — hard stop", note: "Venue license limit" },
 ];
 
+// T-091: the default "International Concert" playbook — offsets are days
+// BEFORE show day. Content mirrors PLAN §3 division responsibilities.
+export const PLAYBOOK_TEMPLATE_ID = "00000000-0000-4000-8000-0000000ee001";
+
+export const PLAYBOOK_ITEMS: Array<{
+  id: string;
+  divisionId: string;
+  title: string;
+  priority: "low" | "medium" | "high" | "urgent";
+  offsetDays: number;
+}> = [
+  // Talent & Booking
+  { id: "00000000-0000-4000-8000-0000000e1001", divisionId: "talent-booking", title: "Artist shortlist & availability check", priority: "high", offsetDays: 180 },
+  { id: "00000000-0000-4000-8000-0000000e1002", divisionId: "talent-booking", title: "Send offers & negotiate fees", priority: "high", offsetDays: 150 },
+  { id: "00000000-0000-4000-8000-0000000e1003", divisionId: "talent-booking", title: "Sign booking contracts & intake riders", priority: "urgent", offsetDays: 120 },
+  // Production
+  { id: "00000000-0000-4000-8000-0000000e1004", divisionId: "production", title: "Technical rider review & advance", priority: "high", offsetDays: 90 },
+  { id: "00000000-0000-4000-8000-0000000e1005", divisionId: "production", title: "Stage, sound & rigging vendor contracts", priority: "high", offsetDays: 75 },
+  { id: "00000000-0000-4000-8000-0000000e1006", divisionId: "production", title: "Site build & production schedule", priority: "high", offsetDays: 30 },
+  { id: "00000000-0000-4000-8000-0000000e1007", divisionId: "production", title: "Soundcheck schedule locked", priority: "medium", offsetDays: 7 },
+  // Operations & Logistics
+  { id: "00000000-0000-4000-8000-0000000e1008", divisionId: "operations-logistics", title: "Venue booking & site survey", priority: "urgent", offsetDays: 150 },
+  { id: "00000000-0000-4000-8000-0000000e1009", divisionId: "operations-logistics", title: "Freight & customs plan for international gear", priority: "high", offsetDays: 60 },
+  { id: "00000000-0000-4000-8000-0000000e100a", divisionId: "operations-logistics", title: "Accommodation & ground transport booked", priority: "medium", offsetDays: 45 },
+  { id: "00000000-0000-4000-8000-0000000e100b", divisionId: "operations-logistics", title: "Accreditation system ready", priority: "medium", offsetDays: 21 },
+  // Security & Safety
+  { id: "00000000-0000-4000-8000-0000000e100c", divisionId: "security-safety", title: "Crowd management plan draft", priority: "high", offsetDays: 60 },
+  { id: "00000000-0000-4000-8000-0000000e100d", divisionId: "security-safety", title: "Security vendor contracted", priority: "high", offsetDays: 45 },
+  { id: "00000000-0000-4000-8000-0000000e100e", divisionId: "security-safety", title: "Medical & emergency response plan", priority: "high", offsetDays: 30 },
+  // Hospitality & Artist Liaison
+  { id: "00000000-0000-4000-8000-0000000e100f", divisionId: "hospitality-artist-liaison", title: "Hospitality rider fulfillment plan", priority: "medium", offsetDays: 45 },
+  { id: "00000000-0000-4000-8000-0000000e1010", divisionId: "hospitality-artist-liaison", title: "Green room & backstage setup plan", priority: "medium", offsetDays: 14 },
+  { id: "00000000-0000-4000-8000-0000000e1011", divisionId: "hospitality-artist-liaison", title: "VIP guest list & handling brief", priority: "medium", offsetDays: 7 },
+  // Marketing & Communications
+  { id: "00000000-0000-4000-8000-0000000e1012", divisionId: "marketing-communications", title: "Key visual & brand asset pack", priority: "high", offsetDays: 120 },
+  { id: "00000000-0000-4000-8000-0000000e1013", divisionId: "marketing-communications", title: "Announcement & on-sale campaign", priority: "urgent", offsetDays: 90 },
+  { id: "00000000-0000-4000-8000-0000000e1014", divisionId: "marketing-communications", title: "Content calendar through show week", priority: "medium", offsetDays: 60 },
+  { id: "00000000-0000-4000-8000-0000000e1015", divisionId: "marketing-communications", title: "Media partners & PR plan", priority: "medium", offsetDays: 45 },
+  // Ticketing & Sales
+  { id: "00000000-0000-4000-8000-0000000e1016", divisionId: "ticketing-sales", title: "Ticketing platform setup & pricing tiers", priority: "urgent", offsetDays: 95 },
+  { id: "00000000-0000-4000-8000-0000000e1017", divisionId: "ticketing-sales", title: "Presale wave 1 live", priority: "high", offsetDays: 85 },
+  { id: "00000000-0000-4000-8000-0000000e1018", divisionId: "ticketing-sales", title: "Box office & gate operations plan", priority: "high", offsetDays: 14 },
+  // Sponsorship & Partnership
+  { id: "00000000-0000-4000-8000-0000000e1019", divisionId: "sponsorship-partnership", title: "Sponsor deck & pipeline build", priority: "medium", offsetDays: 120 },
+  { id: "00000000-0000-4000-8000-0000000e101a", divisionId: "sponsorship-partnership", title: "Close sponsor deals & contracts", priority: "high", offsetDays: 60 },
+  { id: "00000000-0000-4000-8000-0000000e101b", divisionId: "sponsorship-partnership", title: "Activation delivery plan", priority: "medium", offsetDays: 30 },
+  // Finance
+  { id: "00000000-0000-4000-8000-0000000e101c", divisionId: "finance", title: "Master budget approved", priority: "urgent", offsetDays: 100 },
+  { id: "00000000-0000-4000-8000-0000000e101d", divisionId: "finance", title: "Vendor payment schedule", priority: "high", offsetDays: 45 },
+  { id: "00000000-0000-4000-8000-0000000e101e", divisionId: "finance", title: "Show-week cash & settlement prep", priority: "high", offsetDays: 7 },
+  // Legal & Licensing
+  { id: "00000000-0000-4000-8000-0000000e101f", divisionId: "legal-licensing", title: "Police & city permit applications", priority: "urgent", offsetDays: 90 },
+  { id: "00000000-0000-4000-8000-0000000e1020", divisionId: "legal-licensing", title: "Immigration / work permits for international artists", priority: "high", offsetDays: 75 },
+  { id: "00000000-0000-4000-8000-0000000e1021", divisionId: "legal-licensing", title: "Venue license & event insurance", priority: "high", offsetDays: 60 },
+  // HR & Volunteers
+  { id: "00000000-0000-4000-8000-0000000e1022", divisionId: "hr-volunteers", title: "Crew recruitment plan", priority: "medium", offsetDays: 60 },
+  { id: "00000000-0000-4000-8000-0000000e1023", divisionId: "hr-volunteers", title: "Volunteer onboarding & shift schedule", priority: "medium", offsetDays: 21 },
+  { id: "00000000-0000-4000-8000-0000000e1024", divisionId: "hr-volunteers", title: "All-crew briefing", priority: "high", offsetDays: 3 },
+];
+
+// demo ticket sales for Neon Horizon: 7 dailies ending ~3 weeks before show
+export const DEMO_TICKET_DAYS: Array<{ offsetFromShowDays: number; ticketsSold: number; revenue: number }> = [
+  { offsetFromShowDays: 30, ticketsSold: 1250, revenue: 437_500_000 },
+  { offsetFromShowDays: 29, ticketsSold: 980, revenue: 343_000_000 },
+  { offsetFromShowDays: 28, ticketsSold: 610, revenue: 213_500_000 },
+  { offsetFromShowDays: 27, ticketsSold: 445, revenue: 155_750_000 },
+  { offsetFromShowDays: 26, ticketsSold: 380, revenue: 133_000_000 },
+  { offsetFromShowDays: 25, ticketsSold: 520, revenue: 182_000_000 },
+  { offsetFromShowDays: 24, ticketsSold: 690, revenue: 241_500_000 },
+];
+
 export const DEMO_NOTIFICATIONS: Array<{
   userEmail: string;
   type: "assigned" | "mentioned" | "handoff_request" | "overdue";

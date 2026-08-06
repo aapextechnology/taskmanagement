@@ -38,7 +38,8 @@ export default async function DashboardPage() {
   if (!actor) redirect("/login");
   if (!can(actor, "dashboard.view")) redirect("/my-tasks");
 
-  const [portfolio, queue, milestones, blockers, hotspots, feed] =
+  const { portfolioSales } = await import("@/lib/tickets/service");
+  const [portfolio, queue, milestones, blockers, hotspots, feed, sales] =
     await Promise.all([
       getPortfolio(actor),
       listMyQueue(actor),
@@ -46,6 +47,7 @@ export default async function DashboardPage() {
       getBlockers(actor),
       getOverdueHotspots(actor),
       getActivityFeed(actor),
+      portfolioSales(actor),
     ]);
 
   return (
@@ -237,6 +239,52 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ticket sales (T-093) */}
+      {sales.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider">
+            Ticket sales
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {sales.map((s) => {
+              const max = Math.max(1, ...s.last14.map((d) => d.ticketsSold));
+              return (
+                <Link
+                  key={s.eventId}
+                  href={`/events/${s.eventId}/tickets`}
+                  className="flex flex-col gap-3 rounded-lg border bg-card p-4 transition-colors hover:border-foreground/30"
+                >
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="min-w-0 truncate text-sm font-semibold">
+                      {s.eventName}
+                    </span>
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {s.totalSold.toLocaleString("en")} sold
+                      {s.soldPct !== null ? ` · ${s.soldPct}%` : ""}
+                    </span>
+                  </div>
+                  <div className="flex items-end gap-1">
+                    {s.last14.map((d) => (
+                      <div
+                        key={d.day}
+                        title={`${d.day}: ${d.ticketsSold.toLocaleString("en")}`}
+                        className="flex-1 rounded-t-sm bg-foreground/60"
+                        style={{
+                          height: `${Math.max(4, Math.round((d.ticketsSold / max) * 48))}px`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    {formatIDR(s.totalRevenue)} revenue
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {/* activity feed */}
       <div className="flex flex-col gap-3">

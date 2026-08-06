@@ -13,7 +13,9 @@ import {
 } from "@/lib/events/service";
 import { listDivisions } from "@/lib/org/service";
 import { can } from "@/lib/permissions";
+import { listTemplates } from "@/lib/templates/service";
 import { archiveEventAction, setCurrentPhaseAction } from "../actions";
+import { ApplyPlaybook } from "./apply-playbook";
 import { DivisionsManager } from "./divisions-manager";
 import { WorkflowManager } from "./workflow-manager";
 
@@ -37,10 +39,11 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
   const canManage = can(actor, "event.updatePhase");
   const canManageDivisions = can(actor, "event.manageDivisions");
   const canManageWorkflow = can(actor, "event.manageWorkflow");
-  const [activeDivisions, allDivisions, phases] = await Promise.all([
+  const [activeDivisions, allDivisions, phases, templates] = await Promise.all([
     listEventDivisions(actor, event.id),
     canManageDivisions ? listDivisions() : [],
     listPhases(actor, event.id),
+    can(actor, "event.create") ? listTemplates() : [],
   ]);
   const currentIndex = phases.findIndex((p) => p.id === event.currentPhaseId);
   const nextPhase = currentIndex >= 0 ? phases[currentIndex + 1] : phases[0];
@@ -128,6 +131,7 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
           { href: `/events/${event.id}/guests`, label: "Guests" },
           { href: `/events/${event.id}/documents`, label: "Documents" },
           { href: `/events/${event.id}/run-of-show`, label: "Run of show" },
+          { href: `/events/${event.id}/tickets`, label: "Tickets" },
         ].map((tab) => (
           <a
             key={tab.href}
@@ -164,6 +168,16 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
           >
             <FileDown className="size-3.5" /> Progress report (PDF)
           </a>
+        ) : null}
+        {can(actor, "event.create") ? (
+          <ApplyPlaybook
+            eventId={event.id}
+            templates={templates.map(({ template, itemCount }) => ({
+              id: template.id,
+              name: template.name,
+              itemCount,
+            }))}
+          />
         ) : null}
       </div>
     </section>

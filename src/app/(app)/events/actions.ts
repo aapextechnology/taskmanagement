@@ -19,6 +19,7 @@ import { saveImageUpload } from "@/lib/uploads";
 
 export interface EventActionState {
   error?: string;
+  info?: string;
 }
 
 async function requireActor() {
@@ -56,6 +57,14 @@ export async function createEventAction(
       capacity: capacityRaw ? Number(capacityRaw) : undefined,
       coverImagePath,
     });
+    // optional playbook (T-092): generate every division's checklist with
+    // due dates counted back from show day
+    const templateId = String(formData.get("templateId") ?? "");
+    if (templateId) {
+      const { applyTemplate } = await import("@/lib/templates/service");
+      await applyTemplate(actor, event.id, templateId);
+    }
+
     await recomputeEventHealth(event.id);
     eventId = event.id;
   } catch (error) {
@@ -101,6 +110,32 @@ export async function phaseManageAction(
     revalidatePath(`/events/${eventId}`);
     revalidatePath("/events");
     return {};
+  } catch (error) {
+    if (error instanceof PermissionError) return { error: "Not allowed." };
+    if (error instanceof Error) return { error: error.message };
+    throw error;
+  }
+}
+
+export async function applyTemplateAction(
+  _prev: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  try {
+    const actor = await requireActor();
+    const eventId = String(formData.get("eventId"));
+    const { applyTemplate } = await import("@/lib/templates/service");
+    const result = await applyTemplate(
+      actor,
+      eventId,
+      String(formData.get("templateId")),
+    );
+    revalidatePath(`/events/${eventId}`);
+    revalidatePath(`/events/${eventId}/board`);
+    return {
+      error: undefined,
+      info: `${result.created} tasks created${result.skipped > 0 ? `, ${result.skipped} already existed` : ""}.`,
+    };
   } catch (error) {
     if (error instanceof PermissionError) return { error: "Not allowed." };
     if (error instanceof Error) return { error: error.message };
