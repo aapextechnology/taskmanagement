@@ -325,6 +325,28 @@ describe("canDecideApprovalStep (EPIC-004)", () => {
   });
 });
 
+describe("run of show (EPIC-008 T-083)", () => {
+  const staffOps: Actor = {
+    id: "u-staff-ops",
+    role: "member",
+    memberships: [{ divisionId: "operations-logistics", role: "staff" }],
+  };
+
+  it("Production and Ops members (any role) may edit the rundown", () => {
+    expect(can(headProduction, "runofshow.manage")).toBe(true);
+    expect(can(staffProduction, "runofshow.manage")).toBe(true);
+    expect(can(staffOps, "runofshow.manage")).toBe(true);
+    expect(can(owner, "runofshow.manage")).toBe(true);
+    expect(can(admin, "runofshow.manage")).toBe(true);
+  });
+
+  it("every other division — and externals — are read-only", () => {
+    expect(can(staffFinance, "runofshow.manage")).toBe(false);
+    expect(can(memberNoDivision, "runofshow.manage")).toBe(false);
+    expect(can(external, "runofshow.manage")).toBe(false);
+  });
+});
+
 describe("assertCan", () => {
   it("passes silently when allowed", () => {
     expect(() => assertCan(owner, "org.manage")).not.toThrow();

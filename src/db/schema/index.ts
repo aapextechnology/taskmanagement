@@ -13,5 +13,6 @@ export * from "./events";
 export * from "./external";
 export * from "./notifications";
 export * from "./org";
+export * from "./run-of-show";
 export * from "./tasks";
 export * from "./timeline";

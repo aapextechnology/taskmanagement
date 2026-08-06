@@ -1,6 +1,6 @@
 # EPIC-008: Planning Views, Documents & Run of Show
 
-status: on-progress
+status: ready-for-qa
 environment: dev
 phase: 3
 priority: P1
@@ -37,9 +37,9 @@ show — replacing planning spreadsheets.
 
 - [x] **T-082** `documents` schema + `/events/[id]/documents`: upload, categorize (contract / permit / rider / stage plot), division-level access control via permission module; files auth-gated on `/uploads`.
 
-### Run of show
+### Run of show ✅
 
-- [ ] **T-083** `run_of_show_items` schema + minute-by-minute editor (doors, opener, changeover, headliner, curfew): Production/Ops write, all divisions read; clean print/export stylesheet.
+- [x] **T-083** `run_of_show_items` schema + minute-by-minute editor (doors, opener, changeover, headliner, curfew): Production/Ops write, all divisions read; clean print/export stylesheet.
 
 ## Acceptance Criteria
 
@@ -60,6 +60,8 @@ show — replacing planning spreadsheets.
 > Each task also satisfies `../DEFINITION-OF-DONE.md`.
 
 ## Automation Log
+
+- 2026-08-06 **T-082 + T-083 done — EPIC COMPLETE → ready-for-qa** — T-082: `documents` schema (4 categories, migration 0016) + caps `document.view`/`document.manage` (division-scoped, externals never; +6 permission test blocks), pure logic module, `/events/[id]/documents` with category filter + upload; `/api/files` gained an extra division check for `documents/*` paths. Service E2E verified: cross-division read AND upload denied, owner sees all. T-083: `run_of_show_items` (migration 0017; `startTime` stored as wall-clock "HH:MM" — a rundown is not an instant) + cap `runofshow.manage` (Production/Ops members any role, +2 test blocks); `/events/[id]/run-of-show` chronological table, add/edit-dialog/delete, Print button with print stylesheet (app shell hidden via print:hidden); demo rundown seeded (doors→curfew, Neon Horizon). Live verified: finance staff reads but has no edit affordances. 146 tests green. **Human QA:** print preview the rundown; upload a real PDF to Documents and confirm a cross-division colleague cannot open its /api/files URL.
 
 - 2026-08-06 Epic created by `/agentic-init` from PLAN §6.5–§6.7 — pending kickoff.
 - 2026-08-06 /epic-loop EPIC-008 #1 "Timeline (Gantt)" → PASS (attempts: 1 + micro-fixes), PR: — (no remote; merged to develop locally). Route `/events/[id]/gantt` (name `timeline` taken by social feed). Pure model `src/lib/gantt/schedule.ts` (bars/arrows/critical path, WIB day index); deps via new scoped `listEventTaskDependencies` (both edge endpoints filtered to visible set). Simplification owed to Owner: dependency arrows rendered as "blocked by N" chips + critical-chain emphasis, not connector lines (model already computes `arrows`). Follow-ups logged: 400-day clamp indicator, greedy-walk longest-path LOW, dedup listEventTasks refetch, bar aria-label.

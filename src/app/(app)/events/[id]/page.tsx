@@ -126,6 +126,7 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
           { href: `/events/${event.id}/budget`, label: "Budget" },
           { href: `/events/${event.id}/guests`, label: "Guests" },
           { href: `/events/${event.id}/documents`, label: "Documents" },
+          { href: `/events/${event.id}/run-of-show`, label: "Run of show" },
         ].map((tab) => (
           <a
             key={tab.href}

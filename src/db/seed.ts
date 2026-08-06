@@ -17,6 +17,7 @@ import {
   eventPhases,
   events,
   externalInvites,
+  runOfShowItems,
   handoffs,
   labels,
   notifications,
@@ -36,6 +37,7 @@ import {
   DEMO_EXPENSES,
   DEMO_GUEST_TOKEN,
   DEMO_INVITE,
+  DEMO_RUN_OF_SHOW,
   DEMO_HANDOFFS,
   DEMO_LABELS,
   DEMO_NOTIFICATIONS,
@@ -422,6 +424,24 @@ const steps: Array<{ name: string; run: () => Promise<void> }> = [
       console.log(
         `[seed]   guest magic link: /guest/login?token=${DEMO_GUEST_TOKEN}`,
       );
+    },
+  },
+  {
+    name: `demo run of show (${DEMO_RUN_OF_SHOW.length} items)`,
+    run: async () => {
+      await db
+        .insert(runOfShowItems)
+        .values(
+          DEMO_RUN_OF_SHOW.map((item) => ({
+            id: item.id,
+            eventId: item.eventId,
+            startTime: item.startTime,
+            durationMinutes: item.durationMinutes ?? null,
+            title: item.title,
+            note: item.note ?? "",
+          })),
+        )
+        .onConflictDoNothing();
     },
   },
   {

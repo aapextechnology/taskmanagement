@@ -62,7 +62,9 @@ export type Capability =
   | "approve.final" // high-value / contracts / artist offers
   // documents (EPIC-008 T-082)
   | "document.view" // a division's document library (ctx.divisionId)
-  | "document.manage"; // upload into a division (ctx.divisionId)
+  | "document.manage" // upload into a division (ctx.divisionId)
+  // run of show (EPIC-008 T-083)
+  | "runofshow.manage"; // edit the show-day rundown (Production/Ops)
 
 export interface PermissionContext {
   /** division the action targets (source division for handoffs) */
@@ -81,6 +83,7 @@ export class PermissionError extends Error {
 }
 
 const FINANCE_DIVISION_ID = "finance";
+const RUN_OF_SHOW_DIVISIONS = ["production", "operations-logistics"];
 
 function membershipIn(
   actor: Actor,
@@ -210,6 +213,16 @@ export function can(
 
     case "document.manage":
       return isOwnerOrAdmin || membershipIn(actor, ctx.divisionId) !== undefined;
+
+    case "runofshow.manage":
+      // PLAN §6.6: the rundown is owned by Production/Ops; every other
+      // internal division reads it (via event.view)
+      return (
+        isOwnerOrAdmin ||
+        actor.memberships.some((m) =>
+          RUN_OF_SHOW_DIVISIONS.includes(m.divisionId),
+        )
+      );
 
     default: {
       // exhaustiveness guard — a new Capability must be handled explicitly

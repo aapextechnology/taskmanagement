@@ -535,6 +535,23 @@ export const DEMO_INVITE = {
   taskId: "00000000-0000-4000-8000-00000000b008",
 } as const;
 
+// demo run-of-show rundown for Neon Horizon (PLAN §6.6 examples)
+export const DEMO_RUN_OF_SHOW: Array<{
+  id: string;
+  eventId: string;
+  startTime: string;
+  durationMinutes?: number;
+  title: string;
+  note?: string;
+}> = [
+  { id: "00000000-0000-4000-8000-00000000dd01", eventId: EVENT_IDS.neonHorizon, startTime: "16:00", durationMinutes: 60, title: "Doors open", note: "Gates A–C; security sweep done 15:30" },
+  { id: "00000000-0000-4000-8000-00000000dd02", eventId: EVENT_IDS.neonHorizon, startTime: "17:00", durationMinutes: 45, title: "Opener — NIKI", note: "Monitor mix preset 2" },
+  { id: "00000000-0000-4000-8000-00000000dd03", eventId: EVENT_IDS.neonHorizon, startTime: "17:45", durationMinutes: 30, title: "Changeover", note: "Backline swap; LED wall check" },
+  { id: "00000000-0000-4000-8000-00000000dd04", eventId: EVENT_IDS.neonHorizon, startTime: "18:15", durationMinutes: 90, title: "Fred again..", note: "" },
+  { id: "00000000-0000-4000-8000-00000000dd05", eventId: EVENT_IDS.neonHorizon, startTime: "20:00", durationMinutes: 120, title: "Headliner — Peggy Gou", note: "Pyro cues with show caller" },
+  { id: "00000000-0000-4000-8000-00000000dd06", eventId: EVENT_IDS.neonHorizon, startTime: "22:00", title: "Curfew — hard stop", note: "Venue license limit" },
+];
+
 export const DEMO_NOTIFICATIONS: Array<{
   userEmail: string;
   type: "assigned" | "mentioned" | "handoff_request" | "overdue";

@@ -53,7 +53,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-svh">
       {/* desktop sidebar */}
-      <aside className="sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r bg-sidebar md:flex">
+      <aside className="sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r bg-sidebar md:flex print:!hidden">
         <div className="flex h-14 items-center border-b px-4">
           <Logo className="text-[13px]" />
         </div>
@@ -111,7 +111,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
 
       {/* content column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur sm:px-6 print:hidden">
           <div className="flex items-center gap-2">
             <MobileNav items={items} events={events} />
             <Logo className="text-[13px] md:hidden" />
