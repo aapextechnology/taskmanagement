@@ -59,9 +59,9 @@ We'll know we're right when **staff adopt My Tasks as their daily landing page**
 
 **Out of scope (v1)**
 
-- **Ticketing platform API integration** — manual daily snapshot first; integrate once a platform API is confirmed.
-- **WhatsApp/Telegram notification bridge** — email + in-app first; bridge is a later option.
-- **Multi-brand / multi-organization support** — single org (RVC) until the Owner asks otherwise.
+- **Ticketing platform API integration** — Owner confirmed manual daily snapshots suffice for MVP (2026-08-06).
+- **Telegram notifications** — out; **WhatsApp is IN scope** (Owner decision 2026-08-06, T-064 in EPIC-006).
+- **Multi-brand / multi-organization support** — single org (RVC) for v1; schema must not preclude it later (Owner decision 2026-08-06).
 - **Native mobile apps** — responsive web + PWA polish instead.
 
 ## Delivery Milestones
@@ -82,10 +82,14 @@ We'll know we're right when **staff adopt My Tasks as their daily landing page**
 
 ## Open Questions
 
-- [ ] **Approval thresholds & currency (IDR / USD / both)** — chains are built threshold-driven; defaults proposed. (blocks final EPIC-004 config, not its build)
-- [ ] **WhatsApp/Telegram at launch?** — affects notification architecture only if required early. (blocks nothing in Phase 1–2)
-- [ ] **Ticketing platform API availability** — manual snapshot assumed for MVP. (blocks EPIC-009 integration variant only)
-- [ ] **Multi-brand support later?** — affects org model; current schema assumes single org. (blocks nothing now; revisit before Phase 3 ends)
+Answered by the Owner on **2026-08-06**:
+
+- [x] **Currency** — **IDR is the default.** Threshold *numbers* still use the proposed defaults (A = Rp 10.000.000, B = Rp 100.000.000) until the Owner supplies final figures — they are org-settings values, changeable without code.
+- [x] **Notification channels** — **email + WhatsApp.** WhatsApp is now in scope as a first-class channel (added as T-064 in EPIC-006); Telegram stays out.
+- [x] **Ticketing** — **manual daily snapshots are sufficient for MVP.** No platform API integration in v1 (EPIC-009 stays manual-entry).
+- [x] **Multi-brand** — **single org (RVC) for now, but multi-brand must remain possible.** Schema decisions must not preclude adding an `organizations` scope later: no global uniques that would collide across brands beyond user email, org-wide config lives in `app_settings` (per-org table split is a clean migration), and the permission module keeps org resolution in one place.
+
+Remaining open: final approval threshold figures (Owner) and the WhatsApp provider choice (Business Cloud API vs gateway) — both config-level, neither blocks a build.
 
 ## Risks
 

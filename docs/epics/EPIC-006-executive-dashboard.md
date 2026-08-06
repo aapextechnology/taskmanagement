@@ -42,6 +42,10 @@ the Owner layer.
 
 - [ ] **T-063** `/admin/audit`: filter by actor, entity type, event, date range; Owner/Admin only.
 
+### WhatsApp channel (Owner decision 2026-08-06)
+
+- [ ] **T-064** WhatsApp notification adapter behind the same notification service as email (provider: Business Cloud API or gateway — Owner to confirm): mirror high-value triggers (assigned, approval requested/decided, due/overdue, external submission) with per-user opt-in; credentials via env, never in repo.
+
 ## Acceptance Criteria
 
 **Epic-level**
@@ -62,6 +66,7 @@ the Owner layer.
 
 ## Automation Log
 
+- 2026-08-06 **Owner decisions recorded**: notification channels = email + WhatsApp → added T-064 (WhatsApp adapter, P1, depends T-062). Currency = IDR default; threshold figures remain proposed defaults in `app_settings` until Owner confirms.
 - 2026-08-06 Epic created by `/agentic-init` from PLAN §6.10–§6.12 — pending kickoff. Ticket-sales widget deliberately deferred to EPIC-009 (T-093) per PLAN phasing.
 
 ## Dependencies

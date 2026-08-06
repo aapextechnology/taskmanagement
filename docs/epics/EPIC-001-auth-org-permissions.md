@@ -1,6 +1,6 @@
 # EPIC-001: Auth, Org & Permissions
 
-status: backlog
+status: on-progress
 environment: dev
 phase: 1
 priority: P0

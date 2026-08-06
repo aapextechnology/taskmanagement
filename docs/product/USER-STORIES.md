@@ -81,7 +81,7 @@
 | --- | --- | --- | --- |
 | US-EXEC-1 | As an Owner, I want portfolio cards (countdown, phase, health, budget burn %) for every active event, so that one screen answers "how are we doing". | P0 | EPIC-006 |
 | US-EXEC-2 | As an Owner, I want my pending approvals inline with one-click approve/reject + comment, so that I unblock the org fast. | P0 | EPIC-006 |
-| US-EXEC-3 | As a user, I want email notifications for the matrix in PLAN §6.10, so that I hear about assignments and decisions even when signed out. | P0 | EPIC-006 |
+| US-EXEC-3 | As a user, I want email **and WhatsApp** notifications for the matrix in PLAN §6.10 (Owner decision 2026-08-06), so that I hear about assignments and decisions even when signed out. | P0 | EPIC-006 |
 | US-EXEC-4 | As an Owner, I want upcoming milestones (14 days), cross-division blockers, and a recent-activity feed, so that risk surfaces before show week. | P1 | EPIC-006 |
 | US-EXEC-5 | As an Admin, I want a filterable audit log UI, so that any action can be traced. | P1 | EPIC-006 |
 

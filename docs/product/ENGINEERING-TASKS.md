@@ -105,8 +105,9 @@
 | T-061 | Dashboard widgets: milestones next 14d, cross-division blockers, overdue hotspots, activity feed | FE | M | T-060 | Each widget links to source records; counts match queries | US-EXEC-4 |
 | T-062 | Email notifications via SMTP for PLAN §6.10 email column; per-user preferences for opt-ins | BE | M | T-037, T-043 | Emails send for each trigger in dev (mailpit/console transport); opt-out honored | US-EXEC-3 |
 | T-063 | Audit log UI (`/admin/audit`): filter by actor, entity, event, date | FE | S | T-014 | Filters work; Staff denied access | US-EXEC-5 |
+| T-064 | WhatsApp notification channel (Owner decision 2026-08-06): provider adapter (Business Cloud API or gateway) behind the same notification service; mirror high-value triggers (assigned, approval requested/decided, due/overdue, external submission) with per-user opt-in; credentials via env | BE | M | T-062 | Trigger fires a WhatsApp message in dev (provider sandbox/mock); opt-out honored; no credentials in repo | US-EXEC-3 |
 
-**Exit:** the Owner runs the portfolio from one screen; email keeps everyone current; every action is traceable.
+**Exit:** the Owner runs the portfolio from one screen; email + WhatsApp keep everyone current; every action is traceable.
 
 ---
 
@@ -174,11 +175,11 @@
 | EPIC-003 | 8 | 3 | 2 | 3 | — | T-012, T-020 |
 | EPIC-004 | 4 | 1 | 3 | — | — | T-037 (notifications) |
 | EPIC-005 | 4 | 1 | 1 | 2 | — | T-041 (approvals) |
-| EPIC-006 | 4 | 3 | 1 | — | — | T-042 + T-053 |
+| EPIC-006 | 5 | 3 | 2 | — | — | T-042 + T-053 |
 | EPIC-007 | 6 | — | 2 | 4 | — | T-011 (Auth.js) |
 | EPIC-008 | 4 | 2 | — | 2 | — | T-035 (dependencies) |
 | EPIC-009 | 4 | — | 1 | 3 | — | T-031 (task service) |
 | EPIC-010 | 4 | 1 | 1 | 2 | — | T-062 (email) |
-| **Total** | **55** | **14** | **18** | **20** | **3** | — |
+| **Total** | **56** | **14** | **19** | **20** | **3** | — |
 
 **Sequencing note:** T-012 (central permission module) is the single most load-bearing task — every later epic depends on it; treat it as a protected-path deliverable with the strongest test suite. T-037 (SSE notifications) is soft-required by EPIC-004/006/007 triggers; if those epics start first, triggers can write `notifications` rows without the SSE stream and light up later. T-093 (ticket snapshots) depends on the EPIC-006 dashboard shipping first, per the PLAN's phasing.

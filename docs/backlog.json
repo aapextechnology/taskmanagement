@@ -2,16 +2,46 @@
   "project": "RVC Backstage Roadmap",
   "repo": "",
   "fields": {
-    "Status": ["Backlog", "Todo", "In Progress", "In Review", "Done"],
-    "Area": ["Frontend", "Backend", "Full-stack", "Infra"],
-    "Priority": ["P0", "P1", "P2"]
+    "Status": [
+      "Backlog",
+      "Todo",
+      "In Progress",
+      "In Review",
+      "Done"
+    ],
+    "Area": [
+      "Frontend",
+      "Backend",
+      "Full-stack",
+      "Infra"
+    ],
+    "Priority": [
+      "P0",
+      "P1",
+      "P2"
+    ]
   },
   "milestones": [
-    { "phase": 0, "title": "Phase 0 — Bootstrap & Foundation" },
-    { "phase": 1, "title": "Phase 1 — Foundation (usable from day one)" },
-    { "phase": 2, "title": "Phase 2 — Owner layer" },
-    { "phase": 3, "title": "Phase 3 — External & scale" },
-    { "phase": 4, "title": "Phase 4 — Polish" }
+    {
+      "phase": 0,
+      "title": "Phase 0 — Bootstrap & Foundation"
+    },
+    {
+      "phase": 1,
+      "title": "Phase 1 — Foundation (usable from day one)"
+    },
+    {
+      "phase": 2,
+      "title": "Phase 2 — Owner layer"
+    },
+    {
+      "phase": 3,
+      "title": "Phase 3 — External & scale"
+    },
+    {
+      "phase": 4,
+      "title": "Phase 4 — Polish"
+    }
   ],
   "epics": [
     {
@@ -19,11 +49,36 @@
       "title": "Bootstrap & Foundation",
       "phase": 0,
       "issues": [
-        { "title": "Next.js + Tailwind + shadcn scaffold", "area": "Infra", "priority": "P0", "body": "App Router TS scaffold, repo layout, lint/test scripts (T-001)" },
-        { "title": "Docker Compose dev stack", "area": "Infra", "priority": "P0", "body": "app + Postgres + nginx, .env.example, /api/health (T-002)" },
-        { "title": "Drizzle ORM + migrations + env loader", "area": "Backend", "priority": "P0", "body": "Migration pipeline, seed skeleton, fail-fast env (T-003)" },
-        { "title": "RVC monochrome theme foundation", "area": "Frontend", "priority": "P0", "body": "Tokens dark/light, app shell, countdown component (T-004, T-006)" },
-        { "title": "CI pipeline", "area": "Infra", "priority": "P1", "body": "lint+typecheck+build+test on PR and develop (T-005)" }
+        {
+          "title": "Next.js + Tailwind + shadcn scaffold",
+          "area": "Infra",
+          "priority": "P0",
+          "body": "App Router TS scaffold, repo layout, lint/test scripts (T-001)"
+        },
+        {
+          "title": "Docker Compose dev stack",
+          "area": "Infra",
+          "priority": "P0",
+          "body": "app + Postgres + nginx, .env.example, /api/health (T-002)"
+        },
+        {
+          "title": "Drizzle ORM + migrations + env loader",
+          "area": "Backend",
+          "priority": "P0",
+          "body": "Migration pipeline, seed skeleton, fail-fast env (T-003)"
+        },
+        {
+          "title": "RVC monochrome theme foundation",
+          "area": "Frontend",
+          "priority": "P0",
+          "body": "Tokens dark/light, app shell, countdown component (T-004, T-006)"
+        },
+        {
+          "title": "CI pipeline",
+          "area": "Infra",
+          "priority": "P1",
+          "body": "lint+typecheck+build+test on PR and develop (T-005)"
+        }
       ]
     },
     {
@@ -31,11 +86,36 @@
       "title": "Auth, Org & Permissions",
       "phase": 1,
       "issues": [
-        { "title": "Org schema + 11-division seed", "area": "Backend", "priority": "P0", "body": "profiles, divisions, division_members (T-010)" },
-        { "title": "Auth.js credentials sign-in", "area": "Full-stack", "priority": "P0", "body": "Staff email+password, themed login (T-011)" },
-        { "title": "Central permission module", "area": "Backend", "priority": "P0", "body": "role x division x event matrix + full test suite (T-012)" },
-        { "title": "Admin UI users/divisions/roles", "area": "Full-stack", "priority": "P0", "body": "(T-013)" },
-        { "title": "Activity log foundation", "area": "Backend", "priority": "P1", "body": "activity_log table + write helper (T-014)" }
+        {
+          "title": "Org schema + 11-division seed",
+          "area": "Backend",
+          "priority": "P0",
+          "body": "profiles, divisions, division_members (T-010)"
+        },
+        {
+          "title": "Auth.js credentials sign-in",
+          "area": "Full-stack",
+          "priority": "P0",
+          "body": "Staff email+password, themed login (T-011)"
+        },
+        {
+          "title": "Central permission module",
+          "area": "Backend",
+          "priority": "P0",
+          "body": "role x division x event matrix + full test suite (T-012)"
+        },
+        {
+          "title": "Admin UI users/divisions/roles",
+          "area": "Full-stack",
+          "priority": "P0",
+          "body": "(T-013)"
+        },
+        {
+          "title": "Activity log foundation",
+          "area": "Backend",
+          "priority": "P1",
+          "body": "activity_log table + write helper (T-014)"
+        }
       ]
     },
     {
@@ -43,10 +123,30 @@
       "title": "Events Workspace",
       "phase": 1,
       "issues": [
-        { "title": "Events CRUD + lifecycle + poster", "area": "Full-stack", "priority": "P0", "body": "(T-020, T-021)" },
-        { "title": "Workspace shell with countdown", "area": "Frontend", "priority": "P0", "body": "(T-022)" },
-        { "title": "Auto health status", "area": "Backend", "priority": "P1", "body": "On track / At risk / Critical rule + cron (T-023)" },
-        { "title": "Events portfolio gallery", "area": "Frontend", "priority": "P1", "body": "(T-024)" }
+        {
+          "title": "Events CRUD + lifecycle + poster",
+          "area": "Full-stack",
+          "priority": "P0",
+          "body": "(T-020, T-021)"
+        },
+        {
+          "title": "Workspace shell with countdown",
+          "area": "Frontend",
+          "priority": "P0",
+          "body": "(T-022)"
+        },
+        {
+          "title": "Auto health status",
+          "area": "Backend",
+          "priority": "P1",
+          "body": "On track / At risk / Critical rule + cron (T-023)"
+        },
+        {
+          "title": "Events portfolio gallery",
+          "area": "Frontend",
+          "priority": "P1",
+          "body": "(T-024)"
+        }
       ]
     },
     {
@@ -54,13 +154,48 @@
       "title": "Tasks Core & Collaboration",
       "phase": 1,
       "issues": [
-        { "title": "Task schema + CRUD service", "area": "Full-stack", "priority": "P0", "body": "(T-030, T-031)" },
-        { "title": "Kanban + list views", "area": "Frontend", "priority": "P0", "body": "(T-032)" },
-        { "title": "My Tasks landing", "area": "Frontend", "priority": "P0", "body": "(T-033)" },
-        { "title": "Comments @mentions + attachments", "area": "Full-stack", "priority": "P0", "body": "(T-034)" },
-        { "title": "Cross-division handoffs", "area": "Full-stack", "priority": "P0", "body": "(T-036)" },
-        { "title": "In-app SSE notifications", "area": "Full-stack", "priority": "P0", "body": "(T-037)" },
-        { "title": "Dependencies + recurring tasks", "area": "Backend", "priority": "P1", "body": "(T-035)" }
+        {
+          "title": "Task schema + CRUD service",
+          "area": "Full-stack",
+          "priority": "P0",
+          "body": "(T-030, T-031)"
+        },
+        {
+          "title": "Kanban + list views",
+          "area": "Frontend",
+          "priority": "P0",
+          "body": "(T-032)"
+        },
+        {
+          "title": "My Tasks landing",
+          "area": "Frontend",
+          "priority": "P0",
+          "body": "(T-033)"
+        },
+        {
+          "title": "Comments @mentions + attachments",
+          "area": "Full-stack",
+          "priority": "P0",
+          "body": "(T-034)"
+        },
+        {
+          "title": "Cross-division handoffs",
+          "area": "Full-stack",
+          "priority": "P0",
+          "body": "(T-036)"
+        },
+        {
+          "title": "In-app SSE notifications",
+          "area": "Full-stack",
+          "priority": "P0",
+          "body": "(T-037)"
+        },
+        {
+          "title": "Dependencies + recurring tasks",
+          "area": "Backend",
+          "priority": "P1",
+          "body": "(T-035)"
+        }
       ]
     },
     {
@@ -68,9 +203,24 @@
       "title": "Approvals Engine",
       "phase": 2,
       "issues": [
-        { "title": "Approval schema + configurable chains", "area": "Backend", "priority": "P0", "body": "(T-040)" },
-        { "title": "Approval service + queue UI", "area": "Full-stack", "priority": "P0", "body": "(T-041, T-042)" },
-        { "title": "Approval notifications", "area": "Backend", "priority": "P1", "body": "(T-043)" }
+        {
+          "title": "Approval schema + configurable chains",
+          "area": "Backend",
+          "priority": "P0",
+          "body": "(T-040)"
+        },
+        {
+          "title": "Approval service + queue UI",
+          "area": "Full-stack",
+          "priority": "P0",
+          "body": "(T-041, T-042)"
+        },
+        {
+          "title": "Approval notifications",
+          "area": "Backend",
+          "priority": "P1",
+          "body": "(T-043)"
+        }
       ]
     },
     {
@@ -78,9 +228,24 @@
       "title": "Budgets & Expenses",
       "phase": 2,
       "issues": [
-        { "title": "Budgets + division lines", "area": "Full-stack", "priority": "P0", "body": "(T-050, T-051)" },
-        { "title": "Expense requests via approval chains", "area": "Full-stack", "priority": "P0", "body": "(T-052)" },
-        { "title": "Budget rollup views", "area": "Frontend", "priority": "P1", "body": "(T-053)" }
+        {
+          "title": "Budgets + division lines",
+          "area": "Full-stack",
+          "priority": "P0",
+          "body": "(T-050, T-051)"
+        },
+        {
+          "title": "Expense requests via approval chains",
+          "area": "Full-stack",
+          "priority": "P0",
+          "body": "(T-052)"
+        },
+        {
+          "title": "Budget rollup views",
+          "area": "Frontend",
+          "priority": "P1",
+          "body": "(T-053)"
+        }
       ]
     },
     {
@@ -88,10 +253,36 @@
       "title": "Executive Dashboard & Activity Log",
       "phase": 2,
       "issues": [
-        { "title": "Portfolio cards + inline approvals", "area": "Frontend", "priority": "P0", "body": "(T-060)" },
-        { "title": "Email notifications (SMTP)", "area": "Backend", "priority": "P0", "body": "(T-062)" },
-        { "title": "Milestone/blocker widgets + feed", "area": "Frontend", "priority": "P1", "body": "(T-061)" },
-        { "title": "Audit log UI", "area": "Frontend", "priority": "P1", "body": "(T-063)" }
+        {
+          "title": "Portfolio cards + inline approvals",
+          "area": "Frontend",
+          "priority": "P0",
+          "body": "(T-060)"
+        },
+        {
+          "title": "Email notifications (SMTP)",
+          "area": "Backend",
+          "priority": "P0",
+          "body": "(T-062)"
+        },
+        {
+          "title": "Milestone/blocker widgets + feed",
+          "area": "Frontend",
+          "priority": "P1",
+          "body": "(T-061)"
+        },
+        {
+          "title": "Audit log UI",
+          "area": "Frontend",
+          "priority": "P1",
+          "body": "(T-063)"
+        },
+        {
+          "title": "WhatsApp notification adapter",
+          "area": "Backend",
+          "priority": "P1",
+          "body": "Owner decision 2026-08-06: email + WhatsApp channels (T-064)"
+        }
       ]
     },
     {
@@ -99,11 +290,36 @@
       "title": "External Guest Portal",
       "phase": 3,
       "issues": [
-        { "title": "Magic-link invites + expiry/revocation", "area": "Full-stack", "priority": "P0", "body": "(T-070, T-071)" },
-        { "title": "Guest portal scoped task view", "area": "Full-stack", "priority": "P0", "body": "(T-072)" },
-        { "title": "Structured forms x4", "area": "Full-stack", "priority": "P0", "body": "quotation, rider, manifest, crew list (T-073)" },
-        { "title": "Review queue", "area": "Full-stack", "priority": "P0", "body": "(T-074)" },
-        { "title": "Guest hardening pass", "area": "Backend", "priority": "P1", "body": "(T-075)" }
+        {
+          "title": "Magic-link invites + expiry/revocation",
+          "area": "Full-stack",
+          "priority": "P0",
+          "body": "(T-070, T-071)"
+        },
+        {
+          "title": "Guest portal scoped task view",
+          "area": "Full-stack",
+          "priority": "P0",
+          "body": "(T-072)"
+        },
+        {
+          "title": "Structured forms x4",
+          "area": "Full-stack",
+          "priority": "P0",
+          "body": "quotation, rider, manifest, crew list (T-073)"
+        },
+        {
+          "title": "Review queue",
+          "area": "Full-stack",
+          "priority": "P0",
+          "body": "(T-074)"
+        },
+        {
+          "title": "Guest hardening pass",
+          "area": "Backend",
+          "priority": "P1",
+          "body": "(T-075)"
+        }
       ]
     },
     {
@@ -111,10 +327,30 @@
       "title": "Planning Views, Documents & Run of Show",
       "phase": 3,
       "issues": [
-        { "title": "Gantt timeline + critical path", "area": "Frontend", "priority": "P1", "body": "(T-080)" },
-        { "title": "Calendar view", "area": "Frontend", "priority": "P1", "body": "(T-081)" },
-        { "title": "Document library", "area": "Full-stack", "priority": "P1", "body": "(T-082)" },
-        { "title": "Run of show editor + export", "area": "Full-stack", "priority": "P1", "body": "(T-083)" }
+        {
+          "title": "Gantt timeline + critical path",
+          "area": "Frontend",
+          "priority": "P1",
+          "body": "(T-080)"
+        },
+        {
+          "title": "Calendar view",
+          "area": "Frontend",
+          "priority": "P1",
+          "body": "(T-081)"
+        },
+        {
+          "title": "Document library",
+          "area": "Full-stack",
+          "priority": "P1",
+          "body": "(T-082)"
+        },
+        {
+          "title": "Run of show editor + export",
+          "area": "Full-stack",
+          "priority": "P1",
+          "body": "(T-083)"
+        }
       ]
     },
     {
@@ -122,9 +358,24 @@
       "title": "Playbooks & Ticket Snapshots",
       "phase": 3,
       "issues": [
-        { "title": "Template editor + International Concert playbook", "area": "Full-stack", "priority": "P1", "body": "(T-090, T-091)" },
-        { "title": "Generate event from template", "area": "Backend", "priority": "P1", "body": "(T-092)" },
-        { "title": "Ticket sales snapshots", "area": "Full-stack", "priority": "P1", "body": "(T-093)" }
+        {
+          "title": "Template editor + International Concert playbook",
+          "area": "Full-stack",
+          "priority": "P1",
+          "body": "(T-090, T-091)"
+        },
+        {
+          "title": "Generate event from template",
+          "area": "Backend",
+          "priority": "P1",
+          "body": "(T-092)"
+        },
+        {
+          "title": "Ticket sales snapshots",
+          "area": "Full-stack",
+          "priority": "P1",
+          "body": "(T-093)"
+        }
       ]
     },
     {
@@ -132,10 +383,30 @@
       "title": "Reports, Search & Polish",
       "phase": 4,
       "issues": [
-        { "title": "Daily + executive digests", "area": "Backend", "priority": "P2", "body": "(T-100)" },
-        { "title": "Settlement report + export", "area": "Full-stack", "priority": "P2", "body": "(T-101)" },
-        { "title": "Global search", "area": "Full-stack", "priority": "P2", "body": "(T-102)" },
-        { "title": "Mobile/PWA polish", "area": "Frontend", "priority": "P2", "body": "(T-103)" }
+        {
+          "title": "Daily + executive digests",
+          "area": "Backend",
+          "priority": "P2",
+          "body": "(T-100)"
+        },
+        {
+          "title": "Settlement report + export",
+          "area": "Full-stack",
+          "priority": "P2",
+          "body": "(T-101)"
+        },
+        {
+          "title": "Global search",
+          "area": "Full-stack",
+          "priority": "P2",
+          "body": "(T-102)"
+        },
+        {
+          "title": "Mobile/PWA polish",
+          "area": "Frontend",
+          "priority": "P2",
+          "body": "(T-103)"
+        }
       ]
     }
   ]

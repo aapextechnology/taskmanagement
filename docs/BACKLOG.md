@@ -61,6 +61,7 @@
 
 - [ ] **P0** (Frontend) Portfolio cards + inline approvals queue (Owner landing)
 - [ ] **P0** (Backend) Email notifications (SMTP) per notification matrix
+- [ ] **P1** (Backend) WhatsApp notification adapter (Owner decision 2026-08-06)
 - [ ] **P1** (Frontend) Milestones/blockers/overdue widgets + activity feed
 - [ ] **P1** (Frontend) Audit log UI
 

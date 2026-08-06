@@ -12,7 +12,7 @@
 | Epic | Phase | Focus | Priority | Status |
 | --- | --- | --- | --- | --- |
 | [EPIC-000](EPIC-000-bootstrap.md) | Phase 0 | Bootstrap & Foundation (scaffold, DB, theme, CI, gates) | P0 | ready-for-qa |
-| [EPIC-001](EPIC-001-auth-org-permissions.md) | Phase 1 | Auth, Org & Permissions | P0 | backlog |
+| [EPIC-001](EPIC-001-auth-org-permissions.md) | Phase 1 | Auth, Org & Permissions | P0 | on-progress |
 | [EPIC-002](EPIC-002-events-workspace.md) | Phase 1 | Events Workspace | P0 | backlog |
 | [EPIC-003](EPIC-003-tasks-collaboration.md) | Phase 1 | Tasks Core & Collaboration | P0 | backlog |
 | [EPIC-004](EPIC-004-approvals-engine.md) | Phase 2 | Approvals Engine | P1 | backlog |
