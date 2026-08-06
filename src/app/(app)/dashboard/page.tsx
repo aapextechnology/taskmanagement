@@ -60,7 +60,8 @@ export default async function DashboardPage() {
           <Link
             key={event.id}
             href={`/events/${event.id}`}
-            className="group flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-xs transition-colors hover:border-foreground/30"
+            // `dark` pins the card to jet black with light text in BOTH themes
+            className="dark group flex flex-col gap-3 rounded-lg border bg-surface-jet p-4 text-foreground shadow-sm transition-colors hover:border-foreground/30"
           >
             <div className="flex items-start justify-between gap-3">
               <h2 className="font-semibold uppercase leading-tight tracking-tight">
