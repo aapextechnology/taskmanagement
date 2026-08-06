@@ -60,7 +60,7 @@ export default async function DashboardPage() {
           <Link
             key={event.id}
             href={`/events/${event.id}`}
-            className="group flex flex-col gap-3 rounded-lg border p-4 transition-colors hover:border-foreground/30"
+            className="group flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-xs transition-colors hover:border-foreground/30"
           >
             <div className="flex items-start justify-between gap-3">
               <h2 className="font-semibold uppercase leading-tight tracking-tight">
@@ -113,11 +113,11 @@ export default async function DashboardPage() {
           Pending approvals{queue.length > 0 ? ` · ${queue.length}` : ""}
         </h2>
         {queue.length === 0 ? (
-          <p className="rounded-md border px-4 py-6 text-sm text-muted-foreground">
+          <p className="rounded-md border bg-card px-4 py-6 text-sm text-muted-foreground">
             Nothing waiting for your decision. 🎉
           </p>
         ) : (
-          <ul className="flex flex-col divide-y rounded-md border">
+          <ul className="flex flex-col divide-y rounded-md border bg-card">
             {queue.map((approval) => (
               <li
                 key={approval.id}
@@ -148,7 +148,7 @@ export default async function DashboardPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wider">
             Milestones — next 14 days
           </h2>
-          <ul className="flex flex-col divide-y rounded-md border">
+          <ul className="flex flex-col divide-y rounded-md border bg-card">
             {milestones.length === 0 ? (
               <li className="px-4 py-6 text-sm text-muted-foreground">
                 No high-priority deadlines in the window.
@@ -181,7 +181,7 @@ export default async function DashboardPage() {
             <h2 className="text-sm font-semibold uppercase tracking-wider">
               Cross-division blockers
             </h2>
-            <ul className="flex flex-col divide-y rounded-md border">
+            <ul className="flex flex-col divide-y rounded-md border bg-card">
               {blockers.length === 0 ? (
                 <li className="px-4 py-4 text-sm text-muted-foreground">
                   No blocked tasks are holding others up.
@@ -208,7 +208,7 @@ export default async function DashboardPage() {
             <h2 className="text-sm font-semibold uppercase tracking-wider">
               Overdue hotspots
             </h2>
-            <ul className="flex flex-col divide-y rounded-md border">
+            <ul className="flex flex-col divide-y rounded-md border bg-card">
               {hotspots.length === 0 ? (
                 <li className="px-4 py-4 text-sm text-muted-foreground">
                   Nothing overdue. 🌤
@@ -240,17 +240,19 @@ export default async function DashboardPage() {
         <h2 className="text-sm font-semibold uppercase tracking-wider">
           Recent activity
         </h2>
-        <ul className="flex flex-col divide-y rounded-md border">
+        <ul className="flex flex-col divide-y rounded-md border bg-card">
           {feed.map((entry) => (
             <li
               key={entry.id}
-              className="flex flex-wrap items-center gap-2 px-4 py-2 text-xs text-muted-foreground"
+              className="flex flex-wrap items-center gap-1.5 px-4 py-2 text-xs text-muted-foreground"
             >
               <span className="font-medium text-foreground">
                 {entry.actorName ?? "System"}
               </span>
-              <span>{entry.action}</span>
-              <span className="truncate">{entry.entity}</span>
+              <span>{entry.actionLabel}</span>
+              <span className="truncate font-medium text-foreground/80">
+                {entry.entityLabel}
+              </span>
               <span className="ml-auto tabular-nums">
                 {dtLong.format(entry.createdAt)}
               </span>

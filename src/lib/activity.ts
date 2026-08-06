@@ -38,7 +38,7 @@ export async function listActivity(
   if (filters.from) conditions.push(gte(activityLog.createdAt, filters.from));
   if (filters.to) conditions.push(lt(activityLog.createdAt, filters.to));
 
-  return db
+  const rows = await db
     .select({
       id: activityLog.id,
       action: activityLog.action,
@@ -53,6 +53,16 @@ export async function listActivity(
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(activityLog.createdAt))
     .limit(limit);
+
+  const { actionLabel, resolveEntityLabels } = await import(
+    "@/lib/activity-labels"
+  );
+  const entityLabels = await resolveEntityLabels(rows.map((r) => r.entity));
+  return rows.map((r) => ({
+    ...r,
+    actionLabel: actionLabel(r.action),
+    entityLabel: entityLabels.get(r.entity) ?? "",
+  }));
 }
 
 export async function logActivity(input: LogInput): Promise<void> {

@@ -124,8 +124,13 @@ export default async function AuditPage({
                   {dt.format(row.createdAt)}
                 </td>
                 <td className="px-3 py-2 font-medium">{row.actorName ?? "System"}</td>
-                <td className="px-3 py-2">{row.action}</td>
-                <td className="px-3 py-2 text-muted-foreground">{row.entity}</td>
+                <td className="px-3 py-2">{row.actionLabel}</td>
+                <td
+                  className="px-3 py-2 text-muted-foreground"
+                  title={row.entity}
+                >
+                  {row.entityLabel}
+                </td>
                 <td className="max-w-md truncate px-3 py-2 font-mono text-[10px] text-muted-foreground">
                   {row.detail ? JSON.stringify(row.detail) : ""}
                 </td>

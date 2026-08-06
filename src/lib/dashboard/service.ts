@@ -112,7 +112,8 @@ export async function getOverdueHotspots(actor: Actor) {
 
 export async function getActivityFeed(actor: Actor, limit = 15) {
   assertCan(actor, "dashboard.view");
-  return db
+  // sign-ins are audit material, not dashboard news
+  const rows = await db
     .select({
       id: activityLog.id,
       action: activityLog.action,
@@ -122,6 +123,17 @@ export async function getActivityFeed(actor: Actor, limit = 15) {
     })
     .from(activityLog)
     .leftJoin(profiles, eq(activityLog.actorId, profiles.id))
+    .where(ne(activityLog.action, "auth.signin"))
     .orderBy(desc(activityLog.createdAt))
     .limit(limit);
+
+  const { actionLabel, resolveEntityLabels } = await import(
+    "@/lib/activity-labels"
+  );
+  const entityLabels = await resolveEntityLabels(rows.map((r) => r.entity));
+  return rows.map((r) => ({
+    ...r,
+    actionLabel: actionLabel(r.action),
+    entityLabel: entityLabels.get(r.entity) ?? "",
+  }));
 }
