@@ -1,9 +1,19 @@
+import { DIVISIONS } from "@/lib/org/divisions";
 import { db } from "./index";
-import { appSettings } from "./schema";
+import { appSettings, divisions } from "./schema";
 
 // Idempotent seed (T-003 skeleton). Each epic extends `steps` with its own
 // fixtures: divisions + demo users (T-010/T-015), demo event (T-020)…
 const steps: Array<{ name: string; run: () => Promise<void> }> = [
+  {
+    name: "11 RVC divisions",
+    run: async () => {
+      await db
+        .insert(divisions)
+        .values(DIVISIONS.map((d, index) => ({ ...d, sortOrder: index })))
+        .onConflictDoNothing();
+    },
+  },
   {
     name: "default org settings",
     run: async () => {

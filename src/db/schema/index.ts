@@ -4,3 +4,4 @@
 // later epics (approval thresholds, health rules) have a place for org config.
 
 export * from "./app-settings";
+export * from "./org";
