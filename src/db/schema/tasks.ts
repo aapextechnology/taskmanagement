@@ -115,10 +115,12 @@ export const taskChecklistItems = pgTable("task_checklist_items", {
   sortOrder: integer("sort_order").notNull().default(0),
 });
 
-// org-wide label vocabulary
+// org-wide label vocabulary; color is a key from the curated palette
+// (src/lib/label-colors.ts), never a free-form value
 export const labels = pgTable("labels", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),
+  color: text("color").notNull().default("slate"),
 });
 
 export const taskLabels = pgTable(

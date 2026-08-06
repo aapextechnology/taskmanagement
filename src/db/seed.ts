@@ -108,7 +108,15 @@ const steps: Array<{ name: string; run: () => Promise<void> }> = [
   {
     name: `labels (${DEMO_LABELS.length})`,
     run: async () => {
-      await db.insert(labels).values(DEMO_LABELS).onConflictDoNothing();
+      for (const label of DEMO_LABELS) {
+        await db
+          .insert(labels)
+          .values(label)
+          .onConflictDoUpdate({
+            target: labels.name,
+            set: { color: label.color },
+          });
+      }
     },
   },
   {

@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   divisions,
@@ -127,6 +127,61 @@ export async function setArchived(
     actorId: actor.id,
     action: archived ? "event.archive" : "event.unarchive",
     entity: `event:${eventId}`,
+    eventId,
+  });
+}
+
+// ---- division roster per event (Owner request 2026-08-06) -----------------
+
+export async function listEventDivisions(actor: Actor, eventId: string) {
+  assertCan(actor, "event.view");
+  return db
+    .select({ id: divisions.id, name: divisions.name })
+    .from(eventDivisions)
+    .innerJoin(divisions, eq(eventDivisions.divisionId, divisions.id))
+    .where(eq(eventDivisions.eventId, eventId))
+    .orderBy(asc(divisions.sortOrder));
+}
+
+export async function setEventDivisions(
+  actor: Actor,
+  eventId: string,
+  divisionIds: string[],
+) {
+  assertCan(actor, "event.manageDivisions");
+  if (divisionIds.length === 0) {
+    throw new Error("An event needs at least one division.");
+  }
+  const current = await db
+    .select({ divisionId: eventDivisions.divisionId })
+    .from(eventDivisions)
+    .where(eq(eventDivisions.eventId, eventId));
+  const wanted = new Set(divisionIds);
+  const existing = new Set(current.map((c) => c.divisionId));
+
+  const toRemove = [...existing].filter((id) => !wanted.has(id));
+  if (toRemove.length > 0) {
+    await db
+      .delete(eventDivisions)
+      .where(
+        and(
+          eq(eventDivisions.eventId, eventId),
+          inArray(eventDivisions.divisionId, toRemove),
+        ),
+      );
+  }
+  const toAdd = [...wanted].filter((id) => !existing.has(id));
+  if (toAdd.length > 0) {
+    await db
+      .insert(eventDivisions)
+      .values(toAdd.map((divisionId) => ({ eventId, divisionId })))
+      .onConflictDoNothing();
+  }
+  await logActivity({
+    actorId: actor.id,
+    action: "event.updateDivisions",
+    entity: `event:${eventId}`,
+    detail: { divisions: divisionIds },
     eventId,
   });
 }

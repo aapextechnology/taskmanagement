@@ -65,6 +65,13 @@ export async function createTaskAction(
         | "weekly"
         | "monthly",
       assigneeIds: formData.getAll("assignees").map(String).filter(Boolean),
+      labelIds: formData.getAll("labels").map(String).filter(Boolean),
+      newLabel: String(formData.get("newLabelName") ?? "").trim()
+        ? {
+            name: String(formData.get("newLabelName")),
+            color: String(formData.get("newLabelColor") || "slate"),
+          }
+        : undefined,
     });
     taskId = task.id;
   } catch (error) {
@@ -150,7 +157,12 @@ export async function checklistToggleAction(formData: FormData): Promise<void> {
 export async function labelAddAction(formData: FormData): Promise<void> {
   const actor = await requireActor();
   const taskId = String(formData.get("taskId"));
-  await addLabelToTask(actor, taskId, String(formData.get("name") ?? ""));
+  await addLabelToTask(
+    actor,
+    taskId,
+    String(formData.get("name") ?? ""),
+    String(formData.get("color") || "slate"),
+  );
   revalidatePath(`/tasks/${taskId}`);
 }
 

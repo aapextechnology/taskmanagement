@@ -8,10 +8,13 @@ import { sessionActor } from "@/lib/auth/session-actor";
 import {
   EVENT_PHASES_ORDER,
   getEvent,
+  listEventDivisions,
   PHASE_LABELS,
 } from "@/lib/events/service";
+import { listDivisions } from "@/lib/org/service";
 import { can } from "@/lib/permissions";
 import { archiveEventAction, updatePhaseAction } from "../actions";
+import { DivisionsManager } from "./divisions-manager";
 
 export const metadata: Metadata = { title: "Event" };
 
@@ -31,8 +34,13 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
   if (!event) notFound();
 
   const canManage = can(actor, "event.updatePhase");
+  const canManageDivisions = can(actor, "event.manageDivisions");
   const currentIndex = EVENT_PHASES_ORDER.indexOf(event.phase);
   const nextPhase = EVENT_PHASES_ORDER[currentIndex + 1];
+  const [activeDivisions, allDivisions] = await Promise.all([
+    listEventDivisions(actor, event.id),
+    canManageDivisions ? listDivisions() : [],
+  ]);
 
   return (
     <section className="flex flex-col gap-10">
@@ -122,6 +130,16 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
           </a>
         ))}
       </nav>
+
+      {canManageDivisions ? (
+        <div>
+          <DivisionsManager
+            eventId={event.id}
+            allDivisions={allDivisions.map((d) => ({ id: d.id, name: d.name }))}
+            activeIds={activeDivisions.map((d) => d.id)}
+          />
+        </div>
+      ) : null}
     </section>
   );
 }

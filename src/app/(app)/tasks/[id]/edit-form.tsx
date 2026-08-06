@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { updateFieldsAction, type TaskActionState } from "../actions";
+import { PriorityPicker } from "@/components/priority-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,14 +54,11 @@ export function EditTaskForm({
           <Label htmlFor="et-title">Title</Label>
           <Input id="et-title" name="title" defaultValue={task.title} required />
         </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="et-priority">Priority</Label>
-          <select id="et-priority" name="priority" className={selectClass} defaultValue={task.priority}>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
-          </select>
+        <div className="flex flex-col gap-2 sm:col-span-2">
+          <Label>Priority</Label>
+          <PriorityPicker
+            defaultValue={task.priority as "low" | "medium" | "high" | "urgent"}
+          />
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="et-due">Due (WIB)</Label>

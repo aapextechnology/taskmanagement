@@ -7,6 +7,7 @@ import {
   createEvent,
   recomputeEventHealth,
   setArchived,
+  setEventDivisions,
   updatePhase,
   type EventPhase,
 } from "@/lib/events/service";
@@ -71,6 +72,28 @@ export async function updatePhaseAction(formData: FormData): Promise<void> {
   await updatePhase(actor, eventId, String(formData.get("phase")) as EventPhase);
   revalidatePath(`/events/${eventId}`);
   revalidatePath("/events");
+}
+
+export async function setDivisionsAction(
+  _prev: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  try {
+    const actor = await requireActor();
+    const eventId = String(formData.get("eventId"));
+    await setEventDivisions(
+      actor,
+      eventId,
+      formData.getAll("divisionIds").map(String).filter(Boolean),
+    );
+    revalidatePath(`/events/${eventId}`);
+    revalidatePath(`/events/${eventId}/board`);
+    return {};
+  } catch (error) {
+    if (error instanceof PermissionError) return { error: "Not allowed." };
+    if (error instanceof Error) return { error: error.message };
+    throw error;
+  }
 }
 
 export async function archiveEventAction(formData: FormData): Promise<void> {

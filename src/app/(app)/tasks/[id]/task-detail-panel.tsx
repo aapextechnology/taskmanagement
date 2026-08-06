@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { LabelChip } from "@/components/label-chip";
 import { AvatarStack, PriorityIcon, StatusChip } from "@/components/task-meta";
 import { Button } from "@/components/ui/button";
+import { LABEL_COLORS } from "@/lib/label-colors";
 import { Input } from "@/components/ui/input";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { can } from "@/lib/permissions";
@@ -222,15 +224,16 @@ export async function TaskDetailPanel({
         <h2 className="text-sm font-semibold uppercase tracking-wider">Labels</h2>
         <div className="flex flex-wrap items-center gap-2">
           {task.labels.map((label) => (
-            <form action={labelRemoveAction} key={label.id}>
+            <form action={labelRemoveAction} key={label.id} className="inline-flex">
               <input type="hidden" name="taskId" value={task.id} />
               <input type="hidden" name="labelId" value={label.id} />
               <button
                 type="submit"
                 disabled={!canEdit}
-                className="rounded-sm border px-2 py-0.5 text-[11px] uppercase tracking-wider hover:bg-accent disabled:pointer-events-none"
+                title={canEdit ? "Remove label" : undefined}
+                className="transition-opacity hover:opacity-70 disabled:pointer-events-none"
               >
-                {label.name} {canEdit ? "×" : ""}
+                <LabelChip name={`${label.name}${canEdit ? " ×" : ""}`} color={label.color} />
               </button>
             </form>
           ))}
@@ -238,6 +241,17 @@ export async function TaskDetailPanel({
             <form action={labelAddAction} className="flex items-center gap-2">
               <input type="hidden" name="taskId" value={task.id} />
               <Input name="name" placeholder="Add label…" className="h-8 w-32 text-xs" />
+              <select
+                name="color"
+                className="border-input h-8 rounded-md border bg-transparent px-2 text-xs outline-none"
+                defaultValue="blue"
+              >
+                {Object.entries(LABEL_COLORS).map(([key, meta]) => (
+                  <option key={key} value={key}>
+                    {meta.label}
+                  </option>
+                ))}
+              </select>
               <Button type="submit" size="sm" variant="outline">
                 Add
               </Button>

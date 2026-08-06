@@ -102,7 +102,33 @@ export async function listBoardTasks(
     .from(tasks)
     .where(and(eq(tasks.eventId, eventId), eq(tasks.divisionId, divisionId)))
     .orderBy(asc(tasks.dueDate), asc(tasks.createdAt));
-  return withAssignees(rows);
+  return withLabels(await withAssignees(rows));
+}
+
+async function withLabels<T extends { id: string }>(rows: T[]) {
+  if (rows.length === 0)
+    return [] as Array<T & { labels: Array<{ id: string; name: string; color: string }> }>;
+  const links = await db
+    .select({
+      taskId: taskLabels.taskId,
+      id: labels.id,
+      name: labels.name,
+      color: labels.color,
+    })
+    .from(taskLabels)
+    .innerJoin(labels, eq(taskLabels.labelId, labels.id))
+    .where(inArray(taskLabels.taskId, rows.map((r) => r.id)));
+  const byTask = new Map<string, Array<{ id: string; name: string; color: string }>>();
+  for (const l of links) {
+    const list = byTask.get(l.taskId) ?? [];
+    list.push({ id: l.id, name: l.name, color: l.color });
+    byTask.set(l.taskId, list);
+  }
+  return rows.map((r) => ({ ...r, labels: byTask.get(r.id) ?? [] }));
+}
+
+export async function listLabels() {
+  return db.select().from(labels).orderBy(asc(labels.name));
 }
 
 export interface ListFilters {
@@ -195,6 +221,8 @@ export async function createTask(
     dueDate?: Date;
     recurrence?: "none" | "daily" | "weekly" | "monthly";
     assigneeIds?: string[];
+    labelIds?: string[];
+    newLabel?: { name: string; color: string };
   },
 ) {
   assertCan(actor, "task.create", { divisionId: input.divisionId });
@@ -215,6 +243,18 @@ export async function createTask(
 
   for (const userId of input.assigneeIds ?? []) {
     await assignUser(actor, task.id, userId, { skipFetch: task });
+  }
+
+  const labelIds = [...(input.labelIds ?? [])];
+  if (input.newLabel?.name.trim()) {
+    const label = await ensureLabel(input.newLabel.name, input.newLabel.color);
+    labelIds.push(label.id);
+  }
+  if (labelIds.length > 0) {
+    await db
+      .insert(taskLabels)
+      .values(labelIds.map((labelId) => ({ taskId: task.id, labelId })))
+      .onConflictDoNothing();
   }
 
   await logActivity({
@@ -437,16 +477,28 @@ export async function toggleChecklistItem(actor: Actor, itemId: string) {
 
 // ---- labels ---------------------------------------------------------------
 
-export async function addLabelToTask(actor: Actor, taskId: string, name: string) {
-  const task = await requireTask(actor, taskId);
-  assertCan(actor, "task.edit", { divisionId: task.divisionId });
+async function ensureLabel(name: string, color: string) {
+  const { labelColorKey } = await import("@/lib/label-colors");
   const clean = name.trim().toLowerCase();
-  if (!clean) return;
+  const safeColor = labelColorKey(color);
   const [label] = await db
     .insert(labels)
-    .values({ name: clean })
-    .onConflictDoUpdate({ target: labels.name, set: { name: clean } })
+    .values({ name: clean, color: safeColor })
+    .onConflictDoUpdate({ target: labels.name, set: { color: safeColor } })
     .returning();
+  return label;
+}
+
+export async function addLabelToTask(
+  actor: Actor,
+  taskId: string,
+  name: string,
+  color = "slate",
+) {
+  const task = await requireTask(actor, taskId);
+  assertCan(actor, "task.edit", { divisionId: task.divisionId });
+  if (!name.trim()) return;
+  const label = await ensureLabel(name, color);
   await db
     .insert(taskLabels)
     .values({ taskId, labelId: label.id })
@@ -728,7 +780,7 @@ export async function getTaskDetail(actor: Actor, taskId: string) {
         .where(eq(taskChecklistItems.taskId, taskId))
         .orderBy(asc(taskChecklistItems.sortOrder)),
       db
-        .select({ id: labels.id, name: labels.name })
+        .select({ id: labels.id, name: labels.name, color: labels.color })
         .from(taskLabels)
         .innerJoin(labels, eq(taskLabels.labelId, labels.id))
         .where(eq(taskLabels.taskId, taskId)),

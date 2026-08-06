@@ -3,12 +3,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { KanbanBoard } from "@/components/kanban-board";
 import { sessionActor } from "@/lib/auth/session-actor";
-import { getEvent } from "@/lib/events/service";
-import { listDivisions } from "@/lib/org/service";
+import { getEvent, listEventDivisions } from "@/lib/events/service";
 import { can } from "@/lib/permissions";
 import {
   listBoardTasks,
   listDivisionMemberOptions,
+  listLabels,
 } from "@/lib/tasks/service";
 import { cn } from "@/lib/utils";
 import { NewTaskForm } from "./new-task-form";
@@ -26,8 +26,10 @@ export default async function BoardPage({
   const event = await getEvent(actor, id);
   if (!event) notFound();
 
-  const allDivisions = await listDivisions();
-  const visibleDivisions = allDivisions.filter((d) =>
+  // board tabs = the divisions ACTIVE ON THIS EVENT (master data managed on
+  // the event workspace), intersected with what the actor may see
+  const eventDivisionList = await listEventDivisions(actor, id);
+  const visibleDivisions = eventDivisionList.filter((d) =>
     can(actor, "task.viewDivision", { divisionId: d.id }),
   );
   if (visibleDivisions.length === 0) redirect(`/events/${id}`);
@@ -37,9 +39,10 @@ export default async function BoardPage({
   const division =
     visibleDivisions.find((d) => d.id === requested) ?? visibleDivisions[0];
 
-  const [tasks, members] = await Promise.all([
+  const [tasks, members, labels] = await Promise.all([
     listBoardTasks(actor, id, division.id),
     listDivisionMemberOptions(division.id),
+    listLabels(),
   ]);
   const canCreate = can(actor, "task.create", { divisionId: division.id });
 
@@ -80,6 +83,7 @@ export default async function BoardPage({
           eventId={id}
           divisionId={division.id}
           members={members.map((m) => ({ id: m.id, name: m.name }))}
+          labels={labels}
         />
       ) : null}
 
@@ -91,6 +95,7 @@ export default async function BoardPage({
           priority: t.priority,
           dueDate: t.dueDate?.toISOString() ?? null,
           assignees: t.assignees,
+          labels: t.labels,
         }))}
       />
     </section>

@@ -70,12 +70,12 @@ export const DEMO_EVENTS: Array<{
   },
 ];
 
-export const DEMO_LABELS: Array<{ id: string; name: string }> = [
-  { id: "00000000-0000-4000-8000-00000000f001", name: "vendor" },
-  { id: "00000000-0000-4000-8000-00000000f002", name: "contract" },
-  { id: "00000000-0000-4000-8000-00000000f003", name: "permit" },
-  { id: "00000000-0000-4000-8000-00000000f004", name: "creative" },
-  { id: "00000000-0000-4000-8000-00000000f005", name: "budget" },
+export const DEMO_LABELS: Array<{ id: string; name: string; color: string }> = [
+  { id: "00000000-0000-4000-8000-00000000f001", name: "vendor", color: "blue" },
+  { id: "00000000-0000-4000-8000-00000000f002", name: "contract", color: "violet" },
+  { id: "00000000-0000-4000-8000-00000000f003", name: "permit", color: "amber" },
+  { id: "00000000-0000-4000-8000-00000000f004", name: "creative", color: "pink" },
+  { id: "00000000-0000-4000-8000-00000000f005", name: "budget", color: "green" },
 ];
 
 export interface DemoTask {

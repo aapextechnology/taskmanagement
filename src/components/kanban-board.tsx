@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { updateStatusAction } from "@/app/(app)/tasks/actions";
+import { LabelChip } from "@/components/label-chip";
 import {
   AvatarStack,
   PriorityIcon,
@@ -29,6 +30,7 @@ export interface KanbanTask {
   priority: "low" | "medium" | "high" | "urgent";
   dueDate: string | null;
   assignees: Array<{ id: string; name: string }>;
+  labels: Array<{ id: string; name: string; color: string }>;
 }
 
 // Native HTML5 drag & drop — no library. Drop persists via server action;
@@ -105,6 +107,17 @@ export function KanbanBoard({ tasks }: { tasks: KanbanTask[] }) {
                     <span className="text-[13px] font-medium leading-snug">
                       {task.title}
                     </span>
+                    {task.labels.length > 0 ? (
+                      <span className="flex flex-wrap gap-1">
+                        {task.labels.map((label) => (
+                          <LabelChip
+                            key={label.id}
+                            name={label.name}
+                            color={label.color}
+                          />
+                        ))}
+                      </span>
+                    ) : null}
                     <span className="flex items-center gap-2">
                       <PriorityIcon priority={task.priority} />
                       {task.dueDate ? (
