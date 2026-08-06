@@ -38,7 +38,7 @@ instead of a page navigation. Keep the RVC monochrome chrome; color becomes func
 
 ### Consistency pass
 
-- [ ] **T-114** Events gallery + workspace + forms aligned to the new density/tone; dark/light verified.
+- [ ] **T-114** (feedback batch 1 landed: humanized activity feed, dark-grey dashboard cards) Events gallery + workspace + forms aligned to the new density/tone; dark/light verified.
 
 ## Acceptance Criteria
 
