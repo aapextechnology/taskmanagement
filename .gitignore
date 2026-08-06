@@ -1,0 +1,14 @@
+node_modules/
+.next/
+.env
+.env.*
+!.env.example
+uploads/
+graphify-out/
+.agentic/config.local.yml
+.agentic/loop-ledger.tsv
+.agentic/loop.pause
+*.log
+.claude-flow/
+.claude/proven-config.json
+.claude/.proven-config-version

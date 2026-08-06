@@ -1,0 +1,69 @@
+# RVC Backstage — Epics
+
+> **Canonical status registry.** This file + each `EPIC-XXX-*.md` frontmatter are
+> the *live state of work* — first in the source-of-truth order (see
+> `rules/docs-source-of-truth.md`). When the backlog, PRD, or tasks disagree with
+> an epic, **the epic wins**. Templates live at `~/.agentic-workflows/templates/docs/epics/`.
+>
+> Seeds: [`../backlog.json`](../backlog.json) · [`../BACKLOG.md`](../BACKLOG.md).
+
+## Registry
+
+| Epic | Phase | Focus | Priority | Status |
+| --- | --- | --- | --- | --- |
+| [EPIC-000](EPIC-000-bootstrap.md) | Phase 0 | Bootstrap & Foundation (scaffold, DB, theme, CI, gates) | P0 | on-progress |
+| [EPIC-001](EPIC-001-auth-org-permissions.md) | Phase 1 | Auth, Org & Permissions | P0 | backlog |
+| [EPIC-002](EPIC-002-events-workspace.md) | Phase 1 | Events Workspace | P0 | backlog |
+| [EPIC-003](EPIC-003-tasks-collaboration.md) | Phase 1 | Tasks Core & Collaboration | P0 | backlog |
+| [EPIC-004](EPIC-004-approvals-engine.md) | Phase 2 | Approvals Engine | P1 | backlog |
+| [EPIC-005](EPIC-005-budgets-expenses.md) | Phase 2 | Budgets & Expenses | P1 | backlog |
+| [EPIC-006](EPIC-006-executive-dashboard.md) | Phase 2 | Executive Dashboard & Activity Log | P1 | backlog |
+| [EPIC-007](EPIC-007-external-guest-portal.md) | Phase 3 | External Guest Portal & Forms | P1 | backlog |
+| [EPIC-008](EPIC-008-planning-views-run-of-show.md) | Phase 3 | Planning Views, Documents & Run of Show | P1 | backlog |
+| [EPIC-009](EPIC-009-playbooks-ticket-snapshots.md) | Phase 3 | Playbooks & Ticket Snapshots | P1 | backlog |
+| [EPIC-010](EPIC-010-reports-search-polish.md) | Phase 4 | Reports, Search & Polish | P2 | backlog |
+
+**Definition of MVP:** completion of **EPIC-000 → EPIC-003** (Phase 0 + Phase 1 — a division can run its event work end-to-end).
+
+**Phase gates:** work Phase N epics to `done`/`ready-for-qa` before promoting Phase N+1 epics
+out of `backlog` (exceptions need a note in the epic's Automation Log). Within Phase 1 the
+order is 001 → 002 → 003 (hard dependency chain through the permission module).
+
+## Status Lifecycle
+
+Every epic's `status:` moves through a fixed lifecycle:
+
+```
+backlog → on-progress → coding → review → testing → deploying-dev → ready-for-qa → done
+                                                                   ↘ blocked (on failure)
+```
+
+| Status | Meaning |
+| --- | --- |
+| `backlog` | Not started; **ignored by automation**. |
+| `on-progress` | Picked up by the loop; ready to be processed. |
+| `coding` | Currently implementing a task. |
+| `review` | Currently in code/QA review. |
+| `testing` | Running the test/quality gate. |
+| `deploying-dev` | Deploying to the DEV environment (never production). |
+| `ready-for-qa` | All tasks passed gates — **human QA required** before done. |
+| `blocked` | Failed after max `retries` — **human action required**. |
+| `done` | Completed; **ignored by automation**. |
+
+Only epics in `on-progress` (or a mid-flight phase) are picked up by the loop.
+`backlog`, `done`, and `blocked` are skipped.
+
+`environment` advances separately: `dev → staging → prod`. Automation operates on
+`dev` only; `staging`/`prod` are human-triggered.
+
+## Conventions
+
+- **One epic = one feature/milestone.** Break it into `### task group` blocks
+  (each PR-sized) inside the epic file.
+- **Task IDs** come from `../product/ENGINEERING-TASKS.md` (blocks of 10 per epic;
+  stable, never renumbered).
+- **Automation Log is the durability anchor.** Every epic carries an
+  `## Automation Log`; the self-learning loop's distilled decisions are copied
+  there (memory is a cache, the log is version-controlled).
+- **Add a new epic** by copying [`EPIC-template.md`](EPIC-template.md), then add a
+  row to the registry above.
