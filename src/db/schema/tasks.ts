@@ -112,6 +112,8 @@ export const taskChecklistItems = pgTable("task_checklist_items", {
     .notNull()
     .references(() => tasks.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
+  // free-form note/keterangan (Owner request 2026-08-06)
+  note: text("note").notNull().default(""),
   done: boolean("done").notNull().default(false),
   // per-item planning (Owner request 2026-08-06)
   startDate: timestamp("start_date", { withTimezone: true }),

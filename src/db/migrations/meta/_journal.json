@@ -92,6 +92,13 @@
       "when": 1786005146319,
       "tag": "0012_checklist-planning-fields",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1786006127616,
+      "tag": "0013_checklist-note",
+      "breakpoints": true
     }
   ]
 }

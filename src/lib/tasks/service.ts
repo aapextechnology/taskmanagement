@@ -477,6 +477,38 @@ export async function addChecklistItem(
   });
 }
 
+export async function updateChecklistItem(
+  actor: Actor,
+  itemId: string,
+  input: {
+    title: string;
+    note: string;
+    startDate: Date | null;
+    dueDate: Date | null;
+    priority: "low" | "medium" | "high" | "urgent" | null;
+  },
+) {
+  const [item] = await db
+    .select()
+    .from(taskChecklistItems)
+    .where(eq(taskChecklistItems.id, itemId))
+    .limit(1);
+  if (!item) return;
+  const task = await requireTask(actor, item.taskId);
+  if (!canMutate(actor, task)) throw new PermissionError("task.edit");
+  if (!input.title.trim()) throw new Error("Checklist title is empty.");
+  await db
+    .update(taskChecklistItems)
+    .set({
+      title: input.title.trim(),
+      note: input.note.trim(),
+      startDate: input.startDate,
+      dueDate: input.dueDate,
+      priority: input.priority,
+    })
+    .where(eq(taskChecklistItems.id, itemId));
+}
+
 export async function deleteChecklistItem(actor: Actor, itemId: string) {
   const [item] = await db
     .select()

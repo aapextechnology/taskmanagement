@@ -19,6 +19,7 @@ import {
   toggleChecklistItem,
   toggleWatch,
   unassignUser,
+  updateChecklistItem,
   updateStatus,
   updateTaskFields,
   type TaskStatus,
@@ -158,6 +159,33 @@ export async function checklistAddAction(formData: FormData): Promise<void> {
         : undefined,
     });
   }
+  revalidatePath(`/tasks/${taskId}`);
+}
+
+export async function checklistUpdateAction(formData: FormData): Promise<void> {
+  const actor = await requireActor();
+  const taskId = String(formData.get("taskId"));
+  const startRaw = String(formData.get("startDate") ?? "");
+  const dueRaw = String(formData.get("dueDate") ?? "");
+  const priorityRaw = String(formData.get("priority") ?? "");
+  await updateChecklistItem(actor, String(formData.get("itemId")), {
+    title: String(formData.get("title") ?? ""),
+    note: String(formData.get("note") ?? ""),
+    startDate: startRaw ? new Date(`${startRaw}T00:00:00+07:00`) : null,
+    dueDate: dueRaw ? new Date(`${dueRaw}T23:59:59+07:00`) : null,
+    priority: priorityRaw
+      ? (priorityRaw as "low" | "medium" | "high" | "urgent")
+      : null,
+  });
+  revalidatePath(`/tasks/${taskId}`);
+}
+
+export async function taskDescriptionAction(formData: FormData): Promise<void> {
+  const actor = await requireActor();
+  const taskId = String(formData.get("taskId"));
+  await updateTaskFields(actor, taskId, {
+    description: String(formData.get("description") ?? ""),
+  });
   revalidatePath(`/tasks/${taskId}`);
 }
 

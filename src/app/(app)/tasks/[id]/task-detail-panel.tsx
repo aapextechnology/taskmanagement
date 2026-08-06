@@ -16,19 +16,20 @@ import {
   TASK_STATUS_ORDER,
 } from "@/lib/tasks/service";
 import {
-  assignAction,
   checklistAddAction,
   checklistDeleteAction,
   checklistToggleAction,
   labelAddAction,
   labelRemoveAction,
-  unassignAction,
   updateStatusAction,
   watchAction,
 } from "../actions";
+import { AssigneeManager } from "./assignee-manager";
+import { AttachmentForm } from "./attachment-form";
+import { ChecklistItemDialog } from "./checklist-item-dialog";
 import { CommentForm } from "./comment-form";
 import { DependencyForm } from "./dependency-form";
-import { AttachmentForm } from "./attachment-form";
+import { DescriptionEditor } from "./description-editor";
 import { EditTaskForm } from "./edit-form";
 
 const dt = new Intl.DateTimeFormat("en-GB", {
@@ -113,11 +114,6 @@ export async function TaskDetailPanel({
             </form>
           </div>
         </div>
-        {task.description ? (
-          <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-            {task.description}
-          </p>
-        ) : null}
         <p className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           <StatusChip status={task.status} />
           <PriorityIcon priority={task.priority} withLabel />
@@ -145,47 +141,29 @@ export async function TaskDetailPanel({
         ))}
       </div>
 
-      {/* assignees */}
+      {/* description — wide, always available (Owner request) */}
+      <div className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wider">
+          Description
+        </h2>
+        <DescriptionEditor
+          taskId={task.id}
+          description={task.description}
+          canEdit={canEdit}
+        />
+      </div>
+
+      {/* assignees — popover manager (Owner request) */}
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold uppercase tracking-wider">
           Assignees
         </h2>
-        <div className="flex flex-wrap items-center gap-2">
-          {task.assignees.map((a) => (
-            <form action={unassignAction} key={a.id}>
-              <input type="hidden" name="taskId" value={task.id} />
-              <input type="hidden" name="userId" value={a.id} />
-              <button
-                type="submit"
-                disabled={!canAssign}
-                title={canAssign ? "Remove assignee" : undefined}
-                className="rounded-sm border px-2 py-1 text-xs hover:bg-accent disabled:pointer-events-none"
-              >
-                {a.name} {canAssign ? "×" : ""}
-              </button>
-            </form>
-          ))}
-          {canAssign ? (
-            <form action={assignAction} className="flex items-center gap-2">
-              <input type="hidden" name="taskId" value={task.id} />
-              <select
-                name="userId"
-                className="border-input h-8 rounded-md border bg-transparent px-2 text-xs outline-none"
-              >
-                {members
-                  .filter((m) => !task.assignees.some((a) => a.id === m.id))
-                  .map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-              </select>
-              <Button type="submit" size="sm" variant="outline">
-                Assign
-              </Button>
-            </form>
-          ) : null}
-        </div>
+        <AssigneeManager
+          taskId={task.id}
+          members={members.map((m) => ({ id: m.id, name: m.name }))}
+          assignedIds={task.assignees.map((a) => a.id)}
+          canAssign={canAssign}
+        />
       </div>
 
       {/* checklist with progress (Owner request) */}
@@ -248,14 +226,34 @@ export async function TaskDetailPanel({
                       ) : null}
                     </button>
                   </form>
-                  <span
-                    className={
-                      "min-w-0 flex-1 text-sm " +
-                      (item.done ? "text-muted-foreground line-through" : "")
-                    }
-                  >
-                    {item.title}
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span
+                      className={
+                        "text-sm " +
+                        (item.done ? "text-muted-foreground line-through" : "")
+                      }
+                    >
+                      {item.title}
+                    </span>
+                    {item.note ? (
+                      <span className="line-clamp-2 text-xs text-muted-foreground">
+                        {item.note}
+                      </span>
+                    ) : null}
                   </span>
+                  {canMove ? (
+                    <ChecklistItemDialog
+                      taskId={task.id}
+                      item={{
+                        id: item.id,
+                        title: item.title,
+                        note: item.note,
+                        startDate: item.startDate?.toISOString() ?? null,
+                        dueDate: item.dueDate?.toISOString() ?? null,
+                        priority: item.priority,
+                      }}
+                    />
+                  ) : null}
                   {item.priority ? <PriorityIcon priority={item.priority} /> : null}
                   {item.startDate || item.dueDate ? (
                     <span
