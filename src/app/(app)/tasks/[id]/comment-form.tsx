@@ -21,14 +21,22 @@ export function CommentForm({
   const [body, setBody] = useState("");
   const [mentions, setMentions] = useState<Array<{ id: string; name: string }>>([]);
   const [query, setQuery] = useState<string | null>(null);
+  const [imageName, setImageName] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const imageRef = useRef<HTMLInputElement>(null);
 
   const matches = useMemo(() => {
     if (query === null) return [];
     const q = query.toLowerCase();
-    return mentionOptions
+    const people = mentionOptions
       .filter((m) => m.name.toLowerCase().includes(q))
       .slice(0, 5);
+    // socmed-style @all — pings everyone in the task's division
+    const withAll =
+      "all".startsWith(q) || q === ""
+        ? [{ id: "all", name: "all" }, ...people]
+        : people;
+    return withAll.slice(0, 6);
   }, [query, mentionOptions]);
 
   const onChange = (value: string) => {
@@ -56,6 +64,7 @@ export function CommentForm({
         formAction(formData);
         setBody("");
         setMentions([]);
+        setImageName(null);
       }}
       className="relative flex flex-col gap-3"
     >
@@ -81,9 +90,15 @@ export function CommentForm({
                 onClick={() => pick(m)}
                 className={cn(
                   "w-full rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent",
+                  m.id === "all" && "font-semibold",
                 )}
               >
                 @{m.name}
+                {m.id === "all" ? (
+                  <span className="ml-1.5 font-normal text-muted-foreground">
+                    — everyone in this division
+                  </span>
+                ) : null}
               </button>
             </li>
           ))}
@@ -97,9 +112,25 @@ export function CommentForm({
       {state.error ? (
         <p role="alert" className="text-sm text-destructive">{state.error}</p>
       ) : null}
-      <div>
+      <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={pending || !body.trim()}>
           {pending ? "Posting…" : "Comment"}
+        </Button>
+        <input
+          ref={imageRef}
+          type="file"
+          name="attachment"
+          className="hidden"
+          onChange={(e) => setImageName(e.target.files?.[0]?.name ?? null)}
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => imageRef.current?.click()}
+          className="text-xs text-muted-foreground"
+        >
+          📎 {imageName ?? "Attach image / file"}
         </Button>
       </div>
     </form>

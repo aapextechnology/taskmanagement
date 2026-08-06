@@ -17,9 +17,22 @@ export async function AppShell({ children }: { children: ReactNode }) {
   const session = await auth();
   const actor = session?.user?.id ? await sessionActor() : null;
 
+  const timelineCounts = actor
+    ? await (async () => {
+        const { getUnreadCounts } = await import("@/lib/timeline/service");
+        return getUnreadCounts(actor);
+      })()
+    : { timeline: 0, mentions: 0 };
+
   const items: NavItem[] = [
     { href: "/my-tasks", label: "My Tasks", icon: "my-tasks" },
     { href: "/events", label: "Events", icon: "events" },
+    {
+      href: "/timeline",
+      label: "Timeline",
+      icon: "timeline",
+      badge: timelineCounts.timeline + timelineCounts.mentions,
+    },
     { href: "/approvals", label: "Approvals", icon: "approvals" },
     { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
     ...(actor && can(actor, "org.manage")

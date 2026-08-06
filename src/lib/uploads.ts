@@ -24,7 +24,7 @@ const MAX_FILE_BYTES = 20 * 1024 * 1024;
 // Generic attachment upload (T-034): documents + images, 20 MB cap.
 export async function saveFileUpload(
   file: File,
-  subdir: "attachments",
+  subdir: "attachments" | "comments",
 ): Promise<string> {
   const ext = path.extname(file.name).toLowerCase();
   if (!FILE_EXTENSIONS.has(ext)) {
@@ -44,7 +44,7 @@ export async function saveFileUpload(
 // path persisted on the record (served via /api/files/<relative-path>).
 export async function saveImageUpload(
   file: File,
-  subdir: "posters",
+  subdir: "posters" | "comments",
 ): Promise<string> {
   const ext = path.extname(file.name).toLowerCase();
   if (!IMAGE_EXTENSIONS.has(ext)) {

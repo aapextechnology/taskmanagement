@@ -1,8 +1,15 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { AttachmentView } from "@/components/attachment-view";
+import { CommentBody } from "@/components/comment-body";
 import { LabelChip } from "@/components/label-chip";
 import { PriorityPicker } from "@/components/priority-picker";
-import { AvatarStack, PriorityIcon, StatusChip } from "@/components/task-meta";
+import {
+  AvatarStack,
+  PriorityIcon,
+  StatusChip,
+  UserAvatar,
+} from "@/components/task-meta";
 import { Button } from "@/components/ui/button";
 import { LABEL_COLORS } from "@/lib/label-colors";
 import { Input } from "@/components/ui/input";
@@ -422,12 +429,27 @@ export async function TaskDetailPanel({
           Comments
         </h2>
         <ul className="flex flex-col gap-4">
-          {task.comments.map(({ comment, authorName }) => (
-            <li key={comment.id} className="flex flex-col gap-1">
-              <span className="text-xs text-muted-foreground">
-                {authorName ?? "Unknown"} · {dt.format(comment.createdAt)} WIB
-              </span>
-              <p className="whitespace-pre-wrap text-sm">{comment.body}</p>
+          {task.comments.map(({ comment, authorName, mentionNames }) => (
+            <li key={comment.id} className="flex gap-2.5">
+              <UserAvatar
+                name={authorName ?? "?"}
+                className="mt-0.5 size-7 text-[10px]"
+              />
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    {authorName ?? "Unknown"}
+                  </span>{" "}
+                  · {dt.format(comment.createdAt)} WIB
+                </span>
+                <CommentBody body={comment.body} mentionNames={mentionNames} />
+                {comment.attachmentPath ? (
+                  <AttachmentView
+                    path={comment.attachmentPath}
+                    name={comment.attachmentName}
+                  />
+                ) : null}
+              </div>
             </li>
           ))}
         </ul>

@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   LayoutDashboard,
   ListChecks,
+  MessagesSquare,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -16,6 +17,7 @@ const ICONS: Record<string, LucideIcon> = {
   "my-tasks": ListChecks,
   events: CalendarRange,
   approvals: ClipboardCheck,
+  timeline: MessagesSquare,
   dashboard: LayoutDashboard,
   admin: Settings,
 };
@@ -24,6 +26,8 @@ export interface NavItem {
   href: string;
   label: string;
   icon: keyof typeof ICONS;
+  /** unread balloon on the icon */
+  badge?: number;
 }
 
 export function NavLink({ item }: { item: NavItem }) {
@@ -42,7 +46,14 @@ export function NavLink({ item }: { item: NavItem }) {
           : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
       )}
     >
-      <Icon className="size-4" />
+      <span className="relative">
+        <Icon className="size-4" />
+        {item.badge && item.badge > 0 ? (
+          <span className="absolute -right-1.5 -top-1.5 flex size-3.5 items-center justify-center rounded-full bg-foreground text-[8px] font-semibold text-background">
+            {item.badge > 9 ? "9+" : item.badge}
+          </span>
+        ) : null}
+      </span>
       {item.label}
     </Link>
   );

@@ -245,13 +245,26 @@ export async function commentAction(
     const taskId = String(formData.get("taskId"));
     const body = String(formData.get("body") ?? "").trim();
     if (!body) return { error: "Comment is empty." };
+
+    // image OR document — both show in the timeline and comment history
+    let attachment: { path: string; name: string } | undefined;
+    const file = formData.get("attachment");
+    if (file instanceof File && file.size > 0) {
+      attachment = {
+        path: await saveFileUpload(file, "comments"),
+        name: file.name,
+      };
+    }
+
     await addComment(
       actor,
       taskId,
       body,
       formData.getAll("mentions").map(String).filter(Boolean),
+      attachment,
     );
     revalidatePath(`/tasks/${taskId}`);
+    revalidatePath("/timeline");
     return {};
   } catch (error) {
     return friendly(error);

@@ -613,6 +613,7 @@ export async function addComment(
   taskId: string,
   body: string,
   mentionIds: string[] = [],
+  attachment?: { path: string; name: string },
 ) {
   const task = await requireTask(actor, taskId);
   if (!canMutate(actor, task) && !task.isAssigned) {
@@ -620,15 +621,25 @@ export async function addComment(
     assertCan(actor, "task.viewDivision", { divisionId: task.divisionId });
   }
 
+  // "@all" (socmed behavior) expands to every member of the task's division
+  let resolvedIds = mentionIds.filter((id) => id !== "all");
+  if (mentionIds.includes("all") || /(^|\s)@all(\b|$)/i.test(body)) {
+    const divisionUsers = await db
+      .select({ userId: divisionMembers.userId })
+      .from(divisionMembers)
+      .where(eq(divisionMembers.divisionId, task.divisionId));
+    resolvedIds = [...new Set([...resolvedIds, ...divisionUsers.map((u) => u.userId)])];
+  }
+
   // only mention users who can actually see the task
   const validMentions =
-    mentionIds.length === 0
+    resolvedIds.length === 0
       ? []
       : (
           await db
             .select({ id: profiles.id, role: profiles.role })
             .from(profiles)
-            .where(inArray(profiles.id, mentionIds))
+            .where(inArray(profiles.id, resolvedIds))
         ).filter((p) => p.role !== "external");
 
   const [comment] = await db
@@ -638,6 +649,8 @@ export async function addComment(
       authorId: actor.id,
       body: body.trim(),
       mentions: validMentions.map((m) => m.id),
+      attachmentPath: attachment?.path ?? null,
+      attachmentName: attachment?.name ?? null,
     })
     .returning();
 
@@ -881,13 +894,34 @@ export async function getTaskDetail(actor: Actor, taskId: string) {
           .from(profiles)
           .where(inArray(profiles.id, task.assigneeIds));
 
+  // names of mentioned users, for socmed-style bolding in comment bodies
+  const mentionIds = [
+    ...new Set(
+      commentRows.flatMap((r) => (r.comment.mentions as string[]) ?? []),
+    ),
+  ];
+  const mentionProfiles =
+    mentionIds.length === 0
+      ? []
+      : await db
+          .select({ id: profiles.id, name: profiles.name })
+          .from(profiles)
+          .where(inArray(profiles.id, mentionIds));
+  const mentionNameById = new Map(mentionProfiles.map((p) => [p.id, p.name]));
+  const commentsWithMentions = commentRows.map((r) => ({
+    ...r,
+    mentionNames: ((r.comment.mentions as string[]) ?? [])
+      .map((id) => mentionNameById.get(id))
+      .filter((n): n is string => Boolean(n)),
+  }));
+
   return {
     ...task,
     event,
     assignees,
     checklist,
     labels: taskLabelRows,
-    comments: commentRows,
+    comments: commentsWithMentions,
     attachments: attachmentRows,
     blockers: blockerRows,
     dependents: dependentRows,

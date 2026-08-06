@@ -24,6 +24,10 @@ export const comments = pgTable("comments", {
   body: text("body").notNull(),
   // uuid[] of mentioned profiles, for audit + notification
   mentions: jsonb("mentions").notNull().default([]),
+  // optional attachment — image OR document (timeline feature); path is
+  // relative to UPLOADS_DIR, name preserves the original filename
+  attachmentPath: text("attachment_path"),
+  attachmentName: text("attachment_name"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
