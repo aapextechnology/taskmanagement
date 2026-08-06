@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
@@ -26,7 +27,15 @@ export default async function AdminPage() {
 
   return (
     <section className="flex flex-col gap-10">
-      <h1 className="text-3xl font-semibold uppercase tracking-tight">Admin</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-semibold uppercase tracking-tight">Admin</h1>
+        <Link
+          href="/admin/audit"
+          className="text-xs font-medium uppercase tracking-wider text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Audit log ↗
+        </Link>
+      </div>
 
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full text-sm">

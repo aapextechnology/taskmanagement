@@ -50,6 +50,13 @@
       "when": 1785990482703,
       "tag": "0006_big_firelord",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785997868096,
+      "tag": "0007_fast_black_tom",
+      "breakpoints": true
     }
   ]
 }

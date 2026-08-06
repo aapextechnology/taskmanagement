@@ -18,10 +18,19 @@ services:
     ports:
       - "5438:5432" # host 5438 (5432-5437 taken on this server) for local `pnpm dev` + drizzle-kit
 
+  # dev email catcher — UI at http://localhost:8025 (T-062)
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "127.0.0.1:8025:8025" # web UI
+      - "127.0.0.1:1025:1025" # SMTP for local `pnpm dev` (in-network uses mailpit:1025)
+
   app:
     build: .
     environment:
       DATABASE_URL: postgres://rvc:rvc_dev_password@db:5432/rvc_backstage
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
       # canonical public URL (Cloudflare Tunnel). Next standalone reports its
       # bind address (0.0.0.0:3000) as the request host, so Auth.js needs the
       # explicit AUTH_URL for correct absolute redirects. Override via env for

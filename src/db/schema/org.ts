@@ -34,6 +34,11 @@ export const profiles = pgTable("profiles", {
   role: globalRoleEnum("role").notNull().default("member"),
   // E.164, used by the WhatsApp channel (T-064); optional
   phone: text("phone"),
+  // channel preferences (T-062/T-064): email defaults on, WhatsApp opt-in
+  emailNotifications: boolean("email_notifications").notNull().default(true),
+  whatsappNotifications: boolean("whatsapp_notifications")
+    .notNull()
+    .default(false),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
