@@ -162,12 +162,20 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
           />
         ) : null}
         {can(actor, "dashboard.view") ? (
-          <a
-            href={`/api/events/${event.id}/report`}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            <FileDown className="size-3.5" /> Progress report (PDF)
-          </a>
+          <>
+            <a
+              href={`/api/events/${event.id}/report`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <FileDown className="size-3.5" /> Progress report (PDF)
+            </a>
+            <a
+              href={`/api/events/${event.id}/settlement`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <FileDown className="size-3.5" /> Settlement (PDF)
+            </a>
+          </>
         ) : null}
         {can(actor, "event.create") ? (
           <ApplyPlaybook

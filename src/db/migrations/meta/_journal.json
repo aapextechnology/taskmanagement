@@ -134,6 +134,13 @@
       "when": 1786020236949,
       "tag": "0018_playbooks-ticket-snapshots",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1786024165975,
+      "tag": "0019_digest-preferences",
+      "breakpoints": true
     }
   ]
 }

@@ -8,6 +8,7 @@ import {
   ListChecks,
   MessagesSquare,
   Settings,
+  SlidersHorizontal,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -22,6 +23,7 @@ const ICONS: Record<string, LucideIcon> = {
   timeline: MessagesSquare,
   dashboard: LayoutDashboard,
   admin: Settings,
+  settings: SlidersHorizontal,
 };
 
 export interface NavItem {

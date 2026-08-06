@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CommandPalette } from "@/components/command-palette";
 import { Logo } from "@/components/logo";
 import { MobileNav } from "@/components/mobile-nav";
 import { EventNavLink, NavLink, type NavItem } from "@/components/nav-link";
@@ -39,6 +40,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
     ...(actor && can(actor, "org.manage")
       ? [{ href: "/admin", label: "Admin", icon: "admin" as const }]
       : []),
+    { href: "/settings", label: "Settings", icon: "settings" },
   ];
 
   const events =
@@ -116,7 +118,8 @@ export async function AppShell({ children }: { children: ReactNode }) {
             <MobileNav items={items} events={events} />
             <Logo className="text-[13px] md:hidden" />
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
+            {session?.user ? <CommandPalette /> : null}
             {session?.user ? <NotificationsBell /> : null}
             <ThemeToggle />
           </div>

@@ -18,4 +18,34 @@ export async function register() {
       console.error("[cron] sweep failed:", error);
     }
   });
+
+  // digests (T-100) — opt-in, WIB mornings; timezone pinned so the container
+  // TZ (UTC) never shifts the send hour
+  const { sendDailyDigests, sendWeeklyDigests } = await import(
+    "@/lib/digests/service"
+  );
+  cron.schedule(
+    "0 7 * * *",
+    async () => {
+      try {
+        const n = await sendDailyDigests();
+        console.log(`[cron] daily digest sent to ${n} users`);
+      } catch (error) {
+        console.error("[cron] daily digest failed:", error);
+      }
+    },
+    { timezone: "Asia/Jakarta" },
+  );
+  cron.schedule(
+    "0 7 * * 1",
+    async () => {
+      try {
+        const n = await sendWeeklyDigests();
+        console.log(`[cron] weekly executive digest sent to ${n} users`);
+      } catch (error) {
+        console.error("[cron] weekly digest failed:", error);
+      }
+    },
+    { timezone: "Asia/Jakarta" },
+  );
 }

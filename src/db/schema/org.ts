@@ -39,6 +39,10 @@ export const profiles = pgTable("profiles", {
   whatsappNotifications: boolean("whatsapp_notifications")
     .notNull()
     .default(false),
+  // digest opt-ins (T-100): daily personal digest for anyone, weekly
+  // executive digest only meaningful for owner/admin (dashboard.view)
+  dailyDigest: boolean("daily_digest").notNull().default(false),
+  weeklyDigest: boolean("weekly_digest").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
