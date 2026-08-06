@@ -15,7 +15,8 @@ export type StatusKey =
   | "in_progress"
   | "in_review"
   | "blocked"
-  | "done";
+  | "done"
+  | "cancelled";
 
 export type PriorityKey = "low" | "medium" | "high" | "urgent";
 
@@ -26,6 +27,7 @@ const STATUS_DOT: Record<StatusKey, string> = {
   in_review: "bg-status-in-review",
   blocked: "bg-status-blocked",
   done: "bg-status-done",
+  cancelled: "bg-muted-foreground/40",
 };
 
 export const STATUS_TEXT: Record<StatusKey, string> = {
@@ -35,6 +37,7 @@ export const STATUS_TEXT: Record<StatusKey, string> = {
   in_review: "In review",
   blocked: "Blocked",
   done: "Done",
+  cancelled: "Cancelled",
 };
 
 export function StatusDot({

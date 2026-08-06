@@ -21,6 +21,7 @@ const COLUMNS: StatusKey[] = [
   "in_review",
   "blocked",
   "done",
+  "cancelled",
 ];
 
 export interface KanbanTask {

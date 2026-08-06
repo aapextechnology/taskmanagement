@@ -22,6 +22,7 @@ export const taskStatusEnum = pgEnum("task_status", [
   "in_review",
   "blocked",
   "done",
+  "cancelled",
 ]);
 
 export const taskPriorityEnum = pgEnum("task_priority", [

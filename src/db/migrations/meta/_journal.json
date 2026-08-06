@@ -71,6 +71,13 @@
       "when": 1786000422875,
       "tag": "0009_event-workflow-phases",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786001407767,
+      "tag": "0010_task-cancelled-status",
+      "breakpoints": true
     }
   ]
 }

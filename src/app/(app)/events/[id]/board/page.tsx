@@ -82,6 +82,7 @@ export default async function BoardPage({
         <NewTaskForm
           eventId={id}
           divisionId={division.id}
+          divisionName={division.name}
           members={members.map((m) => ({ id: m.id, name: m.name }))}
           labels={labels}
         />

@@ -1,25 +1,34 @@
 "use client";
 
+import { CalendarClock, Repeat } from "lucide-react";
 import { useActionState, useState } from "react";
 import { createTaskAction, type TaskActionState } from "@/app/(app)/tasks/actions";
 import { AssigneePicker } from "@/components/assignee-picker";
 import { LabelPicker } from "@/components/label-picker";
 import { PriorityPicker } from "@/components/priority-picker";
+import { Segmented } from "@/components/segmented";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const selectClass =
-  "border-input h-9 rounded-md border bg-transparent px-3 text-sm outline-none";
-
+// Plane-style create dialog (Owner request 2026-08-06): borderless title +
+// description up top, property pickers below, footer actions.
 export function NewTaskForm({
   eventId,
   divisionId,
+  divisionName,
   members,
   labels,
 }: {
   eventId: string;
   divisionId: string;
+  divisionName?: string;
   members: Array<{ id: string; name: string }>;
   labels: Array<{ id: string; name: string; color: string }>;
 }) {
@@ -29,86 +38,115 @@ export function NewTaskForm({
     {},
   );
 
-  if (!open) {
-    return (
-      <div>
-        <Button variant="outline" onClick={() => setOpen(true)}>
-          New task ↗
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <form
-      action={formAction}
-      className="flex flex-col gap-5 rounded-md border bg-card p-4"
-    >
-      <input type="hidden" name="eventId" value={eventId} />
-      <input type="hidden" name="divisionId" value={divisionId} />
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={<Button variant="outline">New task ↗</Button>}
+      />
+      <DialogContent className="max-h-[85vh] gap-0 overflow-y-auto p-0 sm:max-w-2xl">
+        <form action={formAction} className="flex flex-col">
+          <input type="hidden" name="eventId" value={eventId} />
+          <input type="hidden" name="divisionId" value={divisionId} />
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="nt-title">Title</Label>
-        <Input id="nt-title" name="title" required autoFocus />
-      </div>
+          <div className="flex flex-col gap-1 px-6 pb-2 pt-6">
+            <DialogTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Create task
+              {divisionName ? (
+                <span className="rounded-sm border px-1.5 py-0.5 text-[10px] normal-case tracking-normal">
+                  {divisionName}
+                </span>
+              ) : null}
+            </DialogTitle>
+            <input
+              name="title"
+              required
+              autoFocus
+              placeholder="Task title"
+              className="w-full bg-transparent text-xl font-semibold outline-none placeholder:text-muted-foreground/50"
+            />
+            <textarea
+              name="description"
+              rows={3}
+              placeholder="Add a description…"
+              className="w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+            />
+          </div>
 
-      <div className="flex flex-col gap-2">
-        <Label>Priority</Label>
-        <PriorityPicker />
-      </div>
+          <div className="flex flex-col gap-4 border-t px-6 py-4">
+            <div className="flex flex-wrap items-end gap-x-6 gap-y-4">
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                  Priority
+                </Label>
+                <PriorityPicker />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label
+                  htmlFor="nt-due"
+                  className="flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
+                >
+                  <CalendarClock className="size-3" /> Due
+                </Label>
+                <Input
+                  id="nt-due"
+                  name="dueDate"
+                  type="datetime-local"
+                  className="h-9 w-52 text-xs"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label className="flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                  <Repeat className="size-3" /> Repeats
+                </Label>
+                <Segmented
+                  name="recurrence"
+                  defaultValue="none"
+                  options={[
+                    { value: "none", label: "Never" },
+                    { value: "daily", label: "Daily" },
+                    { value: "weekly", label: "Weekly" },
+                    { value: "monthly", label: "Monthly" },
+                  ]}
+                />
+              </div>
+            </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="nt-due">Due date</Label>
-          <Input id="nt-due" name="dueDate" type="datetime-local" />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="nt-recurrence">Repeats</Label>
-          <select
-            id="nt-recurrence"
-            name="recurrence"
-            className={selectClass}
-            defaultValue="none"
-          >
-            <option value="none">Never</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
-        </div>
-      </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                Assignees
+              </Label>
+              <AssigneePicker members={members} />
+            </div>
 
-      <div className="flex flex-col gap-2">
-        <Label>Assignees — pick one or several</Label>
-        <AssigneePicker members={members} />
-      </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                Labels
+              </Label>
+              <LabelPicker labels={labels} />
+            </div>
+          </div>
 
-      <div className="flex flex-col gap-2">
-        <Label>Labels</Label>
-        <LabelPicker labels={labels} />
-      </div>
+          {state.error ? (
+            <p role="alert" className="px-6 pb-2 text-sm text-destructive">
+              {state.error}
+            </p>
+          ) : null}
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="nt-desc">Description</Label>
-        <textarea
-          id="nt-desc"
-          name="description"
-          rows={2}
-          className="border-input rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-        />
-      </div>
-
-      {state.error ? (
-        <p role="alert" className="text-sm text-destructive">{state.error}</p>
-      ) : null}
-      <div className="flex gap-3">
-        <Button type="submit" disabled={pending}>
-          {pending ? "Creating…" : "Create task"}
-        </Button>
-        <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-          Cancel
-        </Button>
-      </div>
-    </form>
+          <div className="flex items-center justify-end gap-3 border-t bg-muted/30 px-6 py-3">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setOpen(false)}
+            >
+              Discard
+            </Button>
+            <Button type="submit" size="sm" disabled={pending}>
+              {pending ? "Creating…" : "Create task"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

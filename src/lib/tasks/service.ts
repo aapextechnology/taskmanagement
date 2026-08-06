@@ -36,7 +36,8 @@ export type TaskStatus =
   | "in_progress"
   | "in_review"
   | "blocked"
-  | "done";
+  | "done"
+  | "cancelled";
 
 export const TASK_STATUS_ORDER: TaskStatus[] = [
   "backlog",
@@ -45,6 +46,7 @@ export const TASK_STATUS_ORDER: TaskStatus[] = [
   "in_review",
   "blocked",
   "done",
+  "cancelled",
 ];
 
 export const STATUS_LABELS: Record<TaskStatus, string> = {
@@ -54,6 +56,7 @@ export const STATUS_LABELS: Record<TaskStatus, string> = {
   in_review: "In review",
   blocked: "Blocked",
   done: "Done",
+  cancelled: "Cancelled",
 };
 
 // ---- scoped fetch ---------------------------------------------------------
@@ -173,7 +176,7 @@ export async function listEventTasks(
     const ids = new Set(assigned.map((a) => a.taskId));
     rows = rows.filter((r) => ids.has(r.id));
   }
-  return withAssignees(rows);
+  return withLabels(await withAssignees(rows));
 }
 
 export async function listMyTasks(actor: Actor) {
