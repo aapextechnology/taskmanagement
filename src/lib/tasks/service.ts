@@ -606,6 +606,28 @@ export async function addDependency(
     .onConflictDoNothing();
 }
 
+// all dependency edges between tasks of this event that the actor may see
+// (T-080 Gantt). Reuses listEventTasks' division-visibility scoping so both
+// ends of every returned edge are already permission-scoped.
+export async function listEventTaskDependencies(actor: Actor, eventId: string) {
+  const visibleTasks = await listEventTasks(actor, eventId);
+  const visibleIds = new Set(visibleTasks.map((t) => t.id));
+  if (visibleIds.size === 0) return [];
+
+  const rows = await db
+    .select({
+      taskId: taskDependencies.taskId,
+      dependsOnTaskId: taskDependencies.dependsOnTaskId,
+    })
+    .from(taskDependencies)
+    .innerJoin(tasks, eq(taskDependencies.taskId, tasks.id))
+    .where(eq(tasks.eventId, eventId));
+
+  return rows.filter(
+    (r) => visibleIds.has(r.taskId) && visibleIds.has(r.dependsOnTaskId),
+  );
+}
+
 // ---- comments -------------------------------------------------------------
 
 export async function addComment(

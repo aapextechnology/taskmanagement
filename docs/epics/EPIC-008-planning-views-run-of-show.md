@@ -25,9 +25,9 @@ show — replacing planning spreadsheets.
 
 ## Tasks
 
-### Timeline (Gantt)
+### Timeline (Gantt) ✅
 
-- [ ] **T-080** Per-event timeline: bars from task start/due dates, dependency arrows, critical-path highlight to show day; reflects live task edits.
+- [x] **T-080** Per-event timeline: bars from task start/due dates, dependency arrows, critical-path highlight to show day; reflects live task edits.
 
 ### Calendar ✅
 
@@ -62,6 +62,7 @@ show — replacing planning spreadsheets.
 ## Automation Log
 
 - 2026-08-06 Epic created by `/agentic-init` from PLAN §6.5–§6.7 — pending kickoff.
+- 2026-08-06 /epic-loop EPIC-008 #1 "Timeline (Gantt)" → PASS (attempts: 1 + micro-fixes), PR: — (no remote; merged to develop locally). Route `/events/[id]/gantt` (name `timeline` taken by social feed). Pure model `src/lib/gantt/schedule.ts` (bars/arrows/critical path, WIB day index); deps via new scoped `listEventTaskDependencies` (both edge endpoints filtered to visible set). Simplification owed to Owner: dependency arrows rendered as "blocked by N" chips + critical-chain emphasis, not connector lines (model already computes `arrows`). Follow-ups logged: 400-day clamp indicator, greedy-walk longest-path LOW, dedup listEventTasks refetch, bar aria-label.
 - 2026-08-06 /epic-loop EPIC-008 #2 "Calendar" → PASS (attempts: 3), PR: — (no remote; merged to develop locally). Decision: all calendar-day bucketing is explicit WIB via shared `dayKey` (`toWibParts`), grid-cell identity via component-based `cellKey`, today = `dayKey(now)`; review caught server-TZ bucketing twice (west- AND east-of-WIB holes) — lesson: date tests must straddle 17:00Z and run in an east-of-WIB TZ. Deep links reuse `/tasks/[id]` drawer route (no `?task=` param exists).
 
 ## Dependencies
