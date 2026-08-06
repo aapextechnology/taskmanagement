@@ -9,8 +9,6 @@ import {
   StatusDot,
   STATUS_TEXT,
 } from "@/components/task-meta";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { getEvent } from "@/lib/events/service";
 import { listDivisions } from "@/lib/org/service";
@@ -24,7 +22,7 @@ import {
   type ListFilters,
   type TaskStatus,
 } from "@/lib/tasks/service";
-import { cn } from "@/lib/utils";
+import { ListControls } from "./list-controls";
 
 export const metadata: Metadata = { title: "Task list" };
 
@@ -35,38 +33,8 @@ const dt = new Intl.DateTimeFormat("en-GB", {
 });
 
 type SortKey = "due" | "priority" | "title" | "created";
-const SORTS: Array<{ key: SortKey; label: string }> = [
-  { key: "due", label: "Due date" },
-  { key: "priority", label: "Priority" },
-  { key: "title", label: "Title" },
-  { key: "created", label: "Created" },
-];
 
 const PRIORITY_RANK = { urgent: 0, high: 1, medium: 2, low: 3 } as const;
-
-function FilterPill({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-all duration-150",
-        active
-          ? "border-foreground bg-foreground font-medium text-background shadow-sm"
-          : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
-      )}
-    >
-      {children}
-    </Link>
-  );
-}
 
 // Plane-style list (Owner request): grouped by status with counts, free sort.
 export default async function TaskListPage({
@@ -124,22 +92,6 @@ export default async function TaskListPage({
     items: sorted.filter((t) => t.status === status),
   }));
 
-  const query = (patch: Record<string, string | undefined>) => {
-    const q = new URLSearchParams();
-    const current: Record<string, string | undefined> = {
-      sort,
-      dir,
-      priority: filters.priority,
-      division: filters.divisionId,
-      status: filters.status,
-      ...patch,
-    };
-    for (const [key, value] of Object.entries(current)) {
-      if (value) q.set(key, value);
-    }
-    const s = q.toString();
-    return `/events/${id}/list${s ? `?${s}` : ""}`;
-  };
 
   async function saveFilterAction(formData: FormData) {
     "use server";
@@ -179,99 +131,31 @@ export default async function TaskListPage({
         </h1>
       </div>
 
-      {/* sort + filters — styled pills, no native controls */}
-      <div className="flex flex-col gap-2.5">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Sort
-          </span>
-          {SORTS.map((s) => (
-            <FilterPill
-              key={s.key}
-              href={query({ sort: s.key })}
-              active={sort === s.key}
-            >
-              {s.label}
-            </FilterPill>
-          ))}
-          <FilterPill
-            href={query({ dir: dir === "asc" ? "desc" : "asc" })}
-            active={false}
-          >
-            {dir === "asc" ? "↑ asc" : "↓ desc"}
-          </FilterPill>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Division
-          </span>
-          <FilterPill href={query({ division: undefined })} active={!filters.divisionId}>
-            All
-          </FilterPill>
-          {divisions.map((d) => (
-            <FilterPill
-              key={d.id}
-              href={query({ division: d.id })}
-              active={filters.divisionId === d.id}
-            >
-              {d.name}
-            </FilterPill>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Priority
-          </span>
-          <FilterPill href={query({ priority: undefined })} active={!filters.priority}>
-            All
-          </FilterPill>
-          {(["urgent", "high", "medium", "low"] as const).map((p) => (
-            <FilterPill
-              key={p}
-              href={query({ priority: p })}
-              active={filters.priority === p}
-            >
-              <PriorityIcon priority={p} />
-              {p}
-            </FilterPill>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <form action={saveFilterAction} className="flex items-center gap-2">
-            <input type="hidden" name="priority" value={filters.priority ?? ""} />
-            <input type="hidden" name="division" value={filters.divisionId ?? ""} />
-            <input type="hidden" name="status" value={filters.status ?? ""} />
-            <Input name="name" placeholder="Save view as…" className="h-8 w-36 text-xs" />
-            <Button type="submit" size="sm" variant="ghost">
-              Save
-            </Button>
-          </form>
-          {saved.map((f) => {
-            const p = f.params as ListFilters;
-            const q = new URLSearchParams();
-            if (p.status) q.set("status", p.status);
-            if (p.priority) q.set("priority", p.priority);
-            if (p.divisionId) q.set("division", p.divisionId);
-            return (
-              <span key={f.id} className="flex items-center gap-1">
-                <FilterPill href={`/events/${id}/list?${q.toString()}`} active={false}>
-                  {f.name}
-                </FilterPill>
-                <form action={deleteFilterAction}>
-                  <input type="hidden" name="filterId" value={f.id} />
-                  <button
-                    type="submit"
-                    aria-label={`Delete view ${f.name}`}
-                    className="text-xs text-muted-foreground hover:text-destructive"
-                  >
-                    ×
-                  </button>
-                </form>
-              </span>
-            );
-          })}
-        </div>
-      </div>
+      {/* Plane-style compact toolbar: filters & display behind popovers */}
+      <ListControls
+        basePath={`/events/${id}/list`}
+        params={{
+          sort,
+          dir,
+          division: filters.divisionId,
+          priority: filters.priority,
+        }}
+        divisions={divisions.map((d) => ({ id: d.id, name: d.name }))}
+        savedViews={saved.map((f) => {
+          const p = f.params as ListFilters;
+          const q = new URLSearchParams();
+          if (p.status) q.set("status", p.status);
+          if (p.priority) q.set("priority", p.priority);
+          if (p.divisionId) q.set("division", p.divisionId);
+          return {
+            id: f.id,
+            name: f.name,
+            href: `/events/${id}/list?${q.toString()}`,
+          };
+        })}
+        saveAction={saveFilterAction}
+        deleteAction={deleteFilterAction}
+      />
 
       {/* status groups, Plane-style */}
       <div className="flex flex-col gap-5">
