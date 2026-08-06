@@ -5,14 +5,17 @@ export async function register() {
 
   const cron = (await import("node-cron")).default;
   const { recomputeAllEventHealth } = await import("@/lib/events/service");
+  const { sweepDueNotifications } = await import("@/lib/tasks/service");
 
-  // hourly health sweep; mutations also trigger targeted recomputes
+  // hourly: due/overdue notifications (deduped) then health sweep;
+  // mutations also trigger targeted recomputes
   cron.schedule("0 * * * *", async () => {
     try {
+      await sweepDueNotifications();
       const n = await recomputeAllEventHealth();
-      console.log(`[cron] event health recomputed for ${n} events`);
+      console.log(`[cron] due sweep + health recompute for ${n} events`);
     } catch (error) {
-      console.error("[cron] health recompute failed:", error);
+      console.error("[cron] sweep failed:", error);
     }
   });
 }

@@ -45,6 +45,7 @@ export type Capability =
   | "task.assign" // within a division (ctx.divisionId)
   | "task.updateAssigned" // status/comment/upload on an assigned task (ctx.isAssigned)
   | "handoff.request" // from own division (ctx.divisionId = source)
+  | "handoff.decide" // accept/decline into a division (ctx.divisionId = target)
   // external collaboration
   | "form.submit" // structured forms — external only
   | "external.invite" // into a division (ctx.divisionId)
@@ -147,6 +148,10 @@ export function can(
 
     case "handoff.request":
       return isOwnerOrAdmin || membershipIn(actor, ctx.divisionId) !== undefined;
+
+    case "handoff.decide":
+      // the receiving Division Head accepts work into their board
+      return isOwnerOrAdmin || isHeadOf(actor, ctx.divisionId);
 
     // ---- external collaboration --------------------------------------
     case "form.submit":

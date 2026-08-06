@@ -1,6 +1,12 @@
-import { asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, lt, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { divisions, eventDivisions, events } from "@/db/schema";
+import {
+  divisions,
+  eventDivisions,
+  events,
+  taskDependencies,
+  tasks,
+} from "@/db/schema";
 import { logActivity } from "@/lib/activity";
 import { assertCan, type Actor } from "@/lib/permissions";
 import { computeHealth, type HealthSignals } from "./health";
@@ -127,11 +133,29 @@ export async function setArchived(
 
 // ---- health (T-023) -------------------------------------------------------
 
-// Signal gathering. Task counts wire in with EPIC-003, budget with EPIC-005 —
-// until then those signals are structurally zero and events stay on_track.
+// Signal gathering. Task signals live (EPIC-003); budget joins with EPIC-005.
 async function gatherSignals(eventId: string): Promise<HealthSignals> {
-  void eventId; // consumed once EPIC-003 (task counts) / EPIC-005 (budget) land
-  return { overdueTasks: 0, blockedOnCriticalPath: false };
+  const now = new Date();
+
+  const [overdueRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(tasks)
+    .where(
+      and(eq(tasks.eventId, eventId), ne(tasks.status, "done"), lt(tasks.dueDate, now)),
+    );
+
+  // "critical path" approximation until EPIC-008's real Gantt: a blocked task
+  // that other tasks depend on is treated as path-blocking
+  const [blockedRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(tasks)
+    .innerJoin(taskDependencies, eq(taskDependencies.dependsOnTaskId, tasks.id))
+    .where(and(eq(tasks.eventId, eventId), eq(tasks.status, "blocked")));
+
+  return {
+    overdueTasks: overdueRow?.count ?? 0,
+    blockedOnCriticalPath: (blockedRow?.count ?? 0) > 0,
+  };
 }
 
 export async function recomputeEventHealth(eventId: string): Promise<void> {

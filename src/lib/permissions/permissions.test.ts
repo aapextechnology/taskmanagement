@@ -122,6 +122,15 @@ describe("tasks — division scoped", () => {
     expect(can(staffProduction, "handoff.request", marketing)).toBe(false);
     expect(can(external, "handoff.request", prod)).toBe(false);
   });
+
+  it("handoff decisions: receiving head or owner/admin only", () => {
+    expect(can(headProduction, "handoff.decide", prod)).toBe(true);
+    expect(can(owner, "handoff.decide", prod)).toBe(true);
+    expect(can(admin, "handoff.decide", prod)).toBe(true);
+    expect(can(staffProduction, "handoff.decide", prod)).toBe(false);
+    expect(can(headProduction, "handoff.decide", marketing)).toBe(false);
+    expect(can(external, "handoff.decide", prod)).toBe(false);
+  });
 });
 
 describe("external collaboration", () => {
