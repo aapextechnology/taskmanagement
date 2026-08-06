@@ -1,0 +1,98 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { KanbanBoard } from "@/components/kanban-board";
+import { sessionActor } from "@/lib/auth/session-actor";
+import { getEvent } from "@/lib/events/service";
+import { listDivisions } from "@/lib/org/service";
+import { can } from "@/lib/permissions";
+import {
+  listBoardTasks,
+  listDivisionMemberOptions,
+} from "@/lib/tasks/service";
+import { cn } from "@/lib/utils";
+import { NewTaskForm } from "./new-task-form";
+
+export const metadata: Metadata = { title: "Board" };
+
+export default async function BoardPage({
+  params,
+  searchParams,
+}: PageProps<"/events/[id]/board">) {
+  const actor = await sessionActor();
+  if (!actor) redirect("/login");
+
+  const { id } = await params;
+  const event = await getEvent(actor, id);
+  if (!event) notFound();
+
+  const allDivisions = await listDivisions();
+  const visibleDivisions = allDivisions.filter((d) =>
+    can(actor, "task.viewDivision", { divisionId: d.id }),
+  );
+  if (visibleDivisions.length === 0) redirect(`/events/${id}`);
+
+  const sp = await searchParams;
+  const requested = typeof sp.division === "string" ? sp.division : undefined;
+  const division =
+    visibleDivisions.find((d) => d.id === requested) ?? visibleDivisions[0];
+
+  const [tasks, members] = await Promise.all([
+    listBoardTasks(actor, id, division.id),
+    listDivisionMemberOptions(division.id),
+  ]);
+  const canCreate = can(actor, "task.create", { divisionId: division.id });
+
+  return (
+    <section className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <Link
+            href={`/events/${id}`}
+            className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          >
+            ← {event.name}
+          </Link>
+          <h1 className="text-2xl font-semibold uppercase tracking-tight">
+            {division.name} board
+          </h1>
+        </div>
+        <nav className="flex flex-wrap gap-2">
+          {visibleDivisions.map((d) => (
+            <Link
+              key={d.id}
+              href={`/events/${id}/board?division=${d.id}`}
+              className={cn(
+                "rounded-sm border px-2.5 py-1 text-[11px] uppercase tracking-wider",
+                d.id === division.id
+                  ? "border-foreground font-semibold"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {d.name}
+            </Link>
+          ))}
+        </nav>
+      </div>
+
+      {canCreate ? (
+        <NewTaskForm
+          eventId={id}
+          divisionId={division.id}
+          members={members.map((m) => ({ id: m.id, name: m.name }))}
+        />
+      ) : null}
+
+      <KanbanBoard
+        tasks={tasks.map((t) => ({
+          id: t.id,
+          title: t.title,
+          status: t.status,
+          priority: t.priority,
+          dueDate: t.dueDate?.toISOString() ?? null,
+          assignees: t.assignees,
+        }))}
+      />
+    </section>
+  );
+}

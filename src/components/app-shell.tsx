@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/logo";
+import { NotificationsBell } from "@/components/notifications-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { auth } from "@/lib/auth";
 
@@ -38,6 +39,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
                 {item.label}
               </Link>
             ))}
+            {session?.user ? <NotificationsBell /> : null}
             <ThemeToggle />
           </nav>
         </div>

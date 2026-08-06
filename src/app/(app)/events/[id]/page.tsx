@@ -103,14 +103,24 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold uppercase tracking-tight">
-          Boards
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Division boards, tasks, and handoffs land with EPIC-003.
-        </p>
-      </div>
+      <nav className="flex flex-wrap gap-6">
+        {[
+          { href: `/events/${event.id}/board`, label: "Board" },
+          { href: `/events/${event.id}/list`, label: "List" },
+          { href: `/events/${event.id}/handoffs`, label: "Handoffs" },
+        ].map((tab) => (
+          <a
+            key={tab.href}
+            href={tab.href}
+            className="group inline-flex items-center gap-1 text-sm font-medium uppercase tracking-wider underline-offset-4 hover:underline"
+          >
+            {tab.label}
+            <span aria-hidden className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
+              ↗
+            </span>
+          </a>
+        ))}
+      </nav>
     </section>
   );
 }

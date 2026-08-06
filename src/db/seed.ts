@@ -1,5 +1,6 @@
 import { inArray } from "drizzle-orm";
 import { hashPassword } from "@/lib/auth/password";
+import { recomputeEventHealth } from "@/lib/events/service";
 import { DIVISIONS } from "@/lib/org/divisions";
 import { db } from "./index";
 import {
@@ -9,6 +10,9 @@ import {
   eventDivisions,
   events,
   profiles,
+  taskAssignees,
+  taskDependencies,
+  tasks,
 } from "./schema";
 
 // fixed id so the demo event seeds idempotently
@@ -87,6 +91,56 @@ const steps: Array<{ name: string; run: () => Promise<void> }> = [
     },
   },
   {
+    name: "demo tasks (dev)",
+    run: async () => {
+      const now = Date.now();
+      await db
+        .insert(tasks)
+        .values(
+          DEMO_TASKS.map((t) => ({
+            id: t.id,
+            eventId: DEMO_EVENT_ID,
+            divisionId: t.divisionId,
+            title: t.title,
+            status: "todo" as const,
+            dueDate:
+              t.dueOffsetHours === null
+                ? null
+                : new Date(now + t.dueOffsetHours * 3600_000),
+          })),
+        )
+        .onConflictDoNothing();
+
+      const emails = DEMO_TASKS.flatMap((t) =>
+        t.assigneeEmail ? [t.assigneeEmail] : [],
+      );
+      const users = await db
+        .select({ id: profiles.id, email: profiles.email })
+        .from(profiles)
+        .where(inArray(profiles.email, emails));
+      const idByEmail = new Map(users.map((u) => [u.email, u.id]));
+
+      for (const t of DEMO_TASKS) {
+        const userId = t.assigneeEmail
+          ? idByEmail.get(t.assigneeEmail)
+          : undefined;
+        if (userId) {
+          await db
+            .insert(taskAssignees)
+            .values({ taskId: t.id, userId })
+            .onConflictDoNothing();
+        }
+        if (t.dependsOn) {
+          await db
+            .insert(taskDependencies)
+            .values({ taskId: t.id, dependsOnTaskId: t.dependsOn })
+            .onConflictDoNothing();
+        }
+      }
+      await recomputeEventHealth(DEMO_EVENT_ID);
+    },
+  },
+  {
     name: "default org settings",
     run: async () => {
       await db
@@ -131,6 +185,45 @@ const steps: Array<{ name: string; run: () => Promise<void> }> = [
         )
         .onConflictDoNothing();
     },
+  },
+];
+
+const DEMO_TASKS: Array<{
+  id: string;
+  divisionId: string;
+  title: string;
+  dueOffsetHours: number | null;
+  assigneeEmail?: string;
+  dependsOn?: string;
+}> = [
+  {
+    id: "00000000-0000-4000-8000-00000000a001",
+    divisionId: "production",
+    title: "Confirm stage rigging vendor",
+    dueOffsetHours: -48, // overdue → demo event turns AT RISK
+    assigneeEmail: "staff.production@rawvision.demo",
+  },
+  {
+    id: "00000000-0000-4000-8000-00000000a002",
+    divisionId: "production",
+    title: "Draft technical rider checklist",
+    dueOffsetHours: 6,
+    assigneeEmail: "head.production@rawvision.demo",
+  },
+  {
+    id: "00000000-0000-4000-8000-00000000a003",
+    divisionId: "production",
+    title: "Site build plan v1",
+    dueOffsetHours: 14 * 24,
+    assigneeEmail: "staff.production@rawvision.demo",
+    dependsOn: "00000000-0000-4000-8000-00000000a001",
+  },
+  {
+    id: "00000000-0000-4000-8000-00000000a004",
+    divisionId: "marketing-communications",
+    title: "Announce lineup — phase 1 assets",
+    dueOffsetHours: 7 * 24,
+    assigneeEmail: "staff.marketing@rawvision.demo",
   },
 ];
 

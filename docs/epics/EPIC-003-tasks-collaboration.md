@@ -1,6 +1,6 @@
 # EPIC-003: Tasks Core & Collaboration
 
-status: on-progress
+status: ready-for-qa
 environment: dev
 phase: 1
 priority: P0
@@ -30,35 +30,35 @@ so a division runs its entire event workload in the system instead of WhatsApp.
 
 ### Task schema
 
-- [ ] **T-030** Schema `tasks`, `task_assignees`, `task_watchers`, `task_dependencies`, `task_checklist_items`, `labels`; status enum Backlog → To do → In progress → In review → Blocked → Done.
+- [x] **T-030** Schema `tasks`, `task_assignees`, `task_watchers`, `task_dependencies`, `task_checklist_items`, `labels`; status enum Backlog → To do → In progress → In review → Blocked → Done.
 
 ### Task service & CRUD
 
-- [ ] **T-031** Task service + detail UI (drawer): status flow, priority, start/due dates, checklist, labels — every read/write through `src/lib/permissions`.
+- [x] **T-031** Task service + detail UI (drawer): status flow, priority, start/due dates, checklist, labels — every read/write through `src/lib/permissions`.
 
 ### Views: kanban & list
 
-- [ ] **T-032** Kanban per division per event (drag-drop persists status) + list view with per-user saved filters.
+- [x] **T-032** Kanban per division per event (drag-drop persists status) + list view with per-user saved filters.
 
 ### My Tasks
 
-- [ ] **T-033** `/my-tasks` landing: today / this week / overdue buckets; default post-login route for Staff.
+- [x] **T-033** `/my-tasks` landing: today / this week / overdue buckets; default post-login route for Staff.
 
 ### Comments & attachments
 
-- [ ] **T-034** Comments with @mention typeahead (scoped to users the author may see); attachments upload/download auth-gated on `/uploads`.
+- [x] **T-034** Comments with @mention typeahead (scoped to users the author may see); attachments upload/download auth-gated on `/uploads`.
 
 ### Dependencies & recurrence
 
-- [ ] **T-035** Blocked-by / blocks links; completing a blocker fires "unblocked"; recurring tasks spawn next instances via cron.
+- [x] **T-035** Blocked-by / blocks links; completing a blocker fires "unblocked"; recurring tasks spawn next instances via cron.
 
 ### Cross-division handoffs
 
-- [ ] **T-036** Handoff request → receiving Division Head accept/decline → on accept, a linked task appears on their board as a dependency of the origin task.
+- [x] **T-036** Handoff request → receiving Division Head accept/decline → on accept, a linked task appears on their board as a dependency of the origin task.
 
 ### In-app notifications (SSE)
 
-- [ ] **T-037** `notifications` table + SSE stream + bell UI; triggers: assigned, @mentioned, due in 24h, overdue, unblocked, handoff request (PLAN §6.10 in-app column).
+- [x] **T-037** `notifications` table + SSE stream + bell UI; triggers: assigned, @mentioned, due in 24h, overdue, unblocked, handoff request (PLAN §6.10 in-app column).
 
 ## Acceptance Criteria
 
@@ -85,6 +85,7 @@ so a division runs its entire event workload in the system instead of WhatsApp.
 
 ## Automation Log
 
+- 2026-08-06 **T-030..T-037 done — EPIC COMPLETE → ready-for-qa (MVP complete)** — 11 new tables (migration 0004); task service with scoped fetch (division view OR assignment) + `handoff.decide` capability (65-case permission suite total 59 tests green). Kanban: native HTML5 drag-drop, optimistic + server-action persist. My Tasks: WIB bucketing (`bucketForDue`, unit-tested) as default landing. Comments with @-typeahead mention (mentions of externals filtered server-side); attachments 20 MB whitelist via auth-gated /api/files. Recurrence spawns exactly one next instance on completion; completing the last blocker notifies "unblocked". Handoffs: request → receiving-Head accept creates linked task + dependency on origin. Notifications: table w/ dedup keys + SSE stream (4s poll, nginx buffering off) + bell UI; hourly cron sweeps due-soon/overdue (assignee + division Head). Health now reads real signals — seeded overdue task flipped demo event to **at_risk** live. Verified on rvc.reddie.id: owner+staff page matrix 200s, staff sees only own-division board tabs, SSE frames arrive. **Human QA notes:** (1) drag a card between columns in the browser (drag-drop not curl-testable); (2) mention someone and watch their bell update within ~5s; (3) upload an attachment; (4) run one handoff request→accept round-trip as marketing→production; (5) "<5 minutes to understand My Tasks" check with a fresh user.
 - 2026-08-06 Epic created by `/agentic-init` from PLAN §6.3–§6.5, §6.10 — pending kickoff.
 
 ## Dependencies

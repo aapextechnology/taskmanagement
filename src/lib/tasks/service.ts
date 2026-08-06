@@ -8,6 +8,7 @@ import {
   handoffs,
   labels,
   profiles,
+  savedFilters,
   taskAssignees,
   taskChecklistItems,
   taskDependencies,
@@ -689,6 +690,118 @@ export async function addAttachment(
     path: file.path,
     size: file.size,
   });
+}
+
+// ---- saved filters (T-032) ------------------------------------------------
+
+export async function listSavedFilters(actor: Actor) {
+  return db
+    .select()
+    .from(savedFilters)
+    .where(eq(savedFilters.userId, actor.id))
+    .orderBy(asc(savedFilters.createdAt));
+}
+
+export async function saveFilter(actor: Actor, name: string, params: ListFilters) {
+  await db
+    .insert(savedFilters)
+    .values({ userId: actor.id, name: name.trim(), params });
+}
+
+export async function deleteFilter(actor: Actor, filterId: string) {
+  await db
+    .delete(savedFilters)
+    .where(and(eq(savedFilters.id, filterId), eq(savedFilters.userId, actor.id)));
+}
+
+// ---- detail & options -----------------------------------------------------
+
+export async function getTaskDetail(actor: Actor, taskId: string) {
+  const task = await getTaskScoped(actor, taskId);
+  if (!task) return null;
+
+  const [checklist, taskLabelRows, commentRows, attachmentRows, blockerRows, dependentRows, watcherRows, event] =
+    await Promise.all([
+      db
+        .select()
+        .from(taskChecklistItems)
+        .where(eq(taskChecklistItems.taskId, taskId))
+        .orderBy(asc(taskChecklistItems.sortOrder)),
+      db
+        .select({ id: labels.id, name: labels.name })
+        .from(taskLabels)
+        .innerJoin(labels, eq(taskLabels.labelId, labels.id))
+        .where(eq(taskLabels.taskId, taskId)),
+      db
+        .select({ comment: comments, authorName: profiles.name })
+        .from(comments)
+        .leftJoin(profiles, eq(comments.authorId, profiles.id))
+        .where(eq(comments.taskId, taskId))
+        .orderBy(asc(comments.createdAt)),
+      db.select().from(attachments).where(eq(attachments.taskId, taskId)),
+      db
+        .select({ id: tasks.id, title: tasks.title, status: tasks.status })
+        .from(taskDependencies)
+        .innerJoin(tasks, eq(taskDependencies.dependsOnTaskId, tasks.id))
+        .where(eq(taskDependencies.taskId, taskId)),
+      db
+        .select({ id: tasks.id, title: tasks.title, status: tasks.status })
+        .from(taskDependencies)
+        .innerJoin(tasks, eq(taskDependencies.taskId, tasks.id))
+        .where(eq(taskDependencies.dependsOnTaskId, taskId)),
+      db
+        .select({ userId: taskWatchers.userId })
+        .from(taskWatchers)
+        .where(eq(taskWatchers.taskId, taskId)),
+      db
+        .select({ id: events.id, name: events.name })
+        .from(events)
+        .where(eq(events.id, task.eventId))
+        .then((r) => r[0] ?? null),
+    ]);
+
+  const assignees =
+    task.assigneeIds.length === 0
+      ? []
+      : await db
+          .select({ id: profiles.id, name: profiles.name })
+          .from(profiles)
+          .where(inArray(profiles.id, task.assigneeIds));
+
+  return {
+    ...task,
+    event,
+    assignees,
+    checklist,
+    labels: taskLabelRows,
+    comments: commentRows,
+    attachments: attachmentRows,
+    blockers: blockerRows,
+    dependents: dependentRows,
+    watcherIds: watcherRows.map((w) => w.userId),
+  };
+}
+
+// internal users of a division (assignee / mention options)
+export async function listDivisionMemberOptions(divisionId: string) {
+  return db
+    .select({ id: profiles.id, name: profiles.name, role: divisionMembers.role })
+    .from(divisionMembers)
+    .innerJoin(profiles, eq(divisionMembers.userId, profiles.id))
+    .where(eq(divisionMembers.divisionId, divisionId))
+    .orderBy(asc(profiles.name));
+}
+
+// same-event tasks usable as dependency targets
+export async function listEventTaskOptions(
+  actor: Actor,
+  eventId: string,
+  excludeTaskId?: string,
+) {
+  const rows = await listEventTasks(actor, eventId);
+  return rows
+    .filter((t) => t.id !== excludeTaskId)
+    .map((t) => ({ id: t.id, title: t.title, divisionId: t.divisionId }));
 }
 
 // ---- cron sweeps (T-037) --------------------------------------------------
