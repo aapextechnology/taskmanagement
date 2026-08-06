@@ -5,4 +5,5 @@
 
 export * from "./activity";
 export * from "./app-settings";
+export * from "./events";
 export * from "./org";

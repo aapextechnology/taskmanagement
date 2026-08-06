@@ -13,7 +13,7 @@
 | --- | --- | --- | --- | --- |
 | [EPIC-000](EPIC-000-bootstrap.md) | Phase 0 | Bootstrap & Foundation (scaffold, DB, theme, CI, gates) | P0 | ready-for-qa |
 | [EPIC-001](EPIC-001-auth-org-permissions.md) | Phase 1 | Auth, Org & Permissions | P0 | ready-for-qa |
-| [EPIC-002](EPIC-002-events-workspace.md) | Phase 1 | Events Workspace | P0 | backlog |
+| [EPIC-002](EPIC-002-events-workspace.md) | Phase 1 | Events Workspace | P0 | ready-for-qa |
 | [EPIC-003](EPIC-003-tasks-collaboration.md) | Phase 1 | Tasks Core & Collaboration | P0 | backlog |
 | [EPIC-004](EPIC-004-approvals-engine.md) | Phase 2 | Approvals Engine | P1 | backlog |
 | [EPIC-005](EPIC-005-budgets-expenses.md) | Phase 2 | Budgets & Expenses | P1 | backlog |

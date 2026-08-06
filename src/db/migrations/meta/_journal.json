@@ -22,6 +22,13 @@
       "when": 1785981716279,
       "tag": "0002_plain_strong_guy",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785983404973,
+      "tag": "0003_goofy_madelyne_pryor",
+      "breakpoints": true
     }
   ]
 }

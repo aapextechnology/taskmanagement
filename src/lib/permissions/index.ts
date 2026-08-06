@@ -32,8 +32,10 @@ export type Capability =
   | "org.manage" // users, divisions, settings
   | "org.viewAllDivisions" // full cross-division detail
   | "org.viewCrossDivisionSummary" // Head-level summary of other divisions
+  | "event.view" // browse events & open a workspace (any internal user)
   | "event.create"
   | "event.archive"
+  | "event.updatePhase" // advance the lifecycle phase
   | "dashboard.view"
   | "audit.view"
   // tasks
@@ -113,9 +115,15 @@ export function can(
     case "org.manage":
     case "event.create":
     case "event.archive":
+    case "event.updatePhase":
     case "audit.view":
     case "org.viewAllDivisions":
       return isOwnerOrAdmin;
+
+    case "event.view":
+      // every internal user navigates events; externals see only their
+      // invite-scoped surface (EPIC-007), never the events index
+      return true;
 
     case "dashboard.view":
       // Owner's cockpit; Admin gets read-only access (PLAN §4)

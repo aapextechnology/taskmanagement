@@ -45,6 +45,21 @@ describe("org & events", () => {
     }
   });
 
+  it("phase advance: owner/admin only", () => {
+    expect(can(owner, "event.updatePhase")).toBe(true);
+    expect(can(admin, "event.updatePhase")).toBe(true);
+    expect(can(headProduction, "event.updatePhase")).toBe(false);
+    expect(can(staffProduction, "event.updatePhase")).toBe(false);
+    expect(can(external, "event.updatePhase")).toBe(false);
+  });
+
+  it("event browsing: every internal user yes, external no", () => {
+    for (const actor of [owner, admin, headProduction, staffProduction, memberNoDivision]) {
+      expect(can(actor, "event.view")).toBe(true);
+    }
+    expect(can(external, "event.view")).toBe(false);
+  });
+
   it("cross-division summary: owner/admin/heads yes, staff no", () => {
     expect(can(owner, "org.viewCrossDivisionSummary")).toBe(true);
     expect(can(headProduction, "org.viewCrossDivisionSummary")).toBe(true);

@@ -2,7 +2,17 @@ import { inArray } from "drizzle-orm";
 import { hashPassword } from "@/lib/auth/password";
 import { DIVISIONS } from "@/lib/org/divisions";
 import { db } from "./index";
-import { appSettings, divisionMembers, divisions, profiles } from "./schema";
+import {
+  appSettings,
+  divisionMembers,
+  divisions,
+  eventDivisions,
+  events,
+  profiles,
+} from "./schema";
+
+// fixed id so the demo event seeds idempotently
+const DEMO_EVENT_ID = "00000000-0000-4000-8000-00000000e001";
 
 // Demo credentials (DEV ONLY): every internal user signs in with this password.
 const DEMO_PASSWORD = "backstage123";
@@ -86,7 +96,39 @@ const steps: Array<{ name: string; run: () => Promise<void> }> = [
           // Proposed defaults — Owner confirms real numbers (PRD open question).
           { key: "approval_threshold_a", value: 10_000_000 },
           { key: "approval_threshold_b", value: 100_000_000 },
+          // health rule tuning (PRD Appendix B)
+          { key: "health_overdue_critical", value: 5 },
+          { key: "health_committed_ratio_at_risk", value: 0.9 },
         ])
+        .onConflictDoNothing();
+    },
+  },
+  {
+    name: "demo event (dev)",
+    run: async () => {
+      const showDate = new Date();
+      showDate.setDate(showDate.getDate() + 90); // ~3 months out
+      await db
+        .insert(events)
+        .values({
+          id: DEMO_EVENT_ID,
+          name: "YE Live in Jakarta",
+          artists: "YE · Special Guests",
+          venue: "Jakarta International Stadium",
+          showDate,
+          capacity: 60_000,
+          phase: "planning",
+        })
+        .onConflictDoNothing();
+      const allDivisions = await db.select({ id: divisions.id }).from(divisions);
+      await db
+        .insert(eventDivisions)
+        .values(
+          allDivisions.map((d) => ({
+            eventId: DEMO_EVENT_ID,
+            divisionId: d.id,
+          })),
+        )
         .onConflictDoNothing();
     },
   },

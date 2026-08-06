@@ -1,6 +1,6 @@
 # EPIC-002: Events Workspace
 
-status: backlog
+status: ready-for-qa
 environment: dev
 phase: 1
 priority: P0
@@ -26,23 +26,23 @@ day, and auto-computed health status — the container all division work lives i
 
 ### Event schema
 
-- [ ] **T-020** Schema `events` (name, artists, venue, show date, capacity, status, cover image, phase) + `event_divisions`; phase enum constrained to Planning → Pre-production → Promotion → Show week → Show day → Settlement.
+- [x] **T-020** Schema `events` (name, artists, venue, show date, capacity, status, cover image, phase) + `event_divisions`; phase enum constrained to Planning → Pre-production → Promotion → Show week → Show day → Settlement.
 
 ### Event CRUD & poster
 
-- [ ] **T-021** Events CRUD + archive, gated Owner/Admin via permission module; poster upload to `/uploads` (auth-gated, nginx-served).
+- [x] **T-021** Events CRUD + archive, gated Owner/Admin via permission module; poster upload to `/uploads` (auth-gated, nginx-served).
 
 ### Workspace shell
 
-- [ ] **T-022** Event workspace layout: header with live countdown (shared component from T-006), phase indicator, poster; phase advance control for Owner/Admin.
+- [x] **T-022** Event workspace layout: header with live countdown (shared component from T-006), phase indicator, poster; phase advance control for Owner/Admin.
 
 ### Health status
 
-- [ ] **T-023** Health computation per PRD Appendix B (overdue/blocked tasks + budget burn): recompute on relevant change + node-cron sweep; thresholds in org settings.
+- [x] **T-023** Health computation per PRD Appendix B (overdue/blocked tasks + budget burn): recompute on relevant change + node-cron sweep; thresholds in org settings.
 
 ### Portfolio page
 
-- [ ] **T-024** `/events`: gallery grid of active events (poster, countdown, phase, health badge) per the RVC design language.
+- [x] **T-024** `/events`: gallery grid of active events (poster, countdown, phase, health badge) per the RVC design language.
 
 ## Acceptance Criteria
 
@@ -65,6 +65,7 @@ day, and auto-computed health status — the container all division work lives i
 
 ## Automation Log
 
+- 2026-08-06 **T-020..T-024 done — EPIC COMPLETE → ready-for-qa** — `events` + `event_divisions` schema (phase/health enums); events service (create seeds all 11 divisions; phase advance owner/admin; archive; every mutation audited); permission module extended with `event.view` (internal) + `event.updatePhase` (owner/admin) — reviewed change, +2 test blocks (50 total green). Health: pure `computeHealth` per PRD App. B with 9 tests; recompute on mutation + hourly node-cron via `src/instrumentation.ts`; task/budget signals structurally zero until EPIC-003/005 wire in. Poster upload (5 MB, jpg/png/webp) to `UPLOADS_DIR/posters`, served ONLY via auth-gated `/api/files/[...path]` with traversal guard. UI: `/events` gallery, `/events/new` form, `/events/[id]` workspace (big countdown, phase steps, advance/archive). Seeded demo event "YE Live in Jakarta" (fixed uuid, idempotent). Verified live on rvc.reddie.id as owner: list/workspace/new all 200, countdown + controls render, unauth → login. **Human QA notes:** create an event with a poster in the browser (multipart upload not covered by curl); check both themes on the workspace page; task-driven health changes become testable in EPIC-003.
 - 2026-08-06 Epic created by `/agentic-init` from PLAN §6.1 — pending kickoff.
 
 ## Dependencies
