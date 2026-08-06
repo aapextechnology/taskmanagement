@@ -5,5 +5,8 @@
 
 export * from "./activity";
 export * from "./app-settings";
+export * from "./collab";
 export * from "./events";
+export * from "./notifications";
 export * from "./org";
+export * from "./tasks";

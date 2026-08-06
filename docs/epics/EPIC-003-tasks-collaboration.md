@@ -1,6 +1,6 @@
 # EPIC-003: Tasks Core & Collaboration
 
-status: backlog
+status: on-progress
 environment: dev
 phase: 1
 priority: P0
