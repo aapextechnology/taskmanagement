@@ -9,7 +9,7 @@ import { listMyQueue } from "@/lib/approvals/service";
 import { sessionActor } from "@/lib/auth/session-actor";
 import {
   getActivityFeed,
-  getBlockers,
+  getBottlenecks,
   getOverdueHotspots,
   getPortfolio,
   getUpcomingMilestones,
@@ -39,12 +39,12 @@ export default async function DashboardPage() {
   if (!can(actor, "dashboard.view")) redirect("/my-tasks");
 
   const { portfolioSales } = await import("@/lib/tickets/service");
-  const [portfolio, queue, milestones, blockers, hotspots, feed, sales] =
+  const [portfolio, queue, milestones, bottlenecks, hotspots, feed, sales] =
     await Promise.all([
       getPortfolio(actor),
       listMyQueue(actor),
       getUpcomingMilestones(actor),
-      getBlockers(actor),
+      getBottlenecks(actor),
       getOverdueHotspots(actor),
       getActivityFeed(actor),
       portfolioSales(actor),
@@ -220,22 +220,41 @@ export default async function DashboardPage() {
         <div className="flex min-w-0 flex-col gap-6">
           <div className="flex flex-col gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wider">
-              Cross-division blockers
+              Bottlenecks — most waited-on
             </h2>
             <ul className="flex flex-col divide-y rounded-md border bg-card">
-              {blockers.length === 0 ? (
+              {bottlenecks.length === 0 ? (
                 <li className="px-4 py-4 text-sm text-muted-foreground">
-                  No blocked tasks are holding others up.
+                  Nothing is holding other tasks up. 🎐
                 </li>
               ) : (
-                blockers.map((b) => (
+                bottlenecks.map((b) => (
                   <li key={b.id}>
                     <Link
                       href={`/tasks/${b.id}`}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent/50"
                     >
-                      <span className="size-2 rounded-full bg-status-blocked" />
+                      <span
+                        className={cn(
+                          "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums",
+                          b.critical
+                            ? "bg-status-blocked/15 text-status-blocked"
+                            : "border text-muted-foreground",
+                        )}
+                        title={
+                          b.critical
+                            ? "Critical bottleneck (auto-escalated)"
+                            : "Tasks waiting on this"
+                        }
+                      >
+                        {b.waiters} waiting
+                      </span>
                       <span className="min-w-0 flex-1 truncate">{b.title}</span>
+                      {b.autoUrgentAt ? (
+                        <span className="hidden shrink-0 rounded-sm border border-priority-urgent/40 px-1.5 text-[9px] uppercase tracking-wider text-priority-urgent sm:inline">
+                          auto-urgent
+                        </span>
+                      ) : null}
                       <EventChip name={b.eventName} />
                       <span className="hidden text-xs text-muted-foreground md:block">
                         {b.divisionName}
