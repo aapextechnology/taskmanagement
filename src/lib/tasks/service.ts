@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attachments,
@@ -12,6 +12,7 @@ import {
   taskAssignees,
   taskChecklistItems,
   taskDependencies,
+  taskExternalDependencies,
   taskLabels,
   tasks,
   taskWatchers,
@@ -26,6 +27,11 @@ import {
   type Actor,
 } from "@/lib/permissions";
 import { nextRecurrenceDate } from "./dates";
+import {
+  maybeNotifyUnblocked,
+  recomputeBottleneck,
+  wouldCreateCycle,
+} from "./dependency-engine";
 
 // Task service (T-031..T-037). THE rule: every read/write resolves the task,
 // derives {divisionId, isAssigned}, and goes through the permission module.
@@ -287,7 +293,15 @@ export async function updateTaskFields(
   assertCan(actor, "task.edit", { divisionId: task.divisionId });
   await db
     .update(tasks)
-    .set({ ...fields, updatedAt: new Date() })
+    .set({
+      ...fields,
+      // a HUMAN priority edit ends any auto-bump — manual always wins
+      // (EPIC-012): clear the flags so the engine never reverts over it
+      ...(fields.priority !== undefined
+        ? { priorityBeforeAuto: null, autoUrgentAt: null }
+        : {}),
+      updatedAt: new Date(),
+    })
     .where(eq(tasks.id, taskId));
   await logActivity({
     actorId: actor.id,
@@ -297,6 +311,10 @@ export async function updateTaskFields(
     eventId: task.eventId,
   });
   await recomputeEventHealth(task.eventId);
+  // due-date edits shift the overdue input of the bottleneck rule
+  if (fields.dueDate !== undefined || fields.priority !== undefined) {
+    await recomputeBottleneck(taskId);
+  }
 }
 
 export async function updateStatus(
@@ -329,6 +347,17 @@ export async function updateStatus(
     await onTaskCompleted(task);
   }
   await recomputeEventHealth(task.eventId);
+
+  // bottleneck bookkeeping (EPIC-012): my own blocked/closed state changes
+  // my criticality, and closing/reopening changes my blockers' waiter counts
+  await recomputeBottleneck(taskId);
+  const myBlockers = await db
+    .select({ id: taskDependencies.dependsOnTaskId })
+    .from(taskDependencies)
+    .where(eq(taskDependencies.taskId, taskId));
+  for (const blocker of myBlockers) {
+    await recomputeBottleneck(blocker.id);
+  }
 }
 
 async function onTaskCompleted(task: {
@@ -368,31 +397,14 @@ async function onTaskCompleted(task: {
     }
   }
 
-  // unblock: dependents whose blockers are now ALL done
+  // unblock: dependents whose gates (internal blockers + external deps)
+  // are now ALL clear — the engine checks both and dedups the notification
   const dependents = await db
     .select({ taskId: taskDependencies.taskId })
     .from(taskDependencies)
     .where(eq(taskDependencies.dependsOnTaskId, task.id));
   for (const dep of dependents) {
-    const blockers = await db
-      .select({ status: tasks.status })
-      .from(taskDependencies)
-      .innerJoin(tasks, eq(taskDependencies.dependsOnTaskId, tasks.id))
-      .where(eq(taskDependencies.taskId, dep.taskId));
-    if (blockers.every((b) => b.status === "done")) {
-      const assignees = await db
-        .select({ userId: taskAssignees.userId })
-        .from(taskAssignees)
-        .where(eq(taskAssignees.taskId, dep.taskId));
-      await notifyMany(
-        assignees.map((a) => a.userId),
-        {
-          type: "unblocked",
-          title: `Unblocked: all dependencies done`,
-          href: `/tasks/${dep.taskId}`,
-        },
-      );
-    }
+    await maybeNotifyUnblocked(dep.taskId);
   }
 }
 
@@ -585,25 +597,146 @@ export async function addDependency(
   const task = await requireTask(actor, taskId);
   const blocker = await requireTask(actor, dependsOnTaskId);
   assertCan(actor, "task.edit", { divisionId: task.divisionId });
-  if (task.eventId !== blocker.eventId) {
-    throw new Error("Dependencies must stay within one event.");
+  // cross-division AND cross-event allowed (EPIC-012) — the whole point is
+  // tracking waits on other teams. Cycles of any length are rejected.
+  if (await wouldCreateCycle(taskId, dependsOnTaskId)) {
+    throw new Error("That would create a dependency loop.");
   }
-  // direct-cycle guard (A→B while B→A)
-  const [reverse] = await db
-    .select()
-    .from(taskDependencies)
-    .where(
-      and(
-        eq(taskDependencies.taskId, dependsOnTaskId),
-        eq(taskDependencies.dependsOnTaskId, taskId),
-      ),
-    )
-    .limit(1);
-  if (reverse) throw new Error("These tasks already depend on each other.");
-  await db
+  const inserted = await db
     .insert(taskDependencies)
     .values({ taskId, dependsOnTaskId })
-    .onConflictDoNothing();
+    .onConflictDoNothing()
+    .returning();
+  if (inserted.length === 0) return; // edge already existed
+
+  await logActivity({
+    actorId: actor.id,
+    action: "task.dependency_add",
+    entity: `task:${taskId}`,
+    detail: { dependsOn: blocker.title },
+    eventId: task.eventId,
+  });
+  // tell the blocking team they are now a bottleneck for someone (in-app
+  // only; once per user per edge thanks to the dedup key)
+  await notifyMany(blocker.assigneeIds, {
+    type: "dependency_waiting",
+    title: `A task now waits on: ${blocker.title}`,
+    href: `/tasks/${dependsOnTaskId}`,
+    dedupKeyFor: (userId) => `depwait:${taskId}:${dependsOnTaskId}:${userId}`,
+  });
+  await recomputeBottleneck(dependsOnTaskId);
+}
+
+export async function removeDependency(
+  actor: Actor,
+  taskId: string,
+  dependsOnTaskId: string,
+) {
+  const task = await requireTask(actor, taskId);
+  assertCan(actor, "task.edit", { divisionId: task.divisionId });
+  await db
+    .delete(taskDependencies)
+    .where(
+      and(
+        eq(taskDependencies.taskId, taskId),
+        eq(taskDependencies.dependsOnTaskId, dependsOnTaskId),
+      ),
+    );
+  await logActivity({
+    actorId: actor.id,
+    action: "task.dependency_remove",
+    entity: `task:${taskId}`,
+    detail: { dependsOnTaskId },
+    eventId: task.eventId,
+  });
+  await recomputeBottleneck(dependsOnTaskId);
+  // removing the last open blocker can itself unblock the task
+  await maybeNotifyUnblocked(taskId);
+}
+
+// ---- external dependencies (EPIC-012 T-120) -------------------------------
+// A wait on a party outside the system. Informational: never forces status,
+// but unresolved rows gate the "Unblocked" notification. Any member of the
+// task's division may add/check off (Owner decision 2026-08-07).
+
+export async function addExternalDependency(
+  actor: Actor,
+  input: { taskId: string; label: string; party?: string; note?: string },
+) {
+  const task = await requireTask(actor, input.taskId);
+  assertCan(actor, "task.edit", { divisionId: task.divisionId });
+  const label = input.label.trim();
+  if (!label) throw new Error("What are you waiting for? Label is required.");
+  await db.insert(taskExternalDependencies).values({
+    taskId: input.taskId,
+    label,
+    party: input.party?.trim() ?? "",
+    note: input.note?.trim() ?? "",
+    createdBy: actor.id,
+  });
+  await logActivity({
+    actorId: actor.id,
+    action: "task.external_dep_add",
+    entity: `task:${input.taskId}`,
+    detail: { label, party: input.party?.trim() ?? "" },
+    eventId: task.eventId,
+  });
+}
+
+export async function setExternalDependencyResolved(
+  actor: Actor,
+  externalDepId: string,
+  resolved: boolean,
+) {
+  const [row] = await db
+    .select()
+    .from(taskExternalDependencies)
+    .where(eq(taskExternalDependencies.id, externalDepId))
+    .limit(1);
+  if (!row) throw new Error("External dependency not found.");
+  const task = await requireTask(actor, row.taskId);
+  assertCan(actor, "task.edit", { divisionId: task.divisionId });
+  await db
+    .update(taskExternalDependencies)
+    .set(
+      resolved
+        ? { resolvedAt: new Date(), resolvedBy: actor.id }
+        : { resolvedAt: null, resolvedBy: null },
+    )
+    .where(eq(taskExternalDependencies.id, externalDepId));
+  await logActivity({
+    actorId: actor.id,
+    action: resolved ? "task.external_dep_resolve" : "task.external_dep_reopen",
+    entity: `task:${row.taskId}`,
+    detail: { label: row.label },
+    eventId: task.eventId,
+  });
+  if (resolved) await maybeNotifyUnblocked(row.taskId);
+}
+
+export async function deleteExternalDependency(
+  actor: Actor,
+  externalDepId: string,
+) {
+  const [row] = await db
+    .select()
+    .from(taskExternalDependencies)
+    .where(eq(taskExternalDependencies.id, externalDepId))
+    .limit(1);
+  if (!row) return;
+  const task = await requireTask(actor, row.taskId);
+  assertCan(actor, "task.edit", { divisionId: task.divisionId });
+  await db
+    .delete(taskExternalDependencies)
+    .where(eq(taskExternalDependencies.id, externalDepId));
+  await logActivity({
+    actorId: actor.id,
+    action: "task.external_dep_delete",
+    entity: `task:${row.taskId}`,
+    detail: { label: row.label },
+    eventId: task.eventId,
+  });
+  await maybeNotifyUnblocked(row.taskId);
 }
 
 // all dependency edges between tasks of this event that the actor may see
@@ -888,14 +1021,28 @@ export async function getTaskDetail(actor: Actor, taskId: string) {
         .orderBy(asc(comments.createdAt)),
       db.select().from(attachments).where(eq(attachments.taskId, taskId)),
       db
-        .select({ id: tasks.id, title: tasks.title, status: tasks.status })
+        .select({
+          id: tasks.id,
+          title: tasks.title,
+          status: tasks.status,
+          eventId: tasks.eventId,
+          eventName: events.name,
+        })
         .from(taskDependencies)
         .innerJoin(tasks, eq(taskDependencies.dependsOnTaskId, tasks.id))
+        .innerJoin(events, eq(tasks.eventId, events.id))
         .where(eq(taskDependencies.taskId, taskId)),
       db
-        .select({ id: tasks.id, title: tasks.title, status: tasks.status })
+        .select({
+          id: tasks.id,
+          title: tasks.title,
+          status: tasks.status,
+          eventId: tasks.eventId,
+          eventName: events.name,
+        })
         .from(taskDependencies)
         .innerJoin(tasks, eq(taskDependencies.taskId, tasks.id))
+        .innerJoin(events, eq(tasks.eventId, events.id))
         .where(eq(taskDependencies.dependsOnTaskId, taskId)),
       db
         .select({ userId: taskWatchers.userId })
@@ -907,6 +1054,12 @@ export async function getTaskDetail(actor: Actor, taskId: string) {
         .where(eq(events.id, task.eventId))
         .then((r) => r[0] ?? null),
     ]);
+
+  const externalDeps = await db
+    .select()
+    .from(taskExternalDependencies)
+    .where(eq(taskExternalDependencies.taskId, taskId))
+    .orderBy(asc(taskExternalDependencies.createdAt));
 
   const assignees =
     task.assigneeIds.length === 0
@@ -947,8 +1100,77 @@ export async function getTaskDetail(actor: Actor, taskId: string) {
     attachments: attachmentRows,
     blockers: blockerRows,
     dependents: dependentRows,
+    externalDeps,
     watcherIds: watcherRows.map((w) => w.userId),
   };
+}
+
+// dependency edges that LEAVE this event (either direction) — the Gantt
+// draws same-event arrows; these render as a list below it (EPIC-012)
+export async function listCrossEventDependencies(actor: Actor, eventId: string) {
+  const visibleTasks = await listEventTasks(actor, eventId);
+  const visibleIds = new Set(visibleTasks.map((t) => t.id));
+  if (visibleIds.size === 0) return [];
+  const titleById = new Map(visibleTasks.map((t) => [t.id, t.title]));
+
+  const idList = [...visibleIds];
+  const edges = await db
+    .select({
+      taskId: taskDependencies.taskId,
+      dependsOnTaskId: taskDependencies.dependsOnTaskId,
+    })
+    .from(taskDependencies)
+    .where(
+      or(
+        inArray(taskDependencies.taskId, idList),
+        inArray(taskDependencies.dependsOnTaskId, idList),
+      ),
+    );
+  const crossEdges = edges.filter(
+    (e) => visibleIds.has(e.taskId) !== visibleIds.has(e.dependsOnTaskId),
+  );
+  if (crossEdges.length === 0) return [];
+
+  // resolve the far end, permission-scoped: only include edges whose remote
+  // task the actor may also see
+  const remoteIds = crossEdges.map((e) =>
+    visibleIds.has(e.taskId) ? e.dependsOnTaskId : e.taskId,
+  );
+  const remoteRows = await db
+    .select({
+      id: tasks.id,
+      title: tasks.title,
+      status: tasks.status,
+      divisionId: tasks.divisionId,
+      eventName: events.name,
+    })
+    .from(tasks)
+    .innerJoin(events, eq(tasks.eventId, events.id))
+    .where(inArray(tasks.id, remoteIds));
+  const remoteById = new Map(
+    remoteRows
+      .filter((r) => can(actor, "task.viewDivision", { divisionId: r.divisionId }))
+      .map((r) => [r.id, r]),
+  );
+
+  return crossEdges.flatMap((edge) => {
+    const localWaits = visibleIds.has(edge.taskId);
+    const localId = localWaits ? edge.taskId : edge.dependsOnTaskId;
+    const remote = remoteById.get(localWaits ? edge.dependsOnTaskId : edge.taskId);
+    if (!remote) return [];
+    return [
+      {
+        localTaskId: localId,
+        localTitle: titleById.get(localId) ?? "",
+        /** true = our task waits on the other event; false = theirs waits on ours */
+        localWaits,
+        remoteTaskId: remote.id,
+        remoteTitle: remote.title,
+        remoteStatus: remote.status,
+        remoteEventName: remote.eventName,
+      },
+    ];
+  });
 }
 
 // internal users of a division (assignee / mention options)

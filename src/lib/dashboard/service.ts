@@ -1,4 +1,5 @@
-import { and, desc, eq, gte, inArray, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lt, ne, notInArray, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
 import {
   activityLog,
@@ -102,6 +103,63 @@ export async function getUpcomingMilestones(actor: Actor, days = 14) {
 }
 
 // blocked tasks that other tasks depend on — the cross-division risk list
+// ranked bottleneck list (EPIC-012 T-123): tasks that OPEN tasks wait on,
+// heaviest fan-in first — the CEO's discussion list. Replaces the old
+// status-based "blockers" panel.
+export async function getBottlenecks(actor: Actor) {
+  assertCan(actor, "dashboard.view");
+  const { bottleneckLevel } = await import("@/lib/tasks/bottleneck-math");
+
+  const waiter = alias(tasks, "waiter");
+  const rows = await db
+    .select({
+      id: tasks.id,
+      title: tasks.title,
+      status: tasks.status,
+      priority: tasks.priority,
+      dueDate: tasks.dueDate,
+      autoUrgentAt: tasks.autoUrgentAt,
+      eventName: events.name,
+      divisionName: divisions.name,
+      waiters: sql<number>`count(*)::int`,
+    })
+    .from(taskDependencies)
+    .innerJoin(tasks, eq(taskDependencies.dependsOnTaskId, tasks.id))
+    .innerJoin(waiter, eq(taskDependencies.taskId, waiter.id))
+    .innerJoin(events, eq(tasks.eventId, events.id))
+    .innerJoin(divisions, eq(tasks.divisionId, divisions.id))
+    .where(
+      and(
+        notInArray(waiter.status, ["done", "cancelled"]),
+        notInArray(tasks.status, ["done", "cancelled"]),
+        isNull(events.archivedAt),
+      ),
+    )
+    .groupBy(
+      tasks.id,
+      tasks.title,
+      tasks.status,
+      tasks.priority,
+      tasks.dueDate,
+      tasks.autoUrgentAt,
+      events.name,
+      divisions.name,
+    )
+    .orderBy(desc(sql`count(*)`))
+    .limit(10);
+
+  const now = Date.now();
+  return rows.map((row) => ({
+    ...row,
+    critical:
+      bottleneckLevel({
+        openWaiters: row.waiters,
+        overdue: row.dueDate !== null && row.dueDate.getTime() < now,
+        blocked: row.status === "blocked",
+      }) === "critical",
+  }));
+}
+
 export async function getBlockers(actor: Actor) {
   assertCan(actor, "dashboard.view");
   return db

@@ -9,11 +9,17 @@ export async function register() {
 
   // hourly: due/overdue notifications (deduped) then health sweep;
   // mutations also trigger targeted recomputes
+  const { sweepBottlenecks } = await import("@/lib/tasks/dependency-engine");
   cron.schedule("0 * * * *", async () => {
     try {
       await sweepDueNotifications();
       const n = await recomputeAllEventHealth();
-      console.log(`[cron] due sweep + health recompute for ${n} events`);
+      // overdue drifts in with time, so bottleneck levels change without
+      // any mutation — re-evaluate hourly (EPIC-012)
+      const b = await sweepBottlenecks();
+      console.log(
+        `[cron] due sweep + health recompute for ${n} events + ${b} bottleneck checks`,
+      );
     } catch (error) {
       console.error("[cron] sweep failed:", error);
     }

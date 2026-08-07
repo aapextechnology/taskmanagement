@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { updateStatusAction } from "@/app/(app)/tasks/actions";
+import { DependencyBadge } from "@/components/dependency-badge";
 import { LabelChip } from "@/components/label-chip";
 import {
   AvatarStack,
@@ -34,6 +35,8 @@ export interface KanbanTask {
   labels: Array<{ id: string; name: string; color: string }>;
   /** shown on cards in the all-departments view */
   divisionName?: string;
+  /** dependency badge counts (EPIC-012) — omitted when the card has none */
+  dep?: { waitingOn: number; waiters: number; critical: boolean };
 }
 
 // Native HTML5 drag & drop — no library. Drop persists via server action;
@@ -144,6 +147,7 @@ export function KanbanBoard({ tasks }: { tasks: KanbanTask[] }) {
                           })}
                         </span>
                       ) : null}
+                      {task.dep ? <DependencyBadge {...task.dep} /> : null}
                       <AvatarStack users={task.assignees} className="ml-auto" />
                     </span>
                   </Link>

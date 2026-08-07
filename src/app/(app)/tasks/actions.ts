@@ -10,6 +10,10 @@ import {
   addComment,
   deleteChecklistItem,
   addDependency,
+  addExternalDependency,
+  deleteExternalDependency,
+  removeDependency,
+  setExternalDependencyResolved,
   addLabelToTask,
   assignUser,
   createTask,
@@ -234,6 +238,51 @@ export async function dependencyAddAction(
   } catch (error) {
     return friendly(error);
   }
+}
+
+export async function dependencyRemoveAction(formData: FormData): Promise<void> {
+  const actor = await requireActor();
+  const taskId = String(formData.get("taskId"));
+  await removeDependency(actor, taskId, String(formData.get("dependsOnTaskId")));
+  revalidatePath(`/tasks/${taskId}`);
+}
+
+export async function externalDepAddAction(
+  _prev: TaskActionState,
+  formData: FormData,
+): Promise<TaskActionState> {
+  try {
+    const actor = await requireActor();
+    const taskId = String(formData.get("taskId"));
+    await addExternalDependency(actor, {
+      taskId,
+      label: String(formData.get("label") ?? ""),
+      party: String(formData.get("party") ?? ""),
+      note: String(formData.get("note") ?? ""),
+    });
+    revalidatePath(`/tasks/${taskId}`);
+    return {};
+  } catch (error) {
+    return friendly(error);
+  }
+}
+
+export async function externalDepToggleAction(formData: FormData): Promise<void> {
+  const actor = await requireActor();
+  const taskId = String(formData.get("taskId"));
+  await setExternalDependencyResolved(
+    actor,
+    String(formData.get("externalDepId")),
+    formData.get("resolved") === "true",
+  );
+  revalidatePath(`/tasks/${taskId}`);
+}
+
+export async function externalDepDeleteAction(formData: FormData): Promise<void> {
+  const actor = await requireActor();
+  const taskId = String(formData.get("taskId"));
+  await deleteExternalDependency(actor, String(formData.get("externalDepId")));
+  revalidatePath(`/tasks/${taskId}`);
 }
 
 export async function commentAction(

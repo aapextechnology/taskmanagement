@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { DependencyBadge } from "@/components/dependency-badge";
 import { LabelChip } from "@/components/label-chip";
 import {
   AvatarStack,
@@ -111,6 +112,9 @@ export default async function TaskListPage({
     status,
     items: sorted.filter((t) => t.status === status),
   }));
+
+  const { getDependencyBadges } = await import("@/lib/tasks/dependency-engine");
+  const depBadges = await getDependencyBadges(sorted);
 
 
   async function saveFilterAction(formData: FormData) {
@@ -222,6 +226,9 @@ export default async function TaskListPage({
                           className="hidden sm:inline-flex"
                         />
                       ))}
+                      {depBadges.has(task.id) ? (
+                        <DependencyBadge {...depBadges.get(task.id)!} />
+                      ) : null}
                       <span className="hidden text-xs text-muted-foreground md:block">
                         {divisionName.get(task.divisionId)}
                       </span>

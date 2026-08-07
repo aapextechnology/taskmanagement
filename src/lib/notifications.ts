@@ -14,6 +14,8 @@ export type NotificationType =
   | "due_soon"
   | "overdue"
   | "unblocked"
+  // someone made your task a blocker (EPIC-012) — in-app only, like unblocked
+  | "dependency_waiting"
   | "handoff_request"
   | "handoff_decided"
   | "approval_requested"

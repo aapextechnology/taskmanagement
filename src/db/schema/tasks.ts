@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -58,6 +59,11 @@ export const tasks = pgTable("tasks", {
     onDelete: "set null",
   }),
   completedAt: timestamp("completed_at", { withTimezone: true }),
+  // auto-bump bookkeeping (EPIC-012 T-121): both set ⇒ priority was bumped
+  // to urgent by the bottleneck engine and may auto-revert; a manual
+  // priority edit clears both (manual always wins)
+  priorityBeforeAuto: taskPriorityEnum("priority_before_auto"),
+  autoUrgentAt: timestamp("auto_urgent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -104,6 +110,34 @@ export const taskDependencies = pgTable(
       .references(() => tasks.id, { onDelete: "cascade" }),
   },
   (t) => [primaryKey({ columns: [t.taskId, t.dependsOnTaskId] })],
+);
+
+// wait on a party OUTSIDE the system (permit office, vendor, sponsor) —
+// informational only (EPIC-012 T-120): never drives status, but an
+// unresolved row gates the "Unblocked" notification. Checked off manually
+// by any member of the task's division.
+export const taskExternalDependencies = pgTable(
+  "task_external_dependencies",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    party: text("party").notNull().default(""),
+    note: text("note").notNull().default(""),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    resolvedBy: uuid("resolved_by").references(() => profiles.id, {
+      onDelete: "set null",
+    }),
+    createdBy: uuid("created_by").references(() => profiles.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("task_external_deps_task_idx").on(t.taskId)],
 );
 
 export const taskChecklistItems = pgTable("task_checklist_items", {

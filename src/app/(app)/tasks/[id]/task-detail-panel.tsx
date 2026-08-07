@@ -18,7 +18,6 @@ import { can } from "@/lib/permissions";
 import {
   getTaskDetail,
   listDivisionMemberOptions,
-  listEventTaskOptions,
   STATUS_LABELS,
   TASK_STATUS_ORDER,
 } from "@/lib/tasks/service";
@@ -35,7 +34,7 @@ import { AssigneeManager } from "./assignee-manager";
 import { AttachmentForm } from "./attachment-form";
 import { ChecklistItemDialog } from "./checklist-item-dialog";
 import { CommentForm } from "./comment-form";
-import { DependencyForm } from "./dependency-form";
+import { DependencySection } from "./dependency-section";
 import { DescriptionEditor } from "./description-editor";
 import { EditTaskForm } from "./edit-form";
 
@@ -69,10 +68,7 @@ export async function TaskDetailPanel({
   const canMove =
     canEdit || can(actor, "task.updateAssigned", { isAssigned: task.isAssigned });
 
-  const [members, taskOptions] = await Promise.all([
-    listDivisionMemberOptions(task.divisionId),
-    canEdit ? listEventTaskOptions(actor, task.eventId, task.id) : [],
-  ]);
+  const members = await listDivisionMemberOptions(task.divisionId);
   const watching = task.watcherIds.includes(actor.id);
 
   return (
@@ -372,36 +368,20 @@ export async function TaskDetailPanel({
         </div>
       </div>
 
-      {/* dependencies */}
-      <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
-          Dependencies
-        </h2>
-        {task.blockers.length > 0 ? (
-          <div className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-muted-foreground">Blocked by</span>
-            {task.blockers.map((b) => (
-              <Link key={b.id} href={`/tasks/${b.id}`} className="hover:underline">
-                {b.status === "done" ? "✕ " : "○ "}
-                {b.title}
-              </Link>
-            ))}
-          </div>
-        ) : null}
-        {task.dependents.length > 0 ? (
-          <div className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-muted-foreground">Blocks</span>
-            {task.dependents.map((b) => (
-              <Link key={b.id} href={`/tasks/${b.id}`} className="hover:underline">
-                {b.title}
-              </Link>
-            ))}
-          </div>
-        ) : null}
-        {canEdit && taskOptions.length > 0 ? (
-          <DependencyForm taskId={task.id} options={taskOptions} />
-        ) : null}
-      </div>
+      {/* dependencies (EPIC-012: cross-division/event + external waits) */}
+      <DependencySection
+        taskId={task.id}
+        taskEventId={task.eventId}
+        canEdit={canEdit}
+        blockers={task.blockers}
+        dependents={task.dependents}
+        externalDeps={task.externalDeps.map((dep) => ({
+          id: dep.id,
+          label: dep.label,
+          party: dep.party,
+          resolvedAt: dep.resolvedAt ? dep.resolvedAt.toISOString() : null,
+        }))}
+      />
 
       {/* attachments */}
       <div className="flex flex-col gap-3">

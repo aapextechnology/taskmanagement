@@ -55,6 +55,8 @@ export default async function BoardPage({
     listMembersForDivisions(creatableDivisions.map((d) => d.id)),
     listLabels(),
   ]);
+  const { getDependencyBadges } = await import("@/lib/tasks/dependency-engine");
+  const depBadges = await getDependencyBadges(tasks);
 
   const createOptions = creatableDivisions.map((d) => ({
     id: d.id,
@@ -131,6 +133,7 @@ export default async function BoardPage({
           assignees: t.assignees,
           labels: t.labels,
           divisionName: allMode ? divisionName.get(t.divisionId) : undefined,
+          dep: depBadges.get(t.id),
         }))}
       />
     </section>

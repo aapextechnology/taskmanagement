@@ -5,7 +5,11 @@ import { StatusDot, type StatusKey } from "@/components/task-meta";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { getEvent, listEventDivisions } from "@/lib/events/service";
 import { buildGanttModel, wibDayIndex, type GanttBar } from "@/lib/gantt/schedule";
-import { listEventTaskDependencies, listEventTasks } from "@/lib/tasks/service";
+import {
+  listCrossEventDependencies,
+  listEventTaskDependencies,
+  listEventTasks,
+} from "@/lib/tasks/service";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Gantt" };
@@ -60,10 +64,11 @@ export default async function EventGanttPage({
   const event = await getEvent(actor, id);
   if (!event) notFound();
 
-  const [tasks, dependencyRows, divisions] = await Promise.all([
+  const [tasks, dependencyRows, divisions, crossEventDeps] = await Promise.all([
     listEventTasks(actor, id),
     listEventTaskDependencies(actor, id),
     listEventDivisions(actor, id),
+    listCrossEventDependencies(actor, id),
   ]);
 
   const model = buildGanttModel({
@@ -209,6 +214,44 @@ export default async function EventGanttPage({
                   <StatusDot status={t.status} />
                   {t.title}
                 </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {/* cross-event edges can't be drawn as arrows on a one-event chart —
+          they surface here instead (EPIC-012) */}
+      {crossEventDeps.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Cross-event dependencies ({crossEventDeps.length})
+          </h2>
+          <ul className="flex flex-col divide-y rounded-md border bg-card">
+            {crossEventDeps.map((dep) => (
+              <li
+                key={`${dep.localTaskId}-${dep.remoteTaskId}`}
+                className="flex flex-wrap items-center gap-2 px-4 py-2.5 text-sm"
+              >
+                <Link
+                  href={`/tasks/${dep.localTaskId}`}
+                  className="min-w-0 truncate font-medium hover:underline"
+                >
+                  {dep.localTitle}
+                </Link>
+                <span className="text-xs text-muted-foreground">
+                  {dep.localWaits ? "waits on" : "is blocking"}
+                </span>
+                <StatusDot status={dep.remoteStatus as StatusKey} />
+                <Link
+                  href={`/tasks/${dep.remoteTaskId}`}
+                  className="min-w-0 truncate hover:underline"
+                >
+                  {dep.remoteTitle}
+                </Link>
+                <span className="ml-auto rounded-full border bg-accent/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-foreground/80">
+                  {dep.remoteEventName}
+                </span>
               </li>
             ))}
           </ul>

@@ -1,6 +1,6 @@
 # EPIC-012: Dependency Bottlenecks & External Waits
 
-status: backlog
+status: ready-for-qa
 environment: dev
 phase: 4
 priority: P1
@@ -55,7 +55,7 @@ Owner decisions locked 2026-08-07:
 
 ### Schema & service core
 
-- [ ] **T-120** Schema `task_external_dependencies` (taskId, label, party,
+- [x] **T-120** Schema `task_external_dependencies` (taskId, label, party,
   note, resolvedAt/resolvedBy, createdBy) + migration. Service: drop the
   same-event guard on `addDependency`, full cycle detection (DFS, any depth),
   new `removeDependency`, external-dep CRUD + check-off (`task.edit` on the
@@ -63,7 +63,7 @@ Owner decisions locked 2026-08-07:
 
 ### Bottleneck scoring & auto-priority
 
-- [ ] **T-121** Pure scoring module: `waiters(taskId)` = open dependents;
+- [x] **T-121** Pure scoring module: `waiters(taskId)` = open dependents;
   levels none / bottleneck (1–2) / **critical** (≥3, or ≥1 + blocker
   overdue/`blocked`). Auto-bump: on becoming critical set priority `urgent`
   (store `priorityBeforeAuto`, log `system` activity); on clearing revert
@@ -72,14 +72,14 @@ Owner decisions locked 2026-08-07:
 
 ### Task drawer UI
 
-- [ ] **T-122** Drawer sections: "Blocked by" (internal deps with live status
+- [x] **T-122** Drawer sections: "Blocked by" (internal deps with live status
   chips + external deps with styled check-off, per the no-basic-controls
   rule) and "Blocking" (reverse list with waiter count). Remove-edge action.
   Cross-event deps get an EventChip.
 
 ### Surfaces & notifications
 
-- [ ] **T-123** Board/list card badge ("Waiting on N" grey · "N waiting" red
+- [x] **T-123** Board/list card badge ("Waiting on N" grey · "N waiting" red
   when critical). Dashboard: replace "Cross-division blockers" with ranked
   **Bottlenecks** panel (waiter count, division, event, red = critical).
   One-time notification to the blocker task's assignees when a new dependent
@@ -87,7 +87,7 @@ Owner decisions locked 2026-08-07:
 
 ### Verification
 
-- [ ] **T-124** Tests: permission matrix additions, scoring + auto-bump unit
+- [x] **T-124** Tests: permission matrix additions, scoring + auto-bump unit
   tests, cycle-detection test, role-scoped E2E (member adds cross-division
   dep; external check-off; Owner sees ranked panel; bump + revert observed in
   activity log).
@@ -111,6 +111,13 @@ Owner decisions locked 2026-08-07:
 > Each task also satisfies `../DEFINITION-OF-DONE.md`.
 
 ## Automation Log
+
+- **2026-08-07 — T-120..T-124 done (all gates PASS) → ready-for-qa.**
+  - Schema: migration `0020_dependency-bottlenecks.sql` — `task_external_dependencies` + `tasks.priority_before_auto`/`auto_urgent_at`.
+  - Service: same-event guard dropped (cross-division/event deps), BFS cycle detection any depth, `removeDependency`, external-dep CRUD + check-off (`task.edit`), unblock notification now gated on internal blockers done AND external deps resolved (dedup-keyed).
+  - Engine: `bottleneck-math.ts` (pure, 10 unit tests) + `dependency-engine.ts` (recompute, hourly sweep in cron, badge batch). Auto-bump logs `task.priority_auto_bump` / `_revert` as system (actorId null); manual priority edit clears flags via `updateTaskFields`.
+  - UI: drawer DependencySection (search-picker via permission-scoped /api/search, styled check-off — old native `<select>` DependencyForm deleted per no-basic-controls); board/list `DependencyBadge` (⧗ waiting / N↩ red); dashboard **Bottlenecks — most waited-on** panel (replaces status-based blockers; shows auto-urgent tag); cross-event edges listed under Gantt.
+  - Verified: E2E script 16/16 PASS on dev DB — bump at exactly 3rd waiter (cross-event edge counted), system activity rows, direct + transitive cycle rejected, Owner panel ranks critical, external dep blocks unblock until check-off, cross-division check-off denied, auto-revert on close, manual override survives, removeDependency. Gates: lint/typecheck/179 tests/build ✅; deployed DEV, live pages 200 (owner session).
 
 - 2026-08-07 Epic planned from Owner concern (bottleneck visibility, external
   waits). Design decisions recorded in Goal section — auto-bump WITH revert
