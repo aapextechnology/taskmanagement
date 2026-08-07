@@ -141,6 +141,19 @@
 
 ---
 
+## 11. Dependency Bottlenecks & External Waits — EPIC-012
+
+| ID | Story | Priority | Epic |
+| --- | --- | --- | --- |
+| US-DEP-1 | As a division member, I want to add a dependency on any task in any division or event, so that my wait is tracked instead of remembered. | P1 | EPIC-012 |
+| US-DEP-2 | As a blocking team, we want to see and be notified that others wait on our task, so that we know we are the bottleneck. | P1 | EPIC-012 |
+| US-DEP-3 | As the Owner/CEO, I want a ranked red list of critical bottlenecks (who waits on whom, across divisions/events, auto-bumped to Urgent), so that the meeting starts with the right list. | P1 | EPIC-012 |
+| US-DEP-4 | As a division member, I want to record a wait on an external party (no system access) and check it off myself when delivered, so that outside blockers are visible too. | P1 | EPIC-012 |
+
+**Acceptance:** ≥3 open waiters (or ≥1 while the blocker is overdue/blocked) turns the blocker red, bumps priority to Urgent (logged, auto-reverting unless manually overridden), and ranks it on the Owner panel; external waits gate the "Unblocked" notification until checked off by any member of the task's division.
+
+---
+
 ## Coverage Check
 
 Every screen in PRD Appendix A maps to a domain above: Auth/Admin → §1, Events → §2, Tasks → §3, Approvals → §4, Budget → §5, Dashboard/Audit → §6, Guest/Review → §7, Timeline/Calendar/Documents/Run-of-show → §8, Templates/Snapshots → §9, Search/Polish → §10. All domains are planned; none delivered yet.

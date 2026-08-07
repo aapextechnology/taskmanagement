@@ -165,6 +165,20 @@
 
 ---
 
+## EPIC-012 — Dependency Bottlenecks & External Waits (Phase 4)
+
+| ID | Task | Type | Cx | Depends | Exit | Stories |
+| --- | --- | --- | --- | --- | --- | --- |
+| T-120 | Schema `task_external_dependencies` + service: cross-event deps, full cycle detection, `removeDependency`, external check-off, unblock incl. external | BE | L | T-035, T-037 | Cross-division/event dep round-trips; no cycle of any length; unblock waits for external check-off | US-DEP-1, US-DEP-4 |
+| T-121 | Bottleneck scoring (waiter fan-in, critical = ≥3 or overdue+≥1) + priority auto-bump with stored revert & manual-override guard | BE | M | T-120 | Scoring matrix unit-tested; bump + revert logged as `system` activity; manual change wins | US-DEP-3 |
+| T-122 | Task drawer: "Blocked by" (internal + external, styled check-off) and "Blocking" sections, remove-edge, cross-event EventChip | FE | M | T-120 | Both directions visible/editable in drawer per no-basic-controls rule | US-DEP-1, US-DEP-2, US-DEP-4 |
+| T-123 | Card badges (Waiting on N / N waiting-red), dashboard **Bottlenecks** ranked panel, blocker-team notification, cross-event list under Gantt | FS | M | T-121 | Owner sees ranked red list; blocking team notified once per new dependent | US-DEP-2, US-DEP-3 |
+| T-124 | Tests: permission matrix, scoring/auto-bump units, cycle test, role-scoped E2E incl. bump-revert in activity log | — | M | T-121, T-122, T-123 | All gates green; E2E proves the full flow | all |
+
+**Exit:** the team can point at the bottleneck; the Owner sees it ranked and red before the meeting does.
+
+---
+
 ## Summary
 
 | Epic | Tasks | FE | BE | FS | Infra | Heaviest dependency |
