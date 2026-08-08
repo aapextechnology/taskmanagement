@@ -148,6 +148,13 @@
       "when": 1786115531126,
       "tag": "0020_dependency-bottlenecks",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1786168715045,
+      "tag": "0021_event-pages",
+      "breakpoints": true
     }
   ]
 }

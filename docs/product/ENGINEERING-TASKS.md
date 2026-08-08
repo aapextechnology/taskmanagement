@@ -179,6 +179,16 @@
 
 ---
 
+## EPIC-013 — Event Pages (Phase 4)
+
+| ID | Task | Type | Cx | Depends | Exit | Stories |
+| --- | --- | --- | --- | --- | --- | --- |
+| T-130 | Event pages mini-wiki: `event_pages` schema (Tiptap JSON), list + editor routes, sidebar entry, image upload | FS | M | T-022 | Internal users create/edit pages; author/admin delete; autosave works; content stored as JSON | — |
+
+**Exit:** every event carries editable pages for briefs and notes.
+
+---
+
 ## Summary
 
 | Epic | Tasks | FE | BE | FS | Infra | Heaviest dependency |

@@ -70,6 +70,7 @@ export function NavLink({ item }: { item: NavItem }) {
 const EVENT_SUBPAGES = [
   { path: "board", label: "Board" },
   { path: "list", label: "List" },
+  { path: "pages", label: "Pages" },
   // /gantt lives under the Calendar entry as a view toggle (Owner 2026-08-07)
   { path: "calendar", label: "Calendar", also: ["gantt"] },
   { path: "handoffs", label: "Handoffs" },
