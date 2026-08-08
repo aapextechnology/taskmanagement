@@ -66,7 +66,7 @@ const uid = (email: string): string => {
 
 const steps: Array<{ name: string; run: () => Promise<void> }> = [
   {
-    name: "11 RVC divisions",
+    name: "11 divisions",
     run: async () => {
       await db
         .insert(divisions)
@@ -437,7 +437,7 @@ const steps: Array<{ name: string; run: () => Promise<void> }> = [
           requestedForms: [...DEMO_INVITE.requestedForms],
           tokenHash: createHash("sha256").update(DEMO_GUEST_TOKEN).digest("hex"),
           expiresAt,
-          invitedBy: uid("head.production@rawvision.demo"),
+          invitedBy: uid("head.production@example.com"),
         })
         .onConflictDoNothing();
       console.log(
@@ -511,7 +511,7 @@ const steps: Array<{ name: string; run: () => Promise<void> }> = [
             ),
             ticketsSold: d.ticketsSold,
             revenue: d.revenue,
-            recordedBy: uid("head.ticketing@rawvision.demo"),
+            recordedBy: uid("head.ticketing@example.com"),
           })),
         )
         .onConflictDoNothing();

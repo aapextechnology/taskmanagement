@@ -15,21 +15,18 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "RVC Backstage",
-    template: "%s · RVC Backstage",
-  },
-  description:
-    "Everything behind the show — task management for Raw Vision Collective.",
-  applicationName: "RVC Backstage",
-  appleWebApp: {
-    capable: true,
-    title: "Backstage",
-    statusBarStyle: "black-translucent",
-  },
-  icons: { apple: "/apple-touch-icon.png" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { getBranding, fullName } = await import("@/lib/org/branding");
+  const branding = await getBranding();
+  const name = fullName(branding);
+  return {
+    title: { default: name, template: `%s · ${name}` },
+    description:
+      "Everything behind the show — event and task management for production teams.",
+    applicationName: name,
+    appleWebApp: { capable: true, title: branding.productName },
+  };
+}
 
 // PWA viewport (T-103): venues mean notched phones held one-handed, so the
 // safe-area inset matters and the theme colour follows light/dark.

@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-// The RVC ↗ motif: every navigational action carries the up-right arrow.
+// The ↗ motif: every navigational action carries the up-right arrow.
 // The arrow nudges on hover — the site's signature micro-interaction.
 export function ActionLink({
   children,

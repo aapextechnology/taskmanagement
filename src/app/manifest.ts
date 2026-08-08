@@ -2,13 +2,15 @@ import type { MetadataRoute } from "next";
 
 // PWA manifest (T-103). Backstage crews work from phones in venues, so the
 // app is installable and opens standalone — no browser chrome eating the
-// viewport. Monochrome to match the RVC theme.
-export default function manifest(): MetadataRoute.Manifest {
+// viewport. Monochrome to match the app theme.
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const { getBranding, fullName } = await import("@/lib/org/branding");
+  const branding = await getBranding();
   return {
-    name: "RVC Backstage",
-    short_name: "Backstage",
+    name: fullName(branding),
+    short_name: branding.productName,
     description:
-      "Everything behind the show — task management for Raw Vision Collective.",
+      `Everything behind the show — event and task management for ${branding.orgName}.`,
     start_url: "/",
     scope: "/",
     display: "standalone",

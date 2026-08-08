@@ -63,6 +63,8 @@ export async function buildDailyDigest(
     return null; // nothing to say — don't send an empty email
   }
 
+  const { getBranding, fullName } = await import("@/lib/org/branding");
+  const brand = fullName(await getBranding());
   const lines: string[] = [`Good morning — your day at a glance.`, ""];
   const block = (
     title: string,
@@ -93,7 +95,7 @@ export async function buildDailyDigest(
   }
 
   lines.push("Manage digests: " + env.APP_URL + "/settings");
-  lines.push("— RVC Backstage");
+  lines.push(`— ${brand}`);
 
   const headline = [
     overdue.length > 0 ? `${overdue.length} overdue` : null,
@@ -104,7 +106,7 @@ export async function buildDailyDigest(
     .join(", ");
 
   return {
-    subject: `[RVC Backstage] Daily digest — ${headline || "upcoming work"}`,
+    subject: `[${brand}] Daily digest — ${headline || "upcoming work"}`,
     text: lines.join("\n"),
   };
 }
@@ -128,6 +130,8 @@ export async function buildWeeklyExecutiveDigest(
   ]);
   if (portfolio.length === 0) return null;
 
+  const { getBranding, fullName } = await import("@/lib/org/branding");
+  const brand = fullName(await getBranding());
   const lines: string[] = ["The week across the portfolio.", ""];
   lines.push("EVENTS");
   for (const event of portfolio) {
@@ -168,10 +172,10 @@ export async function buildWeeklyExecutiveDigest(
   );
   lines.push("");
   lines.push("Manage digests: " + env.APP_URL + "/settings");
-  lines.push("— RVC Backstage");
+  lines.push(`— ${brand}`);
 
   return {
-    subject: `[RVC Backstage] Weekly executive digest — ${portfolio.length} active event${portfolio.length === 1 ? "" : "s"}`,
+    subject: `[${brand}] Weekly executive digest — ${portfolio.length} active event${portfolio.length === 1 ? "" : "s"}`,
     text: lines.join("\n"),
   };
 }

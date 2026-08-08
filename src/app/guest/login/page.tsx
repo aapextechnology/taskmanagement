@@ -6,6 +6,7 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { signIn } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
+import { getBranding } from "@/lib/org/branding";
 
 export const metadata: Metadata = { title: "Guest access" };
 
@@ -14,6 +15,7 @@ export const metadata: Metadata = { title: "Guest access" };
 export default async function GuestLoginPage({
   searchParams,
 }: PageProps<"/guest/login">) {
+  const branding = await getBranding();
   const sp = await searchParams;
   const token = typeof sp.token === "string" ? sp.token : "";
   const failed = sp.error === "1";
@@ -42,21 +44,21 @@ export default async function GuestLoginPage({
   return (
     <div className="flex min-h-svh flex-col items-center justify-center px-4">
       <div className="flex w-full max-w-sm flex-col gap-8">
-        <Logo className="text-sm" />
+        <Logo short={branding.orgShortName} product={branding.productName} className="text-sm" />
         {failed ? (
           <div className="flex flex-col gap-2 rounded-lg border bg-card p-5">
             <h1 className="text-lg font-semibold">Link tidak valid</h1>
             <p className="text-sm text-muted-foreground">
               This invite link is invalid, expired, or has been revoked. Ask
-              your RVC contact to send a new one.
+              your contact at the organisation to send a new one.
             </p>
           </div>
         ) : token ? (
           <form action={continueAction} className="flex flex-col gap-4 rounded-lg border bg-card p-5">
             <input type="hidden" name="token" value={token} />
-            <h1 className="text-lg font-semibold">Welcome to Backstage</h1>
+            <h1 className="text-lg font-semibold">Welcome</h1>
             <p className="text-sm text-muted-foreground">
-              You&apos;ve been invited to collaborate on an RVC event. No
+              You&apos;ve been invited to collaborate on an event. No
               password needed — continue with your personal link.
             </p>
             <Button type="submit">Enter the portal ↗</Button>

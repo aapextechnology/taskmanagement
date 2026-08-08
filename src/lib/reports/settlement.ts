@@ -49,6 +49,8 @@ export interface SettlementReport {
   };
   generatedAt: Date;
   generatedBy: string;
+  /** installation branding, e.g. "Acme Backstage" */
+  brandName: string;
 }
 
 export async function gatherSettlement(
@@ -179,6 +181,10 @@ export async function gatherSettlement(
       openTasks: openTaskRow[0]?.count ?? 0,
     },
     generatedAt: new Date(),
+    brandName: await (async () => {
+      const { getBranding, fullName } = await import("@/lib/org/branding");
+      return fullName(await getBranding());
+    })(),
     generatedBy: me?.name ?? "Unknown",
   };
 }

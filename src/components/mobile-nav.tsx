@@ -17,9 +17,13 @@ import {
 export function MobileNav({
   items,
   events,
+  orgShortName,
+  productName,
 }: {
   items: NavItem[];
   events: Array<{ id: string; name: string; health: "on_track" | "at_risk" | "critical" }>;
+  orgShortName: string;
+  productName: string;
 }) {
   const [open, setOpen] = useState(false);
   // fullscreen routes hide the main sidebar (see AppFrame) — the hamburger
@@ -44,7 +48,7 @@ export function MobileNav({
       <SheetContent side="left" className="w-64 p-0">
         <SheetHeader className="border-b px-4 py-3">
           <SheetTitle className="text-left text-sm font-semibold uppercase tracking-[0.2em]">
-            RVC <span className="text-muted-foreground">Backstage</span>
+            {orgShortName} <span className="text-muted-foreground">{productName}</span>
           </SheetTitle>
         </SheetHeader>
         <div

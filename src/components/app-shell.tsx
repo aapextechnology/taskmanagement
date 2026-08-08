@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { auth, signOut } from "@/lib/auth";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { listActiveEvents } from "@/lib/events/service";
+import { getBranding } from "@/lib/org/branding";
 import { can } from "@/lib/permissions";
 
 // Plane-style shell (T-110): fixed left sidebar (nav + events + user block),
@@ -18,6 +19,8 @@ import { can } from "@/lib/permissions";
 export async function AppShell({ children }: { children: ReactNode }) {
   const session = await auth();
   const actor = session?.user?.id ? await sessionActor() : null;
+
+  const branding = await getBranding();
 
   const timelineCounts = actor
     ? await (async () => {
@@ -39,7 +42,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
     { href: "/approvals", label: "Approvals", icon: "approvals" },
     { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
     ...(actor && can(actor, "ai.assistant")
-      ? [{ href: "/assistant", label: "Kintsugi Intelligence", icon: "assistant" as const }]
+      ? [{ href: "/assistant", label: "AI Assistant", icon: "assistant" as const }]
       : []),
     ...(actor && can(actor, "org.manage")
       ? [{ href: "/admin", label: "Admin", icon: "admin" as const }]
@@ -59,7 +62,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
   const sidebar = (
     <aside className="sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r bg-sidebar md:flex print:!hidden">
         <div className="flex h-14 items-center border-b px-4">
-          <Logo className="text-[13px]" />
+          <Logo short={branding.orgShortName} product={branding.productName} className="text-[13px]" />
         </div>
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-3">
           <nav className="flex flex-col gap-0.5">
@@ -117,8 +120,13 @@ export async function AppShell({ children }: { children: ReactNode }) {
   const header = (
     <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur sm:px-6 print:hidden">
       <div className="flex items-center gap-2">
-        <MobileNav items={items} events={events} />
-        <Logo className="text-[13px] md:hidden" />
+        <MobileNav
+          items={items}
+          events={events}
+          orgShortName={branding.orgShortName}
+          productName={branding.productName}
+        />
+        <Logo short={branding.orgShortName} product={branding.productName} className="text-[13px] md:hidden" />
       </div>
       <div className="flex items-center gap-1.5">
         {session?.user ? <CommandPalette /> : null}

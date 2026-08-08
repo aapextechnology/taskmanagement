@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-// Route-aware shell frame (Owner 2026-08-07): Kintsugi Intelligence gets a
+// Route-aware shell frame (Owner 2026-08-07): the AI Assistant gets a
 // fullscreen canvas — the main sidebar hides and the content well widens.
 // Navigation stays reachable via the hamburger sheet (see MobileNav, which
 // shows itself on desktop for fullscreen routes).

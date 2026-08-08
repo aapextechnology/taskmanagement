@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * RVC Backstage design tokens (T-004).
- * Monochrome palette derived from rawvision.demo-wit.id: black / white / gray,
+ * Design tokens (T-004).
+ * Monochrome palette: black / white / gray,
  * high contrast, flat surfaces, hairline borders, no decorative gradients.
  * Dark theme is the DEFAULT ("backstage"); light is the gallery counterpart.
  * Color comes from event posters, never from the UI chrome — every color in
@@ -96,7 +96,7 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  /* tight radius — RVC surfaces are flat and architectural, not bubbly */
+  /* tight radius — surfaces are flat and architectural, not bubbly */
   --radius: 0.375rem;
   /* elevation (design overhaul 2026-08-07): cards float above the page with
      a soft two-layer shadow instead of relying on borders alone */

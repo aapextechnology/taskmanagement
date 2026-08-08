@@ -12,7 +12,7 @@ import { can } from "@/lib/permissions";
 import { AssistantChat } from "./assistant-chat";
 import { HistoryPanel } from "./history-panel";
 
-export const metadata: Metadata = { title: "Kintsugi Intelligence" };
+export const metadata: Metadata = { title: "AI Assistant" };
 
 // EPIC-014 T-140/T-141: predictive chat over the org's live data with saved
 // conversations — leadership only (owner / admin / division heads).
@@ -40,7 +40,7 @@ export default async function AssistantPage({
   return (
     <section className="flex min-h-[calc(100svh-8rem)] flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-semibold tracking-tight">Kintsugi Intelligence</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">AI Assistant</h1>
         <p className="text-sm text-muted-foreground">
           Ask about any event or the whole portfolio — predictions come with
           reasons, grounded in your live data. Chats are saved to your history.

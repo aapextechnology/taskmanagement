@@ -63,12 +63,14 @@ async function fanOutChannels(input: {
     .limit(1);
   if (!user) return;
 
+  const { getBranding, fullName } = await import("@/lib/org/branding");
+  const brand = fullName(await getBranding());
   const link = input.href ? `${env.APP_URL}${input.href}` : env.APP_URL;
   if (EMAIL_TYPES.has(input.type) && user.emailNotifications) {
     await sendEmail({
       to: user.email,
-      subject: `[RVC Backstage] ${input.title}`,
-      text: `${input.title}\n\nOpen: ${link}\n\n— RVC Backstage`,
+      subject: `[${brand}] ${input.title}`,
+      text: `${input.title}\n\nOpen: ${link}\n\n— ${brand}`,
     });
   }
   if (
@@ -78,7 +80,7 @@ async function fanOutChannels(input: {
   ) {
     await sendWhatsApp({
       to: user.phone,
-      text: `RVC Backstage — ${input.title}\n${link}`,
+      text: `${brand} — ${input.title}\n${link}`,
     });
   }
 }

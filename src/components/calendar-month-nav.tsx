@@ -6,7 +6,7 @@ import {
   shiftMonth,
 } from "@/lib/calendar/month-param";
 
-// Prev / today / next month controls, RVC monochrome bordered-chip style
+// Prev / today / next month controls, monochrome bordered-chip style
 // (matches the board-page division tabs).
 export function CalendarMonthNav({
   basePath,

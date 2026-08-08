@@ -21,7 +21,7 @@ export function LoginForm() {
           name="email"
           type="email"
           autoComplete="email"
-          placeholder="you@rawvision.demo"
+          placeholder="you@example.com"
           required
         />
       </div>

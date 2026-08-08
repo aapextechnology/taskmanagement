@@ -1,4 +1,4 @@
-// The 11 RVC divisions (PLAN §3) — canonical slugs used across the system.
+// The 11 default divisions (PLAN §3) — canonical slugs used across the system.
 // Seeded idempotently; slugs are stable identifiers, never renamed.
 
 export const DIVISIONS = [

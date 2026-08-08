@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-// Month grid: RVC monochrome — show-date entries are solid (filled) chips,
+// Month grid: monochrome — show-date entries are solid (filled) chips,
 // deadline entries are outlined; done deadlines are struck through. Every
 // entry is a real deep link (aggregate.ts href).
 export function CalendarGrid({

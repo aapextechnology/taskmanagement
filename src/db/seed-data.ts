@@ -16,18 +16,18 @@ export const DEMO_USERS: Array<{
   role: "owner" | "admin" | "member" | "external";
   membership?: { divisionId: string; role: "head" | "staff" };
 }> = [
-  { email: "owner@rawvision.demo", name: "Rama Wijaya", role: "owner" },
-  { email: "admin@rawvision.demo", name: "Sari Dewi", role: "admin" },
-  { email: "head.production@rawvision.demo", name: "Bimo Prasetyo", role: "member", membership: { divisionId: "production", role: "head" } },
-  { email: "staff.production@rawvision.demo", name: "Tono Hartawan", role: "member", membership: { divisionId: "production", role: "staff" } },
-  { email: "head.marketing@rawvision.demo", name: "Maya Anggraini", role: "member", membership: { divisionId: "marketing-communications", role: "head" } },
-  { email: "staff.marketing@rawvision.demo", name: "Dina Puspita", role: "member", membership: { divisionId: "marketing-communications", role: "staff" } },
-  { email: "head.finance@rawvision.demo", name: "Agus Santoso", role: "member", membership: { divisionId: "finance", role: "head" } },
-  { email: "staff.finance@rawvision.demo", name: "Rina Kusuma", role: "member", membership: { divisionId: "finance", role: "staff" } },
-  { email: "head.ops@rawvision.demo", name: "Dewi Lestari", role: "member", membership: { divisionId: "operations-logistics", role: "head" } },
-  { email: "staff.ops@rawvision.demo", name: "Joko Susilo", role: "member", membership: { divisionId: "operations-logistics", role: "staff" } },
-  { email: "head.ticketing@rawvision.demo", name: "Putri Maharani", role: "member", membership: { divisionId: "ticketing-sales", role: "head" } },
-  { email: "head.legal@rawvision.demo", name: "Andi Nugraha", role: "member", membership: { divisionId: "legal-licensing", role: "head" } },
+  { email: "owner@example.com", name: "Rama Wijaya", role: "owner" },
+  { email: "admin@example.com", name: "Sari Dewi", role: "admin" },
+  { email: "head.production@example.com", name: "Bimo Prasetyo", role: "member", membership: { divisionId: "production", role: "head" } },
+  { email: "staff.production@example.com", name: "Tono Hartawan", role: "member", membership: { divisionId: "production", role: "staff" } },
+  { email: "head.marketing@example.com", name: "Maya Anggraini", role: "member", membership: { divisionId: "marketing-communications", role: "head" } },
+  { email: "staff.marketing@example.com", name: "Dina Puspita", role: "member", membership: { divisionId: "marketing-communications", role: "staff" } },
+  { email: "head.finance@example.com", name: "Agus Santoso", role: "member", membership: { divisionId: "finance", role: "head" } },
+  { email: "staff.finance@example.com", name: "Rina Kusuma", role: "member", membership: { divisionId: "finance", role: "staff" } },
+  { email: "head.ops@example.com", name: "Dewi Lestari", role: "member", membership: { divisionId: "operations-logistics", role: "head" } },
+  { email: "staff.ops@example.com", name: "Joko Susilo", role: "member", membership: { divisionId: "operations-logistics", role: "staff" } },
+  { email: "head.ticketing@example.com", name: "Putri Maharani", role: "member", membership: { divisionId: "ticketing-sales", role: "head" } },
+  { email: "head.legal@example.com", name: "Andi Nugraha", role: "member", membership: { divisionId: "legal-licensing", role: "head" } },
   // magic-link only — no password (EPIC-007)
   { email: "vendor@soundsupply.example", name: "Sound Supply Co.", role: "external" },
 ];
@@ -111,7 +111,7 @@ export const DEMO_TASKS: DemoTask[] = [
     status: "todo",
     priority: "high",
     dueOffsetHours: -48, // overdue on purpose → event AT RISK
-    assigneeEmails: ["staff.production@rawvision.demo"],
+    assigneeEmails: ["staff.production@example.com"],
     labelIds: ["00000000-0000-4000-8000-00000000f001"],
   },
   {
@@ -121,7 +121,7 @@ export const DEMO_TASKS: DemoTask[] = [
     title: "Draft technical rider checklist",
     status: "in_progress",
     dueOffsetHours: 6,
-    assigneeEmails: ["head.production@rawvision.demo"],
+    assigneeEmails: ["head.production@example.com"],
   },
   {
     id: "00000000-0000-4000-8000-00000000a003",
@@ -131,7 +131,7 @@ export const DEMO_TASKS: DemoTask[] = [
     status: "todo",
     priority: "high",
     dueOffsetHours: 14 * 24,
-    assigneeEmails: ["staff.production@rawvision.demo"],
+    assigneeEmails: ["staff.production@example.com"],
     dependsOn: ["00000000-0000-4000-8000-00000000a001"],
   },
   {
@@ -141,7 +141,7 @@ export const DEMO_TASKS: DemoTask[] = [
     title: "Announce lineup — phase 1 assets",
     status: "todo",
     dueOffsetHours: 7 * 24,
-    assigneeEmails: ["staff.marketing@rawvision.demo"],
+    assigneeEmails: ["staff.marketing@example.com"],
     labelIds: ["00000000-0000-4000-8000-00000000f004"],
   },
   {
@@ -153,7 +153,7 @@ export const DEMO_TASKS: DemoTask[] = [
     status: "todo",
     priority: "high",
     dueOffsetHours: 21 * 24,
-    assigneeEmails: ["head.legal@rawvision.demo"],
+    assigneeEmails: ["head.legal@example.com"],
     labelIds: ["00000000-0000-4000-8000-00000000f003"],
     checklist: [
       { title: "Collect venue capacity documents", done: true },
@@ -169,8 +169,8 @@ export const DEMO_TASKS: DemoTask[] = [
     status: "in_review",
     priority: "high",
     dueOffsetHours: 7 * 24,
-    assigneeEmails: ["staff.finance@rawvision.demo"],
-    watcherEmails: ["head.finance@rawvision.demo"],
+    assigneeEmails: ["staff.finance@example.com"],
+    watcherEmails: ["head.finance@example.com"],
     labelIds: ["00000000-0000-4000-8000-00000000f005"],
   },
   {
@@ -180,7 +180,7 @@ export const DEMO_TASKS: DemoTask[] = [
     title: "Venue site survey",
     status: "done",
     dueOffsetHours: -5 * 24,
-    assigneeEmails: ["staff.ops@rawvision.demo"],
+    assigneeEmails: ["staff.ops@example.com"],
   },
   {
     id: "00000000-0000-4000-8000-00000000a008",
@@ -189,7 +189,7 @@ export const DEMO_TASKS: DemoTask[] = [
     title: "Book FOH engineer",
     status: "blocked",
     dueOffsetHours: 20 * 24,
-    assigneeEmails: ["head.production@rawvision.demo"],
+    assigneeEmails: ["head.production@example.com"],
     dependsOn: ["00000000-0000-4000-8000-00000000a001"],
     labelIds: ["00000000-0000-4000-8000-00000000f001"],
   },
@@ -200,7 +200,7 @@ export const DEMO_TASKS: DemoTask[] = [
     title: "Ticketing platform comparison",
     status: "in_progress",
     dueOffsetHours: 10 * 24,
-    assigneeEmails: ["head.ticketing@rawvision.demo"],
+    assigneeEmails: ["head.ticketing@example.com"],
   },
   {
     // created by the accepted handoff d002 (see DEMO_HANDOFFS)
@@ -211,7 +211,7 @@ export const DEMO_TASKS: DemoTask[] = [
     status: "todo",
     priority: "high",
     dueOffsetHours: 12 * 24,
-    assigneeEmails: ["staff.ops@rawvision.demo"],
+    assigneeEmails: ["staff.ops@example.com"],
   },
 
   // ---- Neon Horizon Festival (promotion, +30d) ----------------------------
@@ -235,7 +235,7 @@ export const DEMO_TASKS: DemoTask[] = [
     status: "in_progress",
     priority: "urgent",
     dueOffsetHours: 3 * 24,
-    assigneeEmails: ["staff.marketing@rawvision.demo"],
+    assigneeEmails: ["staff.marketing@example.com"],
     labelIds: ["00000000-0000-4000-8000-00000000f004"],
     checklist: [
       { title: "Artist spotlight reels", done: true },
@@ -250,7 +250,7 @@ export const DEMO_TASKS: DemoTask[] = [
     title: "Book media partners",
     status: "todo",
     dueOffsetHours: 5 * 24,
-    assigneeEmails: ["head.marketing@rawvision.demo"],
+    assigneeEmails: ["head.marketing@example.com"],
     labelIds: ["00000000-0000-4000-8000-00000000f002"],
   },
   {
@@ -261,7 +261,7 @@ export const DEMO_TASKS: DemoTask[] = [
     status: "in_review",
     priority: "high",
     dueOffsetHours: 7 * 24,
-    assigneeEmails: ["head.production@rawvision.demo"],
+    assigneeEmails: ["head.production@example.com"],
   },
   {
     id: "00000000-0000-4000-8000-00000000b004",
@@ -271,7 +271,7 @@ export const DEMO_TASKS: DemoTask[] = [
     status: "todo",
     priority: "high",
     dueOffsetHours: 9 * 24,
-    assigneeEmails: ["staff.ops@rawvision.demo"],
+    assigneeEmails: ["staff.ops@example.com"],
     labelIds: ["00000000-0000-4000-8000-00000000f001"],
   },
   {
@@ -281,7 +281,7 @@ export const DEMO_TASKS: DemoTask[] = [
     title: "Sponsor invoicing — batch 1",
     status: "todo",
     dueOffsetHours: 6 * 24,
-    assigneeEmails: ["staff.finance@rawvision.demo"],
+    assigneeEmails: ["staff.finance@example.com"],
     labelIds: ["00000000-0000-4000-8000-00000000f005"],
     recurrence: "monthly",
   },
@@ -292,7 +292,7 @@ export const DEMO_TASKS: DemoTask[] = [
     title: "Presale wave 2 setup",
     status: "done",
     dueOffsetHours: -2 * 24,
-    assigneeEmails: ["head.ticketing@rawvision.demo"],
+    assigneeEmails: ["head.ticketing@example.com"],
   },
   {
     id: "00000000-0000-4000-8000-00000000b007",
@@ -312,8 +312,8 @@ export const DEMO_TASKS: DemoTask[] = [
     status: "in_progress",
     priority: "urgent",
     dueOffsetHours: -2 * 24, // overdue → settlement event AT RISK
-    assigneeEmails: ["head.finance@rawvision.demo"],
-    watcherEmails: ["owner@rawvision.demo"],
+    assigneeEmails: ["head.finance@example.com"],
+    watcherEmails: ["owner@example.com"],
     labelIds: ["00000000-0000-4000-8000-00000000f005"],
   },
   {
@@ -323,7 +323,7 @@ export const DEMO_TASKS: DemoTask[] = [
     title: "Event settlement report",
     status: "todo",
     dueOffsetHours: 5 * 24,
-    assigneeEmails: ["staff.finance@rawvision.demo"],
+    assigneeEmails: ["staff.finance@example.com"],
     checklist: [
       { title: "Reconcile ticketing revenue", done: true },
       { title: "Collect outstanding sponsor payments" },
@@ -337,7 +337,7 @@ export const DEMO_TASKS: DemoTask[] = [
     title: "Post-event recap content",
     status: "done",
     dueOffsetHours: -6 * 24,
-    assigneeEmails: ["staff.marketing@rawvision.demo"],
+    assigneeEmails: ["staff.marketing@example.com"],
     labelIds: ["00000000-0000-4000-8000-00000000f004"],
   },
 ];
@@ -352,28 +352,28 @@ export const DEMO_COMMENTS: Array<{
   {
     id: "00000000-0000-4000-8000-00000000c101",
     taskId: "00000000-0000-4000-8000-00000000a001",
-    authorEmail: "head.production@rawvision.demo",
+    authorEmail: "head.production@example.com",
     body: "@Tono Hartawan any word back from RiggingPro? Site build plan is waiting on this.",
-    mentionEmails: ["staff.production@rawvision.demo"],
+    mentionEmails: ["staff.production@example.com"],
   },
   {
     id: "00000000-0000-4000-8000-00000000c102",
     taskId: "00000000-0000-4000-8000-00000000a001",
-    authorEmail: "staff.production@rawvision.demo",
+    authorEmail: "staff.production@example.com",
     body: "They promised the revised quote by Friday. Chasing again tomorrow morning.",
   },
   {
     id: "00000000-0000-4000-8000-00000000c103",
     taskId: "00000000-0000-4000-8000-00000000b003",
-    authorEmail: "head.marketing@rawvision.demo",
+    authorEmail: "head.marketing@example.com",
     body: "Once this freezes we need the render for the phase 2 content — see the handoff request.",
   },
   {
     id: "00000000-0000-4000-8000-00000000c104",
     taskId: "00000000-0000-4000-8000-00000000c001",
-    authorEmail: "owner@rawvision.demo",
+    authorEmail: "owner@example.com",
     body: "@Agus Santoso please prioritize the sound vendor — they have been waiting three weeks.",
-    mentionEmails: ["head.finance@rawvision.demo"],
+    mentionEmails: ["head.finance@example.com"],
   },
 ];
 
@@ -398,7 +398,7 @@ export const DEMO_HANDOFFS: Array<{
     title: "Stage design render for announcement content",
     note: "Need a hero render + 2 detail shots as soon as the design freezes.",
     status: "pending",
-    requestedByEmail: "head.marketing@rawvision.demo",
+    requestedByEmail: "head.marketing@example.com",
     originTaskId: "00000000-0000-4000-8000-00000000b001",
   },
   {
@@ -409,8 +409,8 @@ export const DEMO_HANDOFFS: Array<{
     title: "Freight schedule for stage steel",
     note: "Stage steel arrives in 3 shipments — need the freight plan locked.",
     status: "accepted",
-    requestedByEmail: "head.production@rawvision.demo",
-    decidedByEmail: "head.ops@rawvision.demo",
+    requestedByEmail: "head.production@example.com",
+    decidedByEmail: "head.ops@example.com",
     originTaskId: "00000000-0000-4000-8000-00000000a003",
     createdTaskId: "00000000-0000-4000-8000-00000000a010",
   },
@@ -435,7 +435,7 @@ export const DEMO_APPROVALS: Array<{
     amount: 85_000_000,
     divisionId: "production",
     eventId: EVENT_IDS.neonHorizon,
-    requestedByEmail: "staff.production@rawvision.demo",
+    requestedByEmail: "staff.production@example.com",
     chain: ["division_head", "finance"],
   },
   {
@@ -444,7 +444,7 @@ export const DEMO_APPROVALS: Array<{
     title: "Media partner agreement — Kult Radio",
     divisionId: "marketing-communications",
     eventId: EVENT_IDS.neonHorizon,
-    requestedByEmail: "head.marketing@rawvision.demo",
+    requestedByEmail: "head.marketing@example.com",
     chain: ["legal", "owner"],
   },
   {
@@ -454,7 +454,7 @@ export const DEMO_APPROVALS: Array<{
     amount: 7_500_000,
     divisionId: "operations-logistics",
     eventId: EVENT_IDS.yeLive,
-    requestedByEmail: "staff.ops@rawvision.demo",
+    requestedByEmail: "staff.ops@example.com",
     chain: ["division_head"],
   },
 ];
@@ -505,7 +505,7 @@ export const DEMO_EXPENSES: Array<{
     title: "PA system rental — main stage",
     vendor: "Sound Supply Co.",
     amount: 85_000_000,
-    requestedByEmail: "staff.production@rawvision.demo",
+    requestedByEmail: "staff.production@example.com",
   },
   {
     id: "00000000-0000-4000-8000-00000000ef02",
@@ -516,7 +516,7 @@ export const DEMO_EXPENSES: Array<{
     title: "Crew catering — load-in week",
     vendor: "Dapur Kita Catering",
     amount: 7_500_000,
-    requestedByEmail: "staff.ops@rawvision.demo",
+    requestedByEmail: "staff.ops@example.com",
   },
 ];
 
@@ -631,21 +631,21 @@ export const DEMO_NOTIFICATIONS: Array<{
   dedupKey: string;
 }> = [
   {
-    userEmail: "staff.production@rawvision.demo",
+    userEmail: "staff.production@example.com",
     type: "mentioned",
     title: "You were mentioned in a comment",
     href: "/tasks/00000000-0000-4000-8000-00000000a001",
     dedupKey: "seed:mention:a001:staff.production",
   },
   {
-    userEmail: "head.production@rawvision.demo",
+    userEmail: "head.production@example.com",
     type: "handoff_request",
     title: "Handoff request: Stage design render for announcement content",
     href: `/events/${E2}/handoffs`,
     dedupKey: "seed:handoff:d001:head.production",
   },
   {
-    userEmail: "head.finance@rawvision.demo",
+    userEmail: "head.finance@example.com",
     type: "mentioned",
     title: "You were mentioned in a comment",
     href: "/tasks/00000000-0000-4000-8000-00000000c001",

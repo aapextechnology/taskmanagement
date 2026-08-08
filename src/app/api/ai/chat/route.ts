@@ -16,7 +16,8 @@ import { can } from "@/lib/permissions";
 
 export const maxDuration = 120;
 
-const SYSTEM_PROMPT = `You are the RVC Backstage assistant — the in-house analyst for Raw Vision Collective, an Indonesian concert promoter. You answer questions about their live event/task data and assess whether events are on course.
+function systemPrompt(orgName: string): string {
+  return `You are the in-house analyst for ${orgName}, an event production organisation. You answer questions about their live event/task data and assess whether events are on course.
 
 You receive a JSON snapshot of the data the CURRENT USER is allowed to see (their permission scope — never speculate about data outside it). All amounts are IDR. Dates/times are WIB (Asia/Jakarta).
 
@@ -26,7 +27,8 @@ When asked whether an event will run smoothly (or for any risk assessment):
 3. Recommend the 2–3 highest-leverage actions, each tied to a reason.
 4. When useful, benchmark against typical industry practice for comparable concerts (e.g. permits secured 60–90 days out, ticket on-sale 6–12 weeks before show, production advance locked by show-week). Present these as general industry heuristics from your own knowledge — NEVER invent specific named events, figures, or sources.
 
-Style: answer in the user's language (Indonesian or English). Be direct and concrete — name tasks, people, and numbers from the snapshot. Use short paragraphs and lists, no filler. If the snapshot lacks the data to answer, say exactly what is missing instead of guessing.`;
+Style: answer in the user's language. Be direct and concrete — name tasks, people, and numbers from the snapshot. Use short paragraphs and lists, no filler. If the snapshot lacks the data to answer, say exactly what is missing instead of guessing.`;
+}
 
 interface ChatRequestBody {
   messages?: Array<{ role?: string; content?: string }>;
@@ -82,13 +84,15 @@ export async function POST(request: Request) {
     eventId,
   });
 
+  const { getBranding } = await import("@/lib/org/branding");
+  const branding = await getBranding();
   const context = await buildAssistantContext(
     actor,
     eventId ?? conversation.eventId ?? undefined,
   );
 
   const messages: ChatMessage[] = [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: systemPrompt(branding.orgName) },
     {
       role: "system",
       content: `Data snapshot (permission-scoped to this user):\n${JSON.stringify(context)}`,

@@ -98,10 +98,12 @@ export async function createInvite(
     .returning();
 
   const magicLink = `${env.APP_URL}/guest/login?token=${token}`;
+  const { getBranding, fullName } = await import("@/lib/org/branding");
+  const brand = fullName(await getBranding());
   await sendEmail({
     to: email,
-    subject: `[RVC Backstage] You're invited to collaborate on ${event.name}`,
-    text: `Hi ${profile.name},\n\nYou've been invited to collaborate on "${event.name}" with the ${input.divisionId} division.\n\nOpen your portal (no password needed):\n${magicLink}\n\nThis link is personal — please don't share it. It expires on ${expiresAt.toDateString()}.\n\n— RVC Backstage`,
+    subject: `[${brand}] You're invited to collaborate on ${event.name}`,
+    text: `Hi ${profile.name},\n\nYou've been invited to collaborate on "${event.name}" with the ${input.divisionId} division.\n\nOpen your portal (no password needed):\n${magicLink}\n\nThis link is personal — please don't share it. It expires on ${expiresAt.toDateString()}.\n\n— ${brand}`,
   });
 
   await logActivity({

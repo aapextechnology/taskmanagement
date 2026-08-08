@@ -1,7 +1,7 @@
 import PDFDocument from "pdfkit";
 import type { EventReport } from "./service";
 
-// PDF renderer for the event progress report — monochrome, RVC-flavored
+// PDF renderer for the event progress report — monochrome, brand-flavored
 // (Helvetica, hairline rules, uppercase section heads). Pure pdfkit, no
 // external assets.
 
@@ -42,7 +42,7 @@ export function buildEventReportPdf(report: EventReport): Promise<Buffer> {
       margins: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN },
       info: {
         Title: `${report.event.name} — Progress report`,
-        Author: "RVC Backstage",
+        Author: report.brandName,
       },
     });
     const chunks: Buffer[] = [];
@@ -141,7 +141,7 @@ export function buildEventReportPdf(report: EventReport): Promise<Buffer> {
       .font("Helvetica-Bold")
       .fontSize(9)
       .fillColor("#000000")
-      .text("RVC BACKSTAGE", { characterSpacing: 3 });
+      .text(report.brandName.toUpperCase(), { characterSpacing: 3 });
     doc
       .font("Helvetica")
       .fontSize(8)
@@ -328,7 +328,7 @@ export function buildEventReportPdf(report: EventReport): Promise<Buffer> {
       .fontSize(7.5)
       .fillColor("#666666")
       .text(
-        `Generated ${dtStamp.format(report.generatedAt)} WIB by ${report.generatedBy} · RVC Backstage`,
+        `Generated ${dtStamp.format(report.generatedAt)} WIB by ${report.generatedBy} · ${report.brandName}`,
         { characterSpacing: 0.5 },
       );
 

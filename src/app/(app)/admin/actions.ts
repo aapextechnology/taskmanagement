@@ -110,3 +110,30 @@ export async function removeMembershipAction(formData: FormData): Promise<void> 
   );
   revalidatePath("/admin");
 }
+
+export async function updateBrandingAction(
+  _prev: { error?: string },
+  formData: FormData,
+): Promise<{ error?: string }> {
+  try {
+    const actor = await requireActor();
+    const { updateBranding } = await import("@/lib/org/branding");
+    await updateBranding(actor, {
+      orgName: String(formData.get("orgName") ?? ""),
+      orgShortName: String(formData.get("orgShortName") ?? ""),
+      productName: String(formData.get("productName") ?? ""),
+    });
+    // branding shows in the shell on every page
+    revalidatePath("/", "layout");
+    return {};
+  } catch (error) {
+    return {
+      error:
+        error instanceof PermissionError
+          ? "Not allowed."
+          : error instanceof Error
+            ? error.message
+            : "Failed to save branding.",
+    };
+  }
+}

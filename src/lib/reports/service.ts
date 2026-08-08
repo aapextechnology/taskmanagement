@@ -24,6 +24,8 @@ import { STATUS_LABELS, type TaskStatus } from "@/lib/tasks/service";
 export interface EventReport {
   generatedAt: Date;
   generatedBy: string;
+  /** installation branding, e.g. "Acme Backstage" */
+  brandName: string;
   event: {
     name: string;
     artists: string;
@@ -242,6 +244,10 @@ export async function gatherEventReport(
 
   return {
     generatedAt: now,
+    brandName: await (async () => {
+      const { getBranding, fullName } = await import("@/lib/org/branding");
+      return fullName(await getBranding());
+    })(),
     generatedBy: me?.name ?? "Unknown",
     event: {
       name: event.name,

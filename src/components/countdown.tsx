@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { countdownTo, type CountdownParts } from "@/lib/countdown";
 import { cn } from "@/lib/utils";
 
-// The RVC signature: a live countdown to show day on every event surface.
+// Signature element: a live countdown to show day on every event surface.
 // Renders server-computed parts first, then ticks client-side every second.
 export function Countdown({
   target,

@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { listDivisions, listUsersWithMemberships } from "@/lib/org/service";
 import { can } from "@/lib/permissions";
+import { getBranding } from "@/lib/org/branding";
+import { BrandingForm } from "./branding-form";
 import { AdminTabs } from "./admin-tabs";
 
 export const metadata: Metadata = { title: "Admin" };
@@ -12,9 +14,10 @@ export default async function AdminPage() {
   const actor = await sessionActor();
   if (!actor || !can(actor, "org.manage")) redirect("/my-tasks");
 
-  const [users, divisions] = await Promise.all([
+  const [users, divisions, branding] = await Promise.all([
     listUsersWithMemberships(),
     listDivisions(),
+    getBranding(),
   ]);
 
   return (
@@ -33,6 +36,12 @@ export default async function AdminPage() {
           Audit log ↗
         </Link>
       </div>
+
+      <BrandingForm
+        orgName={branding.orgName}
+        orgShortName={branding.orgShortName}
+        productName={branding.productName}
+      />
 
       <AdminTabs
         users={users.map((u) => ({

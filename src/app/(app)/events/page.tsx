@@ -12,7 +12,7 @@ import { can } from "@/lib/permissions";
 
 export const metadata: Metadata = { title: "Events" };
 
-// T-024: gallery grid of active events, RVC style — poster carries the color.
+// T-024: gallery grid of active events, gallery style — poster carries the color.
 export default async function EventsPage() {
   const actor = await sessionActor();
   if (!actor || !can(actor, "event.view")) redirect("/login");

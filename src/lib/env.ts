@@ -16,8 +16,12 @@ const schema = z.object({
   SMTP_PASS: z.string().default(""),
   SMTP_FROM: z
     .string()
-    .default("RVC Backstage <backstage@rawvision.demo>"),
+    .default("Backstage <backstage@example.com>"),
   UPLOADS_DIR: z.string().default("./uploads"),
+  // installation branding — first-boot defaults; editable later in Admin
+  ORG_NAME: z.string().default(""),
+  ORG_SHORT_NAME: z.string().default(""),
+  PRODUCT_NAME: z.string().default(""),
   // AI assistant (EPIC-014). Key comes ONLY from the environment — an empty
   // string disables the feature gracefully (route returns a friendly error).
   OPENAI_API_KEY: z.string().default(""),

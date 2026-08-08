@@ -1,4 +1,4 @@
-// Shared domain types for RVC Backstage. Database row types are inferred from
+// Shared domain types for the app. Database row types are inferred from
 // the Drizzle schema (src/db/schema) once it lands in T-003/T-010; this module
 // holds the cross-cutting enums and contracts the UI and services share.
 
