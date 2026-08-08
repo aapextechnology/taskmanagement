@@ -367,6 +367,32 @@ describe("tickets.record (EPIC-009)", () => {
   });
 });
 
+describe("ai.assistant (EPIC-014)", () => {
+  it("owner, admin, and any division head may use the assistant", () => {
+    expect(can(owner, "ai.assistant")).toBe(true);
+    expect(can(admin, "ai.assistant")).toBe(true);
+    expect(can(headProduction, "ai.assistant")).toBe(true);
+  });
+
+  it("staff and externals are denied", () => {
+    expect(can(staffProduction, "ai.assistant")).toBe(false);
+    expect(can(staffFinance, "ai.assistant")).toBe(false);
+    expect(can(external, "ai.assistant")).toBe(false);
+  });
+
+  it("a member who is head of ONE division qualifies even with other staff memberships", () => {
+    const mixed: Actor = {
+      id: "u-mixed",
+      role: "member",
+      memberships: [
+        { divisionId: "production", role: "staff" },
+        { divisionId: "logistics", role: "head" },
+      ],
+    };
+    expect(can(mixed, "ai.assistant")).toBe(true);
+  });
+});
+
 describe("assertCan", () => {
   it("passes silently when allowed", () => {
     expect(() => assertCan(owner, "org.manage")).not.toThrow();

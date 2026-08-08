@@ -66,7 +66,9 @@ export type Capability =
   // run of show (EPIC-008 T-083)
   | "runofshow.manage" // edit the show-day rundown (Production/Ops)
   // ticket sales (EPIC-009 T-093)
-  | "tickets.record"; // daily ticket sales snapshots (Ticketing division)
+  | "tickets.record" // daily ticket sales snapshots (Ticketing division)
+  // AI assistant (EPIC-014 T-140)
+  | "ai.assistant"; // predictive chat over org data (leadership only)
 
 export interface PermissionContext {
   /** division the action targets (source division for handoffs) */
@@ -210,6 +212,14 @@ export function can(
       return (
         isOwnerOrAdmin ||
         actor.memberships.some((m) => m.divisionId === "ticketing-sales")
+      );
+
+    case "ai.assistant":
+      // leadership tool (Owner request 2026-08-07): owner, admin, and any
+      // division HEAD. The context the AI sees is separately re-scoped per
+      // actor by src/lib/ai — this gate only opens the door.
+      return (
+        isOwnerOrAdmin || actor.memberships.some((m) => m.role === "head")
       );
 
     // ---- documents ------------------------------------------------------

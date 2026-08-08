@@ -25,6 +25,7 @@
 | [EPIC-011](EPIC-011-ui-overhaul.md) | Phase 1 | Plane-like UI/UX Overhaul (Owner feedback) | P0 | on-progress |
 | [EPIC-012](EPIC-012-dependency-bottlenecks.md) | Phase 4 | Dependency Bottlenecks & External Waits | P1 | ready-for-qa |
 | [EPIC-013](EPIC-013-event-pages.md) | Phase 4 | Event Pages (Mini-Wiki) | P2 | ready-for-qa |
+| [EPIC-014](EPIC-014-ai-assistant.md) | Phase 4 | AI Assistant (Predictive Chat) | P1 | ready-for-qa |
 
 **Definition of MVP:** completion of **EPIC-000 → EPIC-003** (Phase 0 + Phase 1 — a division can run its event work end-to-end).
 

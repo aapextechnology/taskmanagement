@@ -4,6 +4,7 @@
 services:
   db:
     image: postgres:17-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: rvc
       POSTGRES_PASSWORD: rvc_dev_password
@@ -21,12 +22,14 @@ services:
   # dev email catcher — UI at http://localhost:8025 (T-062)
   mailpit:
     image: axllent/mailpit:latest
+    restart: unless-stopped
     ports:
       - "127.0.0.1:8025:8025" # web UI
       - "127.0.0.1:1025:1025" # SMTP for local `pnpm dev` (in-network uses mailpit:1025)
 
   app:
     build: .
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgres://rvc:rvc_dev_password@db:5432/rvc_backstage
       SMTP_HOST: mailpit
@@ -39,6 +42,10 @@ services:
       AUTH_URL: ${AUTH_URL:-https://rvc.reddie.id/api/auth}
       AUTH_SECRET: ${AUTH_SECRET:-dev-only-secret-change-me}
       UPLOADS_DIR: /data/uploads
+      # AI assistant (EPIC-014) — interpolated from the host .env, never
+      # hardcoded here
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.6}
     volumes:
       - uploads:/data/uploads
     depends_on:
@@ -53,6 +60,7 @@ services:
 
   nginx:
     image: nginx:1.27-alpine
+    restart: unless-stopped
     ports:
       - "3000:80"
     volumes:

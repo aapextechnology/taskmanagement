@@ -10,6 +10,7 @@ import {
   MessagesSquare,
   Settings,
   SlidersHorizontal,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -26,6 +27,7 @@ const ICONS: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
   admin: Settings,
   settings: SlidersHorizontal,
+  assistant: Sparkles,
 };
 
 export interface NavItem {

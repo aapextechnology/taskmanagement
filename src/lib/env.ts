@@ -18,6 +18,10 @@ const schema = z.object({
     .string()
     .default("RVC Backstage <backstage@rawvision.demo>"),
   UPLOADS_DIR: z.string().default("./uploads"),
+  // AI assistant (EPIC-014). Key comes ONLY from the environment — an empty
+  // string disables the feature gracefully (route returns a friendly error).
+  OPENAI_API_KEY: z.string().default(""),
+  OPENAI_MODEL: z.string().default("gpt-5.6"),
 });
 
 export type Env = z.infer<typeof schema>;
