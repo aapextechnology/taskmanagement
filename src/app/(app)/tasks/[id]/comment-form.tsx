@@ -4,6 +4,7 @@ import { useActionState, useMemo, useRef, useState } from "react";
 import { commentAction, type TaskActionState } from "../actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useActionToast } from "@/lib/use-action-toast";
 
 // Comment box with @mention typeahead (T-034): typing "@" filters division
 // members; picking one inserts "@Name" and records the mention id.
@@ -18,6 +19,7 @@ export function CommentForm({
     commentAction,
     {},
   );
+  useActionToast(pending, state.error, "Comment posted");
   const [body, setBody] = useState("");
   const [mentions, setMentions] = useState<Array<{ id: string; name: string }>>([]);
   const [query, setQuery] = useState<string | null>(null);

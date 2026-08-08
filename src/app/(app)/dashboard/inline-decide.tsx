@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import {
   decideAction,
   type ApprovalActionState,
 } from "@/app/(app)/approvals/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useActionToast } from "@/lib/use-action-toast";
 
 // One-click approve / reject from the dashboard queue — SAME server action
 // as the approvals page (no parallel decision path).
@@ -16,6 +17,8 @@ export function InlineDecide({ approvalId }: { approvalId: string }) {
     ApprovalActionState,
     FormData
   >(decideAction, {});
+  const decisionRef = useRef("Decision recorded");
+  useActionToast(pending, state.error, decisionRef);
 
   return (
     <form action={formAction} className="flex flex-wrap items-center gap-2">
@@ -36,6 +39,9 @@ export function InlineDecide({ approvalId }: { approvalId: string }) {
             size="sm"
             variant="destructive"
             disabled={pending}
+            onClick={() => {
+              decisionRef.current = "Request rejected";
+            }}
           >
             Reject
           </Button>
@@ -56,6 +62,9 @@ export function InlineDecide({ approvalId }: { approvalId: string }) {
             value="approved"
             size="sm"
             disabled={pending}
+            onClick={() => {
+              decisionRef.current = "Request approved";
+            }}
           >
             {pending ? "…" : "Approve"}
           </Button>

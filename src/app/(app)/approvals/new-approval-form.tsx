@@ -1,13 +1,12 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Segmented } from "@/components/segmented";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { createApprovalAction, type ApprovalActionState } from "./actions";
-
-const selectClass =
-  "border-input h-9 rounded-md border bg-transparent px-3 text-sm outline-none";
 
 const MONETARY_TYPES = new Set(["expense", "artist_offer", "sponsorship_deal"]);
 
@@ -22,6 +21,8 @@ export function NewApprovalForm({
 }) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState("expense");
+  const [divisionId, setDivisionId] = useState(divisions[0]?.id ?? "");
+  const [eventId, setEventId] = useState("");
   const [amount, setAmount] = useState("");
   const [state, formAction, pending] = useActionState<
     ApprovalActionState,
@@ -56,31 +57,42 @@ export function NewApprovalForm({
       className="flex w-full flex-col gap-4 rounded-md border p-4"
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="ap-type">Type</Label>
-          <select
-            id="ap-type"
+        <div className="flex flex-col gap-2 sm:col-span-2">
+          <Label>Type</Label>
+          <Segmented
             name="type"
-            className={selectClass}
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-          >
-            <option value="expense">Expense</option>
-            <option value="artist_offer">Artist offer</option>
-            <option value="contract">Contract</option>
-            <option value="sponsorship_deal">Sponsorship deal</option>
-            <option value="public_content">Public content</option>
-          </select>
+            defaultValue={type}
+            onValueChange={setType}
+            options={[
+              { value: "expense", label: "Expense" },
+              { value: "artist_offer", label: "Artist offer" },
+              { value: "contract", label: "Contract" },
+              { value: "sponsorship_deal", label: "Sponsorship deal" },
+              { value: "public_content", label: "Public content" },
+            ]}
+          />
         </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="ap-division">Division</Label>
-          <select id="ap-division" name="divisionId" className={selectClass}>
+        <div className="flex flex-col gap-2 sm:col-span-2">
+          <Label>Division</Label>
+          <div className="flex flex-wrap gap-1.5">
             {divisions.map((d) => (
-              <option key={d.id} value={d.id}>
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => setDivisionId(d.id)}
+                aria-pressed={d.id === divisionId}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs transition-all",
+                  d.id === divisionId
+                    ? "border-foreground bg-foreground font-medium text-background"
+                    : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+                )}
+              >
                 {d.name}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
+          <input type="hidden" name="divisionId" value={divisionId} />
         </div>
         <div className="flex flex-col gap-2 sm:col-span-2">
           <Label htmlFor="ap-title">Title</Label>
@@ -104,16 +116,40 @@ export function NewApprovalForm({
             />
           </div>
         ) : null}
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="ap-event">Event (optional)</Label>
-          <select id="ap-event" name="eventId" className={selectClass} defaultValue="">
-            <option value="">—</option>
+        <div className="flex flex-col gap-2 sm:col-span-2">
+          <Label>Event (optional)</Label>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setEventId("")}
+              aria-pressed={eventId === ""}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs transition-all",
+                eventId === ""
+                  ? "border-foreground bg-foreground font-medium text-background"
+                  : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+              )}
+            >
+              None
+            </button>
             {events.map((e) => (
-              <option key={e.id} value={e.id}>
+              <button
+                key={e.id}
+                type="button"
+                onClick={() => setEventId(e.id)}
+                aria-pressed={e.id === eventId}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs transition-all",
+                  e.id === eventId
+                    ? "border-foreground bg-foreground font-medium text-background"
+                    : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+                )}
+              >
                 {e.name}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
+          <input type="hidden" name="eventId" value={eventId} />
         </div>
         <div className="flex flex-col gap-2 sm:col-span-2">
           <Label htmlFor="ap-desc">Justification</Label>

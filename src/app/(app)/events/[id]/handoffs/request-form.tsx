@@ -8,9 +8,39 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { useActionToast } from "@/lib/use-action-toast";
 
-const selectClass =
-  "border-input h-9 rounded-md border bg-transparent px-3 text-sm outline-none";
+function ChipPicker({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: Array<{ id: string; label: string }>;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          onClick={() => onChange(o.id)}
+          aria-pressed={value === o.id}
+          className={cn(
+            "rounded-full border px-3 py-1 text-xs transition-all",
+            value === o.id
+              ? "border-foreground bg-foreground font-medium text-background"
+              : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function HandoffRequestForm({
   eventId,
@@ -23,10 +53,20 @@ export function HandoffRequestForm({
 }) {
   const [open, setOpen] = useState(false);
   const [from, setFrom] = useState(fromOptions[0]?.id ?? "");
+  const [to, setTo] = useState(
+    toOptions.find((d) => d.id !== fromOptions[0]?.id)?.id ?? "",
+  );
   const [state, formAction, pending] = useActionState<TaskActionState, FormData>(
     handoffRequestAction,
     {},
   );
+  useActionToast(pending, state.error, "Handoff request sent");
+  // close on success — adjust-state-during-render (no effect needed)
+  const [wasPending, setWasPending] = useState(false);
+  if (wasPending !== pending) {
+    setWasPending(pending);
+    if (wasPending && !pending && !state.error) setOpen(false);
+  }
 
   if (!open) {
     return (
@@ -41,34 +81,31 @@ export function HandoffRequestForm({
   return (
     <form action={formAction} className="flex flex-col gap-4 rounded-md border p-4">
       <input type="hidden" name="eventId" value={eventId} />
+      <input type="hidden" name="fromDivisionId" value={from} />
+      <input type="hidden" name="toDivisionId" value={to} />
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="ho-from">From (your division)</Label>
-          <select
-            id="ho-from"
-            name="fromDivisionId"
-            className={selectClass}
+          <Label>From (your division)</Label>
+          <ChipPicker
             value={from}
-            onChange={(e) => setFrom(e.target.value)}
-          >
-            {fromOptions.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => {
+              setFrom(v);
+              if (to === v) {
+                setTo(toOptions.find((d) => d.id !== v)?.id ?? "");
+              }
+            }}
+            options={fromOptions.map((d) => ({ id: d.id, label: d.name }))}
+          />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="ho-to">To division</Label>
-          <select id="ho-to" name="toDivisionId" className={selectClass}>
-            {toOptions
+          <Label>To division</Label>
+          <ChipPicker
+            value={to}
+            onChange={setTo}
+            options={toOptions
               .filter((d) => d.id !== from)
-              .map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-          </select>
+              .map((d) => ({ id: d.id, label: d.name }))}
+          />
         </div>
         <div className="flex flex-col gap-2 sm:col-span-2">
           <Label htmlFor="ho-title">What do you need?</Label>

@@ -3,12 +3,10 @@
 import { useActionState, useState } from "react";
 import { updateFieldsAction, type TaskActionState } from "../actions";
 import { PriorityPicker } from "@/components/priority-picker";
+import { Segmented } from "@/components/segmented";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-const selectClass =
-  "border-input h-9 rounded-md border bg-transparent px-3 text-sm outline-none";
 
 export function EditTaskForm({
   task,
@@ -65,13 +63,17 @@ export function EditTaskForm({
           <Input id="et-due" name="dueDate" type="datetime-local" defaultValue={dueLocal} />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="et-recurrence">Repeats</Label>
-          <select id="et-recurrence" name="recurrence" className={selectClass} defaultValue={task.recurrence}>
-            <option value="none">Never</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
+          <Label>Repeats</Label>
+          <Segmented
+            name="recurrence"
+            defaultValue={task.recurrence}
+            options={[
+              { value: "none", label: "Never" },
+              { value: "daily", label: "Daily" },
+              { value: "weekly", label: "Weekly" },
+              { value: "monthly", label: "Monthly" },
+            ]}
+          />
         </div>
         <div className="flex flex-col gap-2 sm:col-span-2">
           <Label htmlFor="et-desc">Description</Label>

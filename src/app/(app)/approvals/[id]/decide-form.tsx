@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useActionToast } from "@/lib/use-action-toast";
 import { decideAction, type ApprovalActionState } from "../actions";
 
 export function DecideForm({ approvalId }: { approvalId: string }) {
@@ -10,6 +11,8 @@ export function DecideForm({ approvalId }: { approvalId: string }) {
     ApprovalActionState,
     FormData
   >(decideAction, {});
+  const decisionRef = useRef("Decision recorded");
+  useActionToast(pending, state.error, decisionRef);
 
   return (
     <form
@@ -37,6 +40,9 @@ export function DecideForm({ approvalId }: { approvalId: string }) {
           name="decision"
           value="approved"
           disabled={pending}
+          onClick={() => {
+            decisionRef.current = "Request approved";
+          }}
         >
           Approve
         </Button>
@@ -46,6 +52,9 @@ export function DecideForm({ approvalId }: { approvalId: string }) {
           value="changes_requested"
           variant="outline"
           disabled={pending}
+          onClick={() => {
+            decisionRef.current = "Changes requested";
+          }}
         >
           Request changes
         </Button>
@@ -55,6 +64,9 @@ export function DecideForm({ approvalId }: { approvalId: string }) {
           value="rejected"
           variant="destructive"
           disabled={pending}
+          onClick={() => {
+            decisionRef.current = "Request rejected";
+          }}
         >
           Reject
         </Button>

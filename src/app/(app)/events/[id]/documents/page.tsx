@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { FileText } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { getEvent, listEventDivisions } from "@/lib/events/service";
 import { sessionActor } from "@/lib/auth/session-actor";
 import {
@@ -109,9 +111,11 @@ export default async function DocumentsPage({
       </div>
 
       {docs.length === 0 ? (
-        <p className="rounded-md border bg-card px-4 py-6 text-sm text-muted-foreground">
-          {category ? "No documents in this category yet." : "No documents uploaded yet."}
-        </p>
+        <EmptyState
+          icon={FileText}
+          title={category ? "No documents in this category" : "No documents uploaded"}
+          hint="Riders, contracts, permits — upload the first file for this event."
+        />
       ) : (
         <ul className="flex flex-col divide-y rounded-md border bg-card elev">
           {docs.map((doc) => (

@@ -36,34 +36,9 @@ import {
 // Task service (T-031..T-037). THE rule: every read/write resolves the task,
 // derives {divisionId, isAssigned}, and goes through the permission module.
 
-export type TaskStatus =
-  | "backlog"
-  | "todo"
-  | "in_progress"
-  | "in_review"
-  | "blocked"
-  | "done"
-  | "cancelled";
+import type { TaskStatus } from "./status";
 
-export const TASK_STATUS_ORDER: TaskStatus[] = [
-  "backlog",
-  "todo",
-  "in_progress",
-  "in_review",
-  "blocked",
-  "done",
-  "cancelled",
-];
-
-export const STATUS_LABELS: Record<TaskStatus, string> = {
-  backlog: "Backlog",
-  todo: "To do",
-  in_progress: "In progress",
-  in_review: "In review",
-  blocked: "Blocked",
-  done: "Done",
-  cancelled: "Cancelled",
-};
+export { STATUS_LABELS, TASK_STATUS_ORDER, type TaskStatus } from "./status";
 
 // ---- scoped fetch ---------------------------------------------------------
 

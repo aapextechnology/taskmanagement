@@ -4,14 +4,62 @@ import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { useActionToast } from "@/lib/use-action-toast";
 import {
   addLineAction,
   createExpenseAction,
   type BudgetActionState,
 } from "./actions";
 
-const selectClass =
-  "border-input h-9 rounded-md border bg-transparent px-3 text-sm outline-none";
+function ChipPicker({
+  value,
+  onChange,
+  options,
+  emptyLabel,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: Array<{ id: string; label: string }>;
+  /** shown as a selectable "none" chip when set */
+  emptyLabel?: string;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {emptyLabel ? (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          aria-pressed={value === ""}
+          className={cn(
+            "rounded-full border px-3 py-1 text-xs transition-all",
+            value === ""
+              ? "border-foreground bg-foreground font-medium text-background"
+              : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+          )}
+        >
+          {emptyLabel}
+        </button>
+      ) : null}
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          onClick={() => onChange(o.id)}
+          aria-pressed={value === o.id}
+          className={cn(
+            "rounded-full border px-3 py-1 text-xs transition-all",
+            value === o.id
+              ? "border-foreground bg-foreground font-medium text-background"
+              : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function AddLineForm({
   eventId,
@@ -20,10 +68,12 @@ export function AddLineForm({
   eventId: string;
   divisions: Array<{ id: string; name: string }>;
 }) {
+  const [division, setDivision] = useState(divisions[0]?.id ?? "");
   const [state, formAction, pending] = useActionState<BudgetActionState, FormData>(
     addLineAction,
     {},
   );
+  useActionToast(pending, state.error, "Budget line added");
 
   return (
     <form
@@ -31,17 +81,14 @@ export function AddLineForm({
       className="flex flex-wrap items-end gap-3 rounded-md border p-3"
     >
       <input type="hidden" name="eventId" value={eventId} />
+      <input type="hidden" name="divisionId" value={division} />
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="bl-division" className="text-xs">
-          Division
-        </Label>
-        <select id="bl-division" name="divisionId" className={selectClass}>
-          {divisions.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
+        <Label className="text-xs">Division</Label>
+        <ChipPicker
+          value={division}
+          onChange={setDivision}
+          options={divisions.map((d) => ({ id: d.id, label: d.name }))}
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="bl-name" className="text-xs">
@@ -85,10 +132,18 @@ export function NewExpenseForm({
 }) {
   const [open, setOpen] = useState(false);
   const [division, setDivision] = useState(divisions[0]?.id ?? "");
+  const [lineId, setLineId] = useState("");
   const [state, formAction, pending] = useActionState<BudgetActionState, FormData>(
     createExpenseAction,
     {},
   );
+  useActionToast(pending, state.error, "Expense submitted for approval");
+  // close on success — adjust-state-during-render (no effect needed)
+  const [seenOk, setSeenOk] = useState(state.ok);
+  if (state.ok !== seenOk) {
+    setSeenOk(state.ok);
+    if (state.ok) setOpen(false);
+  }
 
   if (!open) {
     return (
@@ -106,37 +161,28 @@ export function NewExpenseForm({
       className="fixed inset-x-4 bottom-4 z-50 flex flex-col gap-4 rounded-lg border bg-popover p-4 shadow-lg sm:absolute sm:inset-auto sm:right-0 sm:top-10 sm:w-[28rem]"
     >
       <input type="hidden" name="eventId" value={eventId} />
+      <input type="hidden" name="divisionId" value={division} />
+      <input type="hidden" name="budgetLineId" value={lineId} />
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ex-division" className="text-xs">
-            Division
-          </Label>
-          <select
-            id="ex-division"
-            name="divisionId"
-            className={selectClass}
+          <Label className="text-xs">Division</Label>
+          <ChipPicker
             value={division}
-            onChange={(e) => setDivision(e.target.value)}
-          >
-            {divisions.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => {
+              setDivision(v);
+              setLineId("");
+            }}
+            options={divisions.map((d) => ({ id: d.id, label: d.name }))}
+          />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ex-line" className="text-xs">
-            Budget line
-          </Label>
-          <select id="ex-line" name="budgetLineId" className={selectClass} defaultValue="">
-            <option value="">— none —</option>
-            {divisionLines.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.label}
-              </option>
-            ))}
-          </select>
+          <Label className="text-xs">Budget line</Label>
+          <ChipPicker
+            value={lineId}
+            onChange={setLineId}
+            emptyLabel="None"
+            options={divisionLines.map((l) => ({ id: l.id, label: l.label }))}
+          />
         </div>
         <div className="flex flex-col gap-1.5 sm:col-span-2">
           <Label htmlFor="ex-title" className="text-xs">

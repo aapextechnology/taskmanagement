@@ -1,35 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { listActivity, type ActivityFilters } from "@/lib/activity";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { listActiveEvents } from "@/lib/events/service";
 import { listUsersWithMemberships } from "@/lib/org/service";
 import { can } from "@/lib/permissions";
+import { AuditFilterBar } from "./filter-bar";
 
 export const metadata: Metadata = { title: "Audit log" };
-
-const selectClass =
-  "border-input h-8 rounded-md border bg-transparent px-2 text-xs outline-none";
 
 const dt = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
   timeStyle: "medium",
   timeZone: "Asia/Jakarta",
 });
-
-const ENTITY_TYPES = [
-  "profile",
-  "division",
-  "event",
-  "task",
-  "handoff",
-  "approval",
-  "budget_line",
-  "expense",
-];
 
 // T-063: filterable audit trail — Owner/Admin only.
 export default async function AuditPage({
@@ -69,42 +54,17 @@ export default async function AuditPage({
         </h1>
       </div>
 
-      <form method="GET" className="flex flex-wrap items-center gap-2">
-        <select name="actor" className={selectClass} defaultValue={str("actor") ?? ""}>
-          <option value="">Any actor</option>
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name}
-            </option>
-          ))}
-        </select>
-        <select name="entity" className={selectClass} defaultValue={str("entity") ?? ""}>
-          <option value="">Any entity</option>
-          {ENTITY_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-        <select name="event" className={selectClass} defaultValue={str("event") ?? ""}>
-          <option value="">Any event</option>
-          {events.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.name}
-            </option>
-          ))}
-        </select>
-        <Input type="date" name="from" defaultValue={str("from") ?? ""} className="h-8 w-36 text-xs" />
-        <Input type="date" name="to" defaultValue={str("to") ?? ""} className="h-8 w-36 text-xs" />
-        <Button type="submit" size="sm" variant="outline">
-          Filter
-        </Button>
-        {Object.values(filters).some(Boolean) ? (
-          <Link href="/admin/audit" className="text-xs text-muted-foreground hover:underline">
-            reset
-          </Link>
-        ) : null}
-      </form>
+      <AuditFilterBar
+        users={users}
+        events={events}
+        defaults={{
+          actor: str("actor") ?? "",
+          entity: str("entity") ?? "",
+          event: str("event") ?? "",
+          from: str("from") ?? "",
+          to: str("to") ?? "",
+        }}
+      />
 
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full text-xs">

@@ -4,6 +4,7 @@ import { AttachmentView } from "@/components/attachment-view";
 import { CommentBody } from "@/components/comment-body";
 import { LabelChip } from "@/components/label-chip";
 import { PriorityPicker } from "@/components/priority-picker";
+import { Segmented } from "@/components/segmented";
 import {
   AvatarStack,
   PriorityIcon,
@@ -18,8 +19,6 @@ import { can } from "@/lib/permissions";
 import {
   getTaskDetail,
   listDivisionMemberOptions,
-  STATUS_LABELS,
-  TASK_STATUS_ORDER,
 } from "@/lib/tasks/service";
 import {
   checklistAddAction,
@@ -27,11 +26,11 @@ import {
   checklistToggleAction,
   labelAddAction,
   labelRemoveAction,
-  updateStatusAction,
   watchAction,
 } from "../actions";
 import { AssigneeManager } from "./assignee-manager";
 import { LeadPicker } from "./lead-picker";
+import { StatusButtons } from "./status-buttons";
 import { AttachmentForm } from "./attachment-form";
 import { ChecklistItemDialog } from "./checklist-item-dialog";
 import { CommentForm } from "./comment-form";
@@ -128,22 +127,7 @@ export async function TaskDetailPanel({
       </div>
 
       {/* status */}
-      <div className="flex flex-wrap gap-2">
-        {TASK_STATUS_ORDER.map((status) => (
-          <form action={updateStatusAction} key={status}>
-            <input type="hidden" name="taskId" value={task.id} />
-            <input type="hidden" name="status" value={status} />
-            <Button
-              type="submit"
-              size="sm"
-              disabled={!canMove || status === task.status}
-              variant={status === task.status ? "default" : "outline"}
-            >
-              {STATUS_LABELS[status]}
-            </Button>
-          </form>
-        ))}
-      </div>
+      <StatusButtons taskId={task.id} current={task.status} canMove={canMove} />
 
       {/* description — wide, always available (Owner request) */}
       <div className="flex flex-col gap-3">
@@ -362,17 +346,21 @@ export async function TaskDetailPanel({
             <form action={labelAddAction} className="flex items-center gap-2">
               <input type="hidden" name="taskId" value={task.id} />
               <Input name="name" placeholder="Add label…" className="h-8 w-32 text-xs" />
-              <select
+              <Segmented
                 name="color"
-                className="border-input h-8 rounded-md border bg-transparent px-2 text-xs outline-none"
                 defaultValue="blue"
-              >
-                {Object.entries(LABEL_COLORS).map(([key, meta]) => (
-                  <option key={key} value={key}>
-                    {meta.label}
-                  </option>
-                ))}
-              </select>
+                options={Object.entries(LABEL_COLORS).map(([key, meta]) => ({
+                  value: key,
+                  label: meta.label,
+                  icon: (
+                    <span
+                      aria-hidden
+                      className="size-2 rounded-full"
+                      style={{ backgroundColor: meta.dot }}
+                    />
+                  ),
+                }))}
+              />
               <Button type="submit" size="sm" variant="outline">
                 Add
               </Button>

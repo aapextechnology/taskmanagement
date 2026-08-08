@@ -9,10 +9,13 @@ export function Segmented({
   name,
   options,
   defaultValue,
+  onValueChange,
 }: {
   name: string;
   options: Array<{ value: string; label: string; icon?: ReactNode; hint?: string }>;
   defaultValue?: string;
+  /** parent that needs the live value (e.g. to branch other fields) */
+  onValueChange?: (value: string) => void;
 }) {
   const [value, setValue] = useState(defaultValue ?? options[0]?.value ?? "");
 
@@ -26,7 +29,10 @@ export function Segmented({
             key={option.value}
             type="button"
             title={option.hint}
-            onClick={() => setValue(option.value)}
+            onClick={() => {
+              setValue(option.value);
+              onValueChange?.(option.value);
+            }}
             aria-pressed={active}
             className={cn(
               "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150",

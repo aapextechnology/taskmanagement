@@ -49,6 +49,39 @@ instead of a page navigation. Keep the RVC monochrome chrome; color becomes func
 
 ## Automation Log
 
+- 2026-08-07 **T-114 batch: design-overhaul leveling pass** (spreading
+  packages A-D to every remaining surface, per Owner review after the
+  first overhaul commit).
+  - **Native `<select>` fully eliminated** (Owner's standing no-basic-
+  controls directive) — replaced the last 6 offenders: task edit recurrence
+  + label-color picker (`Segmented`, now supports `onValueChange` for
+  controlled callers), new-approval-form type/division/event, budget
+  AddLine/NewExpense division+line, handoff request from/to division (new
+  shared `ChipPicker`), and the admin audit log filters (new
+  `AuditFilterBar` client component: Segmented for entity type, chip rows
+  for actor/event, still a plain GET form).
+  - **Toast coverage widened**: new `useActionToast` hook (fires on a
+  `useActionState` pending→settled transition; accepts a plain string or a
+  `RefObject<string>` for click-dependent messages) wired into comment
+  post, approval decide (both the dashboard inline and the detail page,
+  message depends on which button fired), budget line/expense forms,
+  handoff request. Task-drawer status buttons extracted into a client
+  `StatusButtons` component so status changes toast consistently with the
+  kanban card's existing "Moved to…" toast.
+  - **Bugfix while wiring StatusButtons**: pulling `TaskStatus`/
+  `STATUS_LABELS`/`TASK_STATUS_ORDER` from `lib/tasks/service.ts` into a
+  client component pulled the whole `db`/`postgres` module into the browser
+  bundle (build failure). Extracted the pure constants into a new
+  `lib/tasks/status.ts` with no DB import; `service.ts` now imports +
+  re-exports from it. Any future client component needing task-status
+  constants should import from `status.ts` directly, never `service.ts`.
+  - **Skeleton loading** added for board / list / timeline / approvals.
+  - **Subtitles** added to Calendar and Admin headers.
+  - **EmptyState** applied to the documents library.
+  - Gates green (179 tests, clean build); deployed DEV; spot-checked audit
+  filters, budget forms, handoffs form, documents empty state, and a task
+  drawer's status row all live (200, correct markup).
+
 - 2026-08-07 **T-114 batch (Owner): design overhaul — packages A–D + sentence
   case, all four approved via AskUserQuestion.**
   - A Hierarchy/depth: elevation tokens `--shadow-elev(-hover)` both themes +
