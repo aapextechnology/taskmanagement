@@ -58,18 +58,23 @@ export async function getPortfolio(actor: Actor) {
     }
   }
 
-  return active.map((event) => {
-    const budget = budgetByEvent.get(event.id);
-    const planned = budget?.planned ?? 0;
-    const burn = budget ? budget.committed + budget.actual : 0;
-    return {
-      ...event,
-      planned,
-      burn,
-      burnPct: planned > 0 ? Math.round((burn / planned) * 100) : null,
-      progress: summarizeTaskProgress(progressByEvent.get(event.id) ?? {}),
-    };
-  });
+  const HEALTH_RANK = { critical: 0, at_risk: 1, on_track: 2 } as const;
+  return active
+    .map((event) => {
+      const budget = budgetByEvent.get(event.id);
+      const planned = budget?.planned ?? 0;
+      const burn = budget ? budget.committed + budget.actual : 0;
+      return {
+        ...event,
+        planned,
+        burn,
+        burnPct: planned > 0 ? Math.round((burn / planned) * 100) : null,
+        progress: summarizeTaskProgress(progressByEvent.get(event.id) ?? {}),
+      };
+    })
+    // most troubled events lead the cockpit (Owner 2026-08-07); showDate
+    // stays the tiebreak within a health band
+    .sort((a, b) => HEALTH_RANK[a.health] - HEALTH_RANK[b.health]);
 }
 
 export async function getUpcomingMilestones(actor: Actor, days = 14) {
@@ -98,7 +103,12 @@ export async function getUpcomingMilestones(actor: Actor, days = 14) {
         isNull(events.archivedAt),
       ),
     )
-    .orderBy(tasks.dueDate)
+    // urgent first, then soonest due (Owner 2026-08-07: every dashboard
+    // list leads with the most critical rows)
+    .orderBy(
+      sql`case ${tasks.priority} when 'urgent' then 0 else 1 end`,
+      tasks.dueDate,
+    )
     .limit(10);
 }
 
@@ -149,15 +159,20 @@ export async function getBottlenecks(actor: Actor) {
     .limit(10);
 
   const now = Date.now();
-  return rows.map((row) => ({
-    ...row,
-    critical:
-      bottleneckLevel({
-        openWaiters: row.waiters,
-        overdue: row.dueDate !== null && row.dueDate.getTime() < now,
-        blocked: row.status === "blocked",
-      }) === "critical",
-  }));
+  return rows
+    .map((row) => ({
+      ...row,
+      critical:
+        bottleneckLevel({
+          openWaiters: row.waiters,
+          overdue: row.dueDate !== null && row.dueDate.getTime() < now,
+          blocked: row.status === "blocked",
+        }) === "critical",
+    }))
+    // critical rows first, then by fan-in (Owner 2026-08-07)
+    .sort(
+      (a, b) => Number(b.critical) - Number(a.critical) || b.waiters - a.waiters,
+    );
 }
 
 export async function getBlockers(actor: Actor) {
