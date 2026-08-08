@@ -73,6 +73,19 @@ gates — so that every feature epic ships against one stack with consistent qua
 
 ## Automation Log
 
+- 2026-08-09 **Migration-tracking debt repaid (found while testing a
+  from-scratch install for the open-source release).** `drizzle.__drizzle_migrations`
+  recorded only 20 of 25 migrations — 0020–0024 were hand-applied via psql
+  during development and never registered, so any `drizzle-kit migrate`
+  failed trying to re-create existing tables. Backfilled the 5 rows
+  (SHA256-of-file hash + journal `when`, format verified against already-
+  recorded entries #1/#20 before writing). Pure INSERT: no DDL, no data
+  touched — events/tasks/users/ai_chats counts unchanged (5/61/14/4), all
+  live pages still 200, `drizzle-kit migrate` now exits 0. Backup taken
+  first (`~/rvc-backup-2026-08-09-*.sql`). Separately verified a truly
+  blank database migrates to an identical 38-table schema and seeds
+  cleanly — the install path works for outside users.
+
 - 2026-08-06 **T-005 + T-006 done — EPIC COMPLETE → ready-for-qa** — CI workflow `.github/workflows/ci.yml` (pnpm cache, lint/typecheck/test/build on PR + develop/main); countdown: pure `src/lib/countdown.ts` (4 unit tests) + `Countdown` client component (SSR-safe, ticks 1s). Gates qa/test/security all PASS; suite 12 tests green. **Human QA notes:** (1) the "broken PR goes red" + required-status-check checks need a GitHub remote — repo has none yet; add origin, push, and mark the check required; (2) visual review of dark/light themes in a browser recommended.
 - 2026-08-06 **T-004 done** — Monochrome tokens documented in `globals.css` (dark default `oklch(0.13 0 0)`, tight radius 0.375rem, no accent hues in chrome); next-themes with class attribute + shell toggle (icon swap is pure CSS `dark:` variant — the `setMounted`-in-effect pattern is now an eslint error under react-hooks v7); `ActionLink` ↗ motif, `Logo` lockup, `AppShell`; landing page on-brand. Token audit: zero hardcoded colors outside `globals.css`. Gotcha: pnpm 11 gates dependency build scripts via **`allowBuilds` in `pnpm-workspace.yaml`** (not package.json `pnpm.onlyBuiltDependencies`) — docker `--frozen-lockfile` install fails with ERR_PNPM_IGNORED_BUILDS until esbuild is allowed there. Deployed to DEV; smoke PASS.
 - 2026-08-06 **T-003 done** — Drizzle + postgres.js wired; first migration (`app_settings` org config KV) applied to the compose DB (host port 5438) and idempotent seed verified via psql; scripts `db:generate`/`db:migrate`/`seed`. Env loader `src/lib/env.ts` (zod): **lazy singleton via Proxy** — module import never throws (test envs stay clean) but first real access fails fast listing every missing var; 5 unit tests. Gotcha: Next augments `NodeJS.ProcessEnv` (required `NODE_ENV`), so `parseEnv` takes `Record<string, string|undefined>`. Seeded proposed approval thresholds A=10jt/B=100jt IDR — placeholder until Owner confirms (PRD open question).
