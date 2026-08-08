@@ -1,4 +1,4 @@
-# EPIC-014: AI Assistant (Predictive Chat)
+# EPIC-014: Kintsugi Intelligence (Predictive Chat)
 
 status: ready-for-qa
 environment: dev
@@ -7,7 +7,7 @@ priority: P1
 area: Intelligence
 retries: 0
 prd: ../product/PRD.md
-tasks: ../product/ENGINEERING-TASKS.md (T-140)
+tasks: ../product/ENGINEERING-TASKS.md (T-140, T-141)
 
 ## Goal
 
@@ -43,6 +43,30 @@ pace), and benchmarks against general industry practice. Backed by OpenAI
   truncated question).
 
 ## Automation Log
+
+- **2026-08-07 — T-141 done: saved conversations + groups; renamed to
+  "Kintsugi Intelligence"** (Owner picked the name mid-build, twice —
+  final: Kintsugi Intelligence; route stays `/assistant`).
+  - Schema (migration 0024): `ai_conversation_groups` (unique name per
+    user), `ai_conversations` (groupId nullable = "Ungrouped"; FK ON DELETE
+    SET NULL so deleting a group NEVER deletes its chats), `ai_messages`
+    (cascade). All PRIVATE per user — every service query filters userId;
+    even owner cannot read another user's chats.
+  - Chat route now creates/resumes a conversation (404 on foreign id),
+    returns `X-Conversation-Id` header so a fresh chat pins its URL
+    (`history.replaceState` → reload/back keeps the thread), and persists
+    the user+assistant exchange AFTER the stream completes — including
+    partial/errored answers, so history matches what the user saw.
+  - UI: history panel on /assistant — New chat, user-created groups with
+    per-row "Move to" chips + delete, implicit Ungrouped bucket, per-chat
+    delete (redirects home if it was open). Title auto = first question
+    (80 chars). History list refreshes via router.refresh() after each
+    exchange.
+  - Verified live: chat → id captured → appears under Ungrouped → reload by
+    id shows persisted messages; cross-user isolation (head opening owner's
+    convo: page 307 away, API 404); service E2E 4/4 (move to group, foreign
+    read/move denied, group delete → Ungrouped fallback with messages
+    intact). Gates green (182 tests).
 
 - **2026-08-07 — T-140 done → ready-for-qa.**
   - Permission: `ai.assistant` = owner/admin or head of ANY division; 3 new

@@ -169,6 +169,13 @@
       "when": 1786184944362,
       "tag": "0023_phase-sort-order-integrity",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1786187938517,
+      "tag": "0024_ai-conversations",
+      "breakpoints": true
     }
   ]
 }

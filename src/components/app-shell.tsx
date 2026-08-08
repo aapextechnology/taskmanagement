@@ -38,7 +38,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
     { href: "/approvals", label: "Approvals", icon: "approvals" },
     { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
     ...(actor && can(actor, "ai.assistant")
-      ? [{ href: "/assistant", label: "AI Assistant", icon: "assistant" as const }]
+      ? [{ href: "/assistant", label: "Kintsugi Intelligence", icon: "assistant" as const }]
       : []),
     ...(actor && can(actor, "org.manage")
       ? [{ href: "/admin", label: "Admin", icon: "admin" as const }]

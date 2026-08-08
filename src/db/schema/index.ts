@@ -4,6 +4,7 @@
 // later epics (approval thresholds, health rules) have a place for org config.
 
 export * from "./activity";
+export * from "./ai";
 export * from "./app-settings";
 export * from "./approvals";
 export * from "./budgets";

@@ -194,6 +194,7 @@
 | ID | Task | Type | Cx | Depends | Exit | Stories |
 | --- | --- | --- | --- | --- | --- | --- |
 | T-140 | AI assistant: `ai.assistant` capability, permission-scoped context gatherer, streaming OpenAI chat route, /assistant chat UI + sidebar entry | FS | L | T-012, T-120 | Leadership-only chat predicts event outcomes with grounded reasons; staff denied; key env-only | — |
+| T-141 | Saved conversations: per-user groups + Ungrouped fallback, history panel, exchange persistence with X-Conversation-Id resume | FS | M | T-140 | Chats survive reload; cross-user access denied; group delete keeps chats | — |
 
 **Exit:** leadership asks "will this event run smoothly?" and gets a grounded verdict with reasons and actions.
 

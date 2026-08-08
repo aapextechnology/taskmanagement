@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowUp, Sparkles, Square } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { UserAvatar } from "@/components/task-meta";
 import { cn } from "@/lib/utils";
@@ -116,15 +117,23 @@ export function AssistantChat({
   userName,
   events,
   configured,
+  conversationId: initialConversationId = null,
+  initialMessages = [],
+  initialEventId = "",
 }: {
   userName: string;
   events: Array<{ id: string; name: string }>;
   configured: boolean;
+  conversationId?: string | null;
+  initialMessages?: Message[];
+  initialEventId?: string;
 }) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const router = useRouter();
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
-  const [eventId, setEventId] = useState("");
+  const [eventId, setEventId] = useState(initialEventId);
   const [streaming, setStreaming] = useState(false);
+  const conversationRef = useRef<string | null>(initialConversationId);
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -153,6 +162,7 @@ export function AssistantChat({
         body: JSON.stringify({
           messages: nextMessages,
           eventId: eventId || undefined,
+          conversationId: conversationRef.current ?? undefined,
         }),
         signal: controller.signal,
       });
@@ -161,6 +171,13 @@ export function AssistantChat({
           error?: string;
         } | null;
         throw new Error(data?.error ?? `Request failed (${res.status})`);
+      }
+      // a fresh chat gets its persisted id back — pin the URL to it so
+      // reload/back keeps the conversation (T-141)
+      const newId = res.headers.get("X-Conversation-Id");
+      if (newId && !conversationRef.current) {
+        conversationRef.current = newId;
+        window.history.replaceState(null, "", `/assistant?c=${newId}`);
       }
       const reader = res.body?.getReader();
       if (!reader) throw new Error("No response stream.");
@@ -197,6 +214,8 @@ export function AssistantChat({
       setStreaming(false);
       abortRef.current = null;
       textareaRef.current?.focus();
+      // refresh the server-rendered history panel (new chat title / order)
+      router.refresh();
     }
   };
 

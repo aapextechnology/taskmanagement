@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { logActivity } from "@/lib/activity";
 import { buildAssistantContext } from "@/lib/ai/context";
+import {
+  appendExchange,
+  createConversation,
+  getConversation,
+} from "@/lib/ai/conversations";
 import { aiConfigured, streamChat, type ChatMessage } from "@/lib/ai/openai";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { can } from "@/lib/permissions";
@@ -26,6 +31,7 @@ Style: answer in the user's language (Indonesian or English). Be direct and conc
 interface ChatRequestBody {
   messages?: Array<{ role?: string; content?: string }>;
   eventId?: string;
+  conversationId?: string;
 }
 
 export async function POST(request: Request) {
@@ -60,7 +66,26 @@ export async function POST(request: Request) {
 
   const eventId =
     typeof body.eventId === "string" && body.eventId ? body.eventId : undefined;
-  const context = await buildAssistantContext(actor, eventId);
+  const question = history[history.length - 1].content;
+
+  // persistence (T-141): resume the caller's own conversation, or start a
+  // new one titled after the first question
+  let conversation =
+    typeof body.conversationId === "string" && body.conversationId
+      ? await getConversation(actor, body.conversationId)
+      : null;
+  if (body.conversationId && !conversation) {
+    return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
+  }
+  conversation ??= await createConversation(actor, {
+    title: question,
+    eventId,
+  });
+
+  const context = await buildAssistantContext(
+    actor,
+    eventId ?? conversation.eventId ?? undefined,
+  );
 
   const messages: ChatMessage[] = [
     { role: "system", content: SYSTEM_PROMPT },
@@ -81,21 +106,29 @@ export async function POST(request: Request) {
     eventId,
   });
 
+  const conversationId = conversation.id;
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      let assistantText = "";
       try {
         for await (const chunk of streamChat(messages)) {
+          assistantText += chunk;
           controller.enqueue(encoder.encode(chunk));
         }
       } catch (error) {
-        controller.enqueue(
-          encoder.encode(
-            `\n\n[error] ${error instanceof Error ? error.message : "AI request failed."}`,
-          ),
-        );
+        const message = `\n\n[error] ${error instanceof Error ? error.message : "AI request failed."}`;
+        assistantText += message;
+        controller.enqueue(encoder.encode(message));
       } finally {
         controller.close();
+        // persist the exchange even on partial/failed answers so the
+        // history reflects what the user actually saw
+        try {
+          await appendExchange(actor, conversationId, question, assistantText);
+        } catch (persistError) {
+          console.error("[ai] failed to persist exchange:", persistError);
+        }
       }
     },
   });
@@ -106,6 +139,8 @@ export async function POST(request: Request) {
       "Cache-Control": "no-store",
       // defeat proxy buffering so tokens render as they arrive
       "X-Accel-Buffering": "no",
+      // lets a fresh chat learn its id and update the URL/history list
+      "X-Conversation-Id": conversationId,
     },
   });
 }
