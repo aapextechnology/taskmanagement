@@ -27,6 +27,22 @@ services:
       - "127.0.0.1:8025:8025" # web UI
       - "127.0.0.1:1025:1025" # SMTP for local `pnpm dev` (in-network uses mailpit:1025)
 
+  # one-shot schema migration — runs to completion before the app starts, so
+  # a fresh `docker compose up` on an empty database Just Works. Uses the
+  # build stage because the slim runtime image has no drizzle-kit.
+  migrate:
+    build:
+      context: .
+      target: build
+    command: pnpm db:migrate
+    restart: "no"
+    environment:
+      DATABASE_URL: postgres://rvc:rvc_dev_password@db:5432/rvc_backstage
+      AUTH_SECRET: migrate-step-placeholder-secret32
+    depends_on:
+      db:
+        condition: service_healthy
+
   app:
     build: .
     restart: unless-stopped
@@ -34,12 +50,13 @@ services:
       DATABASE_URL: postgres://rvc:rvc_dev_password@db:5432/rvc_backstage
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
-      # canonical public URL (Cloudflare Tunnel). Next standalone reports its
-      # bind address (0.0.0.0:3000) as the request host, so Auth.js needs the
-      # explicit AUTH_URL for correct absolute redirects. Override via env for
-      # a localhost-only setup.
-      APP_URL: ${APP_URL:-https://rvc.reddie.id}
-      AUTH_URL: ${AUTH_URL:-https://rvc.reddie.id/api/auth}
+      # Public URL. Next standalone reports its bind address (0.0.0.0:3000)
+      # as the request host, so Auth.js needs an explicit AUTH_URL for
+      # correct absolute redirects. Override both when serving behind a
+      # domain/reverse proxy.
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3000/api/auth}
+      # CHANGE THIS before exposing the app: openssl rand -base64 32
       AUTH_SECRET: ${AUTH_SECRET:-dev-only-secret-change-me}
       UPLOADS_DIR: /data/uploads
       # AI assistant (EPIC-014) — interpolated from the host .env, never
@@ -51,6 +68,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 5s
