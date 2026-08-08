@@ -1,9 +1,11 @@
 "use client";
 
 import { Menu } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { EventNavLink, NavLink, type NavItem } from "@/components/nav-link";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Sheet,
   SheetContent,
@@ -20,12 +22,21 @@ export function MobileNav({
   events: Array<{ id: string; name: string; health: "on_track" | "at_risk" | "critical" }>;
 }) {
   const [open, setOpen] = useState(false);
+  // fullscreen routes hide the main sidebar (see AppFrame) — the hamburger
+  // then serves desktop too, so navigation stays one click away
+  const pathname = usePathname();
+  const fullscreen = pathname.startsWith("/assistant");
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger
         render={
-          <Button variant="ghost" size="icon" className="md:hidden" aria-label="Menu">
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(!fullscreen && "md:hidden")}
+            aria-label="Menu"
+          >
             <Menu className="size-4" />
           </Button>
         }

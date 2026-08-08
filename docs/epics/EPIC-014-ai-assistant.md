@@ -44,6 +44,15 @@ pace), and benchmarks against general industry practice. Backed by OpenAI
 
 ## Automation Log
 
+- 2026-08-07 **Fullscreen mode + history menu fix (Owner screenshot
+  feedback).** `/assistant` now hides the main app sidebar (client
+  `AppFrame` wrapper around the shell; hamburger sheet becomes visible on
+  desktop too for that route, so navigation stays one click away) and the
+  chat well widens to max-w-4xl. The history row's "Move to / Delete"
+  popover was clipped by the scrollable history column (reported as a
+  z-index bug — actual cause was `overflow-y-auto` ancestor clipping) —
+  replaced with an INLINE expansion under the row, which cannot clip.
+
 - **2026-08-07 — T-141 done: saved conversations + groups; renamed to
   "Kintsugi Intelligence"** (Owner picked the name mid-build, twice —
   final: Kintsugi Intelligence; route stays `/assistant`).

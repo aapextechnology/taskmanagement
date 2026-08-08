@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AppFrame } from "@/components/app-frame";
 import { CommandPalette } from "@/components/command-palette";
 import { Logo } from "@/components/logo";
 import { MobileNav } from "@/components/mobile-nav";
@@ -55,10 +56,8 @@ export async function AppShell({ children }: { children: ReactNode }) {
         }))
       : [];
 
-  return (
-    <div className="flex min-h-svh">
-      {/* desktop sidebar */}
-      <aside className="sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r bg-sidebar md:flex print:!hidden">
+  const sidebar = (
+    <aside className="sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r bg-sidebar md:flex print:!hidden">
         <div className="flex h-14 items-center border-b px-4">
           <Logo className="text-[13px]" />
         </div>
@@ -113,24 +112,25 @@ export async function AppShell({ children }: { children: ReactNode }) {
           </div>
         ) : null}
       </aside>
+  );
 
-      {/* content column */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur sm:px-6 print:hidden">
-          <div className="flex items-center gap-2">
-            <MobileNav items={items} events={events} />
-            <Logo className="text-[13px] md:hidden" />
-          </div>
-          <div className="flex items-center gap-1.5">
-            {session?.user ? <CommandPalette /> : null}
-            {session?.user ? <NotificationsBell /> : null}
-            <ThemeToggle />
-          </div>
-        </header>
-        <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6">
-          {children}
-        </main>
+  const header = (
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur sm:px-6 print:hidden">
+      <div className="flex items-center gap-2">
+        <MobileNav items={items} events={events} />
+        <Logo className="text-[13px] md:hidden" />
       </div>
-    </div>
+      <div className="flex items-center gap-1.5">
+        {session?.user ? <CommandPalette /> : null}
+        {session?.user ? <NotificationsBell /> : null}
+        <ThemeToggle />
+      </div>
+    </header>
+  );
+
+  return (
+    <AppFrame sidebar={sidebar} header={header}>
+      {children}
+    </AppFrame>
   );
 }

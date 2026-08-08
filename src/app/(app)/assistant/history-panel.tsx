@@ -11,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useState } from "react";
 import {
   createGroupAction,
   deleteConversationAction,
@@ -46,51 +46,45 @@ function ConversationRow({
   activeId: string | null;
   groups: Array<{ id: string; name: string }>;
 }) {
+  // options expand INLINE below the row (never a floating popover — the
+  // scrollable history column clipped it; Owner bug report 2026-08-07)
   const [menuOpen, setMenuOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
   const active = conversation.id === activeId;
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onClick = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [menuOpen]);
 
   return (
     <div
-      ref={ref}
       className={cn(
-        "group/row relative flex items-center gap-1 rounded-md pr-1",
+        "group/row flex flex-col rounded-md",
         active
           ? "bg-accent text-foreground"
           : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
       )}
     >
-      <Link
-        href={`/assistant?c=${conversation.id}`}
-        className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-[13px]"
-      >
-        <MessageSquareText className="size-3.5 shrink-0 opacity-60" />
-        <span className="min-w-0 truncate">{conversation.title}</span>
-      </Link>
-      <button
-        type="button"
-        aria-label="Conversation options"
-        onClick={() => setMenuOpen((o) => !o)}
-        className={cn(
-          "shrink-0 rounded p-1 text-muted-foreground/60 hover:text-foreground",
-          !menuOpen && "opacity-0 group-hover/row:opacity-100",
-        )}
-      >
-        <MoreHorizontal className="size-3.5" />
-      </button>
+      <div className="flex items-center gap-1 pr-1">
+        <Link
+          href={`/assistant?c=${conversation.id}`}
+          className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-[13px]"
+        >
+          <MessageSquareText className="size-3.5 shrink-0 opacity-60" />
+          <span className="min-w-0 truncate">{conversation.title}</span>
+        </Link>
+        <button
+          type="button"
+          aria-label="Conversation options"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((o) => !o)}
+          className={cn(
+            "shrink-0 rounded p-1 text-muted-foreground/60 hover:text-foreground",
+            !menuOpen && "opacity-0 group-hover/row:opacity-100",
+          )}
+        >
+          <MoreHorizontal className="size-3.5" />
+        </button>
+      </div>
 
       {menuOpen ? (
-        <div className="absolute right-0 top-8 z-40 flex w-52 flex-col gap-1 rounded-md border bg-popover p-2 shadow-md">
-          <span className="px-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+        <div className="flex flex-col gap-1.5 border-t px-2 py-2">
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
             Move to
           </span>
           <div className="flex flex-wrap gap-1">
@@ -129,12 +123,12 @@ function ConversationRow({
               </form>
             ))}
           </div>
-          <form action={deleteConversationAction} className="border-t pt-1.5">
+          <form action={deleteConversationAction}>
             <input type="hidden" name="conversationId" value={conversation.id} />
             <input type="hidden" name="active" value={String(active)} />
             <button
               type="submit"
-              className="flex w-full items-center gap-1.5 rounded px-1 py-1 text-left text-xs text-muted-foreground hover:text-destructive"
+              className="flex w-full items-center gap-1.5 rounded py-0.5 text-left text-xs text-muted-foreground hover:text-destructive"
             >
               <Trash2 className="size-3.5" /> Delete chat
             </button>

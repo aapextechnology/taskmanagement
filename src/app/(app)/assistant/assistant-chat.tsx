@@ -234,7 +234,7 @@ export function AssistantChat({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col">
+    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col">
       {/* event focus */}
       <div className="flex flex-wrap items-center gap-1.5 pb-4">
         <span className="text-xs text-muted-foreground">Focus:</span>
