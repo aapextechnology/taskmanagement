@@ -1,0 +1,264 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { Countdown } from "@/components/countdown";
+import { HealthBadge } from "@/components/health-badge";
+import { PhaseSteps } from "@/components/phase-steps";
+import { StatusDot } from "@/components/task-meta";
+import { FileDown } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { sessionActor } from "@/lib/auth/session-actor";
+import {
+  getEvent,
+  listEventDivisions,
+  listPhases,
+} from "@/lib/events/service";
+import { listDivisions } from "@/lib/org/service";
+import { buildEventTaskSummary } from "@/lib/events/task-summary";
+import { can } from "@/lib/permissions";
+import { listEventTasks } from "@/lib/tasks/service";
+import { listTemplates } from "@/lib/templates/service";
+import { archiveEventAction, setCurrentPhaseAction } from "../actions";
+import { ApplyPlaybook } from "./apply-playbook";
+import { DivisionsManager } from "./divisions-manager";
+import { WorkflowManager } from "./workflow-manager";
+
+export const metadata: Metadata = { title: "Event" };
+
+const dateFormat = new Intl.DateTimeFormat("en-GB", {
+  dateStyle: "full",
+  timeStyle: "short",
+  timeZone: "Asia/Jakarta",
+});
+
+// T-022: the event workspace shell — countdown front and center.
+export default async function EventPage({ params }: PageProps<"/events/[id]">) {
+  const actor = await sessionActor();
+  if (!actor || !can(actor, "event.view")) redirect("/login");
+
+  const { id } = await params;
+  const event = await getEvent(actor, id);
+  if (!event) notFound();
+
+  const canManage = can(actor, "event.updatePhase");
+  const canManageDivisions = can(actor, "event.manageDivisions");
+  const canManageWorkflow = can(actor, "event.manageWorkflow");
+  const [activeDivisions, allDivisions, phases, templates, eventTasks] =
+    await Promise.all([
+      listEventDivisions(actor, event.id),
+      canManageDivisions ? listDivisions() : [],
+      listPhases(actor, event.id),
+      can(actor, "event.create") ? listTemplates() : [],
+      listEventTasks(actor, event.id),
+    ]);
+
+  // task summary (Owner 2026-08-07) — same progress rule as dashboard + PDF
+  const {
+    progress,
+    overdueCount,
+    statusMix,
+    divisions: divisionSummary,
+  } = buildEventTaskSummary(eventTasks, activeDivisions);
+  const currentIndex = phases.findIndex((p) => p.id === event.currentPhaseId);
+  const nextPhase = currentIndex >= 0 ? phases[currentIndex + 1] : phases[0];
+
+  return (
+    <section className="flex flex-col gap-10">
+      <div className="flex flex-col gap-6 border-b pb-10 md:flex-row md:items-start md:gap-10">
+        <div className="w-full max-w-[240px] shrink-0 overflow-hidden rounded-md border bg-muted">
+          {event.coverImagePath ? (
+            // eslint-disable-next-line @next/next/no-img-element -- auth-gated route
+            <img
+              src={`/api/files/${event.coverImagePath}`}
+              alt={`${event.name} poster`}
+              className="aspect-[3/4] w-full object-cover"
+            />
+          ) : (
+            <div className="flex aspect-[3/4] items-center justify-center text-5xl font-semibold uppercase text-muted-foreground/40">
+              {event.name.slice(0, 2)}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-1 flex-col gap-5">
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="text-4xl font-semibold uppercase leading-[1.05] tracking-tight sm:text-5xl">
+              {event.name}
+            </h1>
+            <HealthBadge health={event.health} className="mt-2" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {event.artists && <>{event.artists} · </>}
+            {event.venue}
+            {event.capacity ? <> · cap {event.capacity.toLocaleString("en")}</> : null}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {dateFormat.format(event.showDate)} WIB
+          </p>
+
+          <div className="flex flex-col gap-2 py-4">
+            <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+              To show day
+            </span>
+            <Countdown
+              target={event.showDate.toISOString()}
+              className="text-3xl sm:text-4xl"
+            />
+          </div>
+
+          <PhaseSteps
+            phases={phases.map((p) => ({ id: p.id, name: p.name }))}
+            currentId={event.currentPhaseId}
+          />
+
+          {canManage ? (
+            <div className="flex flex-wrap gap-3 pt-4">
+              {nextPhase ? (
+                <form action={setCurrentPhaseAction}>
+                  <input type="hidden" name="eventId" value={event.id} />
+                  <input type="hidden" name="phaseId" value={nextPhase.id} />
+                  <Button type="submit">
+                    Advance to {nextPhase.name} ↗
+                  </Button>
+                </form>
+              ) : null}
+              <form action={archiveEventAction}>
+                <input type="hidden" name="eventId" value={event.id} />
+                <input type="hidden" name="archived" value="true" />
+                <Button type="submit" variant="ghost">
+                  Archive
+                </Button>
+              </form>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {/* task summary — the tabs moved into the sidebar's expandable event
+          entry (Owner 2026-08-07); this page now answers "how are we doing" */}
+      <div className="flex flex-col gap-4">
+        <h2 className="text-sm font-semibold">
+          Task summary
+        </h2>
+        {progress.total === 0 ? (
+          <p className="rounded-md border border-dashed px-4 py-4 text-sm text-muted-foreground">
+            No tasks yet — open the{" "}
+            <Link href={`/events/${event.id}/board`} className="underline">
+              board
+            </Link>{" "}
+            or apply a playbook below.
+          </p>
+        ) : (
+          <>
+            <div className="flex flex-col gap-2 rounded-md border bg-card p-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-2xl font-semibold tabular-nums">
+                  {progress.pct !== null ? `${progress.pct}%` : "—"}
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    {progress.done}/{progress.committed} committed tasks done
+                  </span>
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {progress.backlog > 0 ? `${progress.backlog} in backlog · ` : ""}
+                  {overdueCount > 0 ? (
+                    <span className="font-semibold text-status-blocked">
+                      {overdueCount} overdue
+                    </span>
+                  ) : (
+                    "nothing overdue"
+                  )}
+                </span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full bg-foreground/70 transition-all"
+                  style={{ width: `${progress.pct ?? 0}%` }}
+                />
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs text-muted-foreground">
+                {statusMix.map((s) => (
+                  <span key={s.status} className="flex items-center gap-1.5">
+                    <StatusDot status={s.status} />
+                    {s.label} <span className="tabular-nums">{s.count}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <ul className="grid gap-x-6 gap-y-1 rounded-md border bg-card px-4 py-3 sm:grid-cols-2">
+              {divisionSummary.map((d) => (
+                <li key={d.id}>
+                  <Link
+                    href={`/events/${event.id}/board?division=${d.id}`}
+                    className="flex items-center gap-3 py-1 text-sm hover:underline"
+                  >
+                    <span className="min-w-0 flex-1 truncate">{d.name}</span>
+                    {d.overdue > 0 ? (
+                      <span className="rounded-full bg-status-blocked/15 px-1.5 text-[10px] font-semibold tabular-nums text-status-blocked">
+                        {d.overdue}
+                      </span>
+                    ) : null}
+                    <span className="w-14 text-right text-xs tabular-nums text-muted-foreground">
+                      {d.done}/{d.total}
+                    </span>
+                    <span className="h-1 w-16 overflow-hidden rounded-full bg-muted">
+                      <span
+                        className="block h-full bg-foreground/60"
+                        style={{
+                          width: `${d.total > 0 ? Math.round((d.done / d.total) * 100) : 0}%`,
+                        }}
+                      />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-start gap-3">
+        {canManageWorkflow ? (
+          <WorkflowManager
+            eventId={event.id}
+            phases={phases.map((p) => ({ id: p.id, name: p.name }))}
+            currentId={event.currentPhaseId}
+          />
+        ) : null}
+        {canManageDivisions ? (
+          <DivisionsManager
+            eventId={event.id}
+            allDivisions={allDivisions.map((d) => ({ id: d.id, name: d.name }))}
+            activeIds={activeDivisions.map((d) => d.id)}
+          />
+        ) : null}
+        {can(actor, "dashboard.view") ? (
+          <>
+            <a
+              href={`/api/events/${event.id}/report`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <FileDown className="size-3.5" /> Progress report (PDF)
+            </a>
+            <a
+              href={`/api/events/${event.id}/settlement`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <FileDown className="size-3.5" /> Settlement (PDF)
+            </a>
+          </>
+        ) : null}
+        {can(actor, "event.create") ? (
+          <ApplyPlaybook
+            eventId={event.id}
+            templates={templates.map(({ template, itemCount }) => ({
+              id: template.id,
+              name: template.name,
+              itemCount,
+            }))}
+          />
+        ) : null}
+      </div>
+    </section>
+  );
+}

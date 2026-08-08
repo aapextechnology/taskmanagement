@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4 # reads version from packageManager field
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      # Next collects page data at build time, which imports modules that read
+      # the validated env. Nothing connects to a database during the build —
+      # these are placeholders purely to satisfy validation (same approach as
+      # the Dockerfile's build stage).
+      - name: Build
+        run: pnpm build
+        env:
+          DATABASE_URL: postgres://build:build@localhost:5432/build
+          AUTH_SECRET: ci-build-placeholder-secret-32ch
