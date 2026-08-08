@@ -60,12 +60,6 @@ export default async function DocumentsPage({
   return (
     <section className="flex flex-col gap-8">
       <div className="flex flex-col gap-1">
-        <Link
-          href={`/events/${id}`}
-          className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
-        >
-          ← {event.name}
-        </Link>
         <h1 className="text-2xl font-semibold tracking-tight">
           Documents
         </h1>

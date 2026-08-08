@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ScheduleViewToggle } from "@/components/schedule-view-toggle";
 import { notFound, redirect } from "next/navigation";
 import { CalendarGrid } from "@/components/calendar-grid";
@@ -49,12 +48,6 @@ export default async function EventCalendarPage({
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <Link
-          href={`/events/${id}`}
-          className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
-        >
-          ← {event.name}
-        </Link>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold tracking-tight">
             Schedule

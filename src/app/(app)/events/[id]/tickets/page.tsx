@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { formatIDR } from "@/app/(app)/approvals/shared";
@@ -56,12 +55,6 @@ export default async function TicketsPage({
   return (
     <section className="flex flex-col gap-8">
       <div className="flex flex-col gap-1">
-        <Link
-          href={`/events/${id}`}
-          className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
-        >
-          ← {event.name}
-        </Link>
         <h1 className="text-2xl font-semibold tracking-tight">
           Ticket sales
         </h1>

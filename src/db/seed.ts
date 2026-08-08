@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { hashPassword } from "@/lib/auth/password";
 import { DEFAULT_PHASES, recomputeEventHealth } from "@/lib/events/service";
 import { DIVISIONS } from "@/lib/org/divisions";
@@ -160,8 +160,20 @@ const steps: Array<{ name: string; run: () => Promise<void> }> = [
         )
         .onConflictDoNothing();
 
-      // per-event workflow: seed defaults + point current phase by name
+      // per-event workflow: seed defaults + point current phase by name.
+      // Guard on "does this event have ANY phases yet" rather than relying
+      // on the per-name onConflictDoNothing below — that only skips an
+      // EXACT name match, so re-seeding an event that already has a
+      // differently-named phase at the same slot (e.g. someone manually
+      // added one via WorkflowManager) used to insert a second row at the
+      // same sort_order instead of skipping (Owner-reported bug 2026-08-07,
+      // data cleaned up by migration 0023 + a unique index to prevent it).
       for (const e of DEMO_EVENTS) {
+        const [{ count: existingPhaseCount }] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(eventPhases)
+          .where(eq(eventPhases.eventId, e.id));
+        if (existingPhaseCount > 0) continue;
         await db
           .insert(eventPhases)
           .values(

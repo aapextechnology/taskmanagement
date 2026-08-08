@@ -8,6 +8,7 @@ import {
   UserRoundCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DependencyBadge } from "@/components/dependency-badge";
 import { EventChip } from "@/components/event-chip";
 import { PriorityIcon, StatusChip, StatusDot, UserAvatar } from "@/components/task-meta";
 import { sessionActor } from "@/lib/auth/session-actor";
@@ -73,6 +74,7 @@ const STATUS_BAR: Record<string, string> = {
 
 function TaskRows({
   rows,
+  depBadges,
 }: {
   rows: Array<{
     task: {
@@ -84,6 +86,7 @@ function TaskRows({
     };
     eventName: string;
   }>;
+  depBadges: Map<string, { waitingOn: number; waiters: number; critical: boolean }>;
 }) {
   if (rows.length === 0) {
     return (
@@ -102,6 +105,9 @@ function TaskRows({
           >
             <PriorityIcon priority={task.priority} />
             <span className="min-w-0 flex-1 truncate font-medium">{task.title}</span>
+            {depBadges.has(task.id) ? (
+              <DependencyBadge {...depBadges.get(task.id)!} />
+            ) : null}
             <EventChip name={eventName} className="hidden sm:inline-flex" />
             <StatusChip status={task.status as never} />
             {task.dueDate ? (
@@ -190,6 +196,12 @@ export default async function MyTasksPage({
       grouped.set(bucket, list);
     }
   }
+
+  // dependency badges (Owner 2026-08-07): whichever tab is active is the
+  // only one with rows, so this covers Assigned/Created/Watched for free
+  const { getDependencyBadges } = await import("@/lib/tasks/dependency-engine");
+  const visibleRows = [...assignedRows, ...createdRows, ...watchedRows];
+  const depBadges = await getDependencyBadges(visibleRows.map((r) => r.task));
 
   return (
     <section className="flex flex-col gap-6">
@@ -380,7 +392,7 @@ export default async function MyTasksPage({
                       >
                         {label} · {items.length}
                       </h2>
-                      <TaskRows rows={items} />
+                      <TaskRows rows={items} depBadges={depBadges} />
                     </div>
                   );
                 })}
@@ -388,8 +400,8 @@ export default async function MyTasksPage({
             )
           ) : null}
 
-          {tab === "created" ? <TaskRows rows={createdRows} /> : null}
-          {tab === "watched" ? <TaskRows rows={watchedRows} /> : null}
+          {tab === "created" ? <TaskRows rows={createdRows} depBadges={depBadges} /> : null}
+          {tab === "watched" ? <TaskRows rows={watchedRows} depBadges={depBadges} /> : null}
           {tab === "activity" ? <ActivityList items={activityRows} /> : null}
         </div>
 

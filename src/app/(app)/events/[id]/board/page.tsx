@@ -70,12 +70,6 @@ export default async function BoardPage({
     <section className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <Link
-            href={`/events/${id}`}
-            className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
-          >
-            ← {event.name}
-          </Link>
           <h1 className="text-2xl font-semibold tracking-tight">
             {allMode ? "All departments board" : `${division!.name} board`}
           </h1>

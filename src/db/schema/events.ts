@@ -56,7 +56,12 @@ export const eventPhases = pgTable(
     name: text("name").notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
   },
-  (t) => [uniqueIndex("event_phases_event_name_idx").on(t.eventId, t.name)],
+  (t) => [
+    uniqueIndex("event_phases_event_name_idx").on(t.eventId, t.name),
+    // structurally prevents the sort_order-collision class of bug (Owner
+    // report 2026-08-07) — see migration 0023 for the historical cleanup
+    uniqueIndex("event_phases_event_sort_idx").on(t.eventId, t.sortOrder),
+  ],
 );
 
 // Divisions active on an event (defaults to all 11 at creation).

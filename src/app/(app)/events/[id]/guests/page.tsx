@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { getEvent, listEventDivisions } from "@/lib/events/service";
@@ -37,12 +36,6 @@ export default async function GuestsPage({
   return (
     <section className="flex flex-col gap-10">
       <div className="flex flex-col gap-1">
-        <Link
-          href={`/events/${id}`}
-          className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
-        >
-          ← {event.name}
-        </Link>
         <h1 className="text-2xl font-semibold tracking-tight">
           External guests
         </h1>

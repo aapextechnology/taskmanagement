@@ -129,9 +129,24 @@ export async function deletePhase(actor: Actor, phaseId: string) {
   const all = await db
     .select({ id: eventPhases.id })
     .from(eventPhases)
-    .where(eq(eventPhases.eventId, phase.eventId));
+    .where(eq(eventPhases.eventId, phase.eventId))
+    .orderBy(asc(eventPhases.sortOrder));
   if (all.length <= 1) throw new Error("An event needs at least one phase.");
-  await db.delete(eventPhases).where(eq(eventPhases.id, phaseId));
+
+  // delete + renumber the remainder contiguously (0..n-1) in one
+  // transaction — closes the gap immediately instead of letting sort_order
+  // drift, which is what let a later insert collide in the first place
+  // (Owner-reported bug 2026-08-07, fixed by migration 0023)
+  await db.transaction(async (tx) => {
+    await tx.delete(eventPhases).where(eq(eventPhases.id, phaseId));
+    const remaining = all.filter((p) => p.id !== phaseId);
+    for (const [index, p] of remaining.entries()) {
+      await tx
+        .update(eventPhases)
+        .set({ sortOrder: index })
+        .where(eq(eventPhases.id, p.id));
+    }
+  });
   await logActivity({
     actorId: actor.id,
     action: "event.phase.delete",
@@ -161,14 +176,27 @@ export async function movePhase(
   const index = siblings.findIndex((s) => s.id === phaseId);
   const swapWith = direction === "up" ? siblings[index - 1] : siblings[index + 1];
   if (!swapWith) return;
-  await db
-    .update(eventPhases)
-    .set({ sortOrder: swapWith.sortOrder })
-    .where(eq(eventPhases.id, phase.id));
-  await db
-    .update(eventPhases)
-    .set({ sortOrder: phase.sortOrder })
-    .where(eq(eventPhases.id, swapWith.id));
+  // atomic swap (Owner-reported bug 2026-08-07): two separate awaited
+  // UPDATEs could leave both rows on the same sort_order if the process
+  // died between them — a transaction makes the swap all-or-nothing. The
+  // intermediate step through a scratch value also dodges the unique
+  // index mid-transaction (Postgres checks uniqueness after each
+  // statement, not at commit, for a non-deferred index).
+  await db.transaction(async (tx) => {
+    const scratch = -1 - Math.abs(phase.sortOrder);
+    await tx
+      .update(eventPhases)
+      .set({ sortOrder: scratch })
+      .where(eq(eventPhases.id, phase.id));
+    await tx
+      .update(eventPhases)
+      .set({ sortOrder: phase.sortOrder })
+      .where(eq(eventPhases.id, swapWith.id));
+    await tx
+      .update(eventPhases)
+      .set({ sortOrder: swapWith.sortOrder })
+      .where(eq(eventPhases.id, phase.id));
+  });
 }
 
 export async function setCurrentPhase(

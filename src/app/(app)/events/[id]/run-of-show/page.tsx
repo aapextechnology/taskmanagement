@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { getEvent } from "@/lib/events/service";
@@ -33,12 +32,6 @@ export default async function RunOfShowPage({
     <section className="flex flex-col gap-6 print:gap-3">
       <div className="flex flex-wrap items-end justify-between gap-4 print:hidden">
         <div className="flex flex-col gap-1">
-          <Link
-            href={`/events/${id}`}
-            className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
-          >
-            ← {event.name}
-          </Link>
           <h1 className="text-2xl font-semibold tracking-tight">
             Run of show
           </h1>

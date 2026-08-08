@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { formatIDR, TYPE_LABELS } from "@/app/(app)/approvals/shared";
 import { Countdown } from "@/components/countdown";
+import { DependencyBadge } from "@/components/dependency-badge";
 import { HealthBadge } from "@/components/health-badge";
 import { PriorityIcon } from "@/components/task-meta";
 import { listMyQueue } from "@/lib/approvals/service";
@@ -57,6 +58,8 @@ export default async function DashboardPage() {
       getActivityFeed(actor),
       portfolioSales(actor),
     ]);
+  const { getDependencyBadges } = await import("@/lib/tasks/dependency-engine");
+  const milestoneDepBadges = await getDependencyBadges(milestones);
 
   return (
     <section className="flex flex-col gap-10">
@@ -215,6 +218,9 @@ export default async function DashboardPage() {
                   >
                     <PriorityIcon priority={m.priority} />
                     <span className="min-w-0 flex-1 truncate">{m.title}</span>
+                    {milestoneDepBadges.has(m.id) ? (
+                      <DependencyBadge {...milestoneDepBadges.get(m.id)!} />
+                    ) : null}
                     <EventChip name={m.eventName} className="hidden sm:inline-flex" />
                     <span className="hidden text-xs text-muted-foreground md:block">
                       {m.divisionName}

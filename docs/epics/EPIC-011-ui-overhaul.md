@@ -49,6 +49,52 @@ instead of a page navigation. Keep the RVC monochrome chrome; color becomes func
 
 ## Automation Log
 
+- 2026-08-07 **T-114 batch: persistent event context + phase data integrity
+  + dependency badge coverage** (Owner follow-up after spotting a workflow
+  phase question on `/events/[id]/list`).
+  - **Persistent event context bar.** New `events/[id]/layout.tsx` +
+    client `EventContextBar` render name + current phase + health + a
+    day-count ("Nd to show" / "Show day" / "Nd since show") in a sticky bar
+    on every event sub-page (Board, List, Calendar, Budget, Handoffs,
+    Guests, Documents, Pages, Run of show, Tickets, Gantt) — replacing 11
+    duplicated "← {event.name}" breadcrumbs. Hidden on the event ROOT page
+    (`/events/[id]`) since that page already has its own full hero
+    (poster, live countdown, phase stepper); the bar checks `usePathname()`
+    for an exact match. `pages/[pageId]` keeps its own "← pages" crumb
+    underneath (two-level breadcrumb, not redundant).
+  - **Root cause fixed: workflow phase `sort_order` collisions.** Found
+    while answering the Owner's question — event "Midnight Frequency" had
+    two phases ("Plan" and the seeded "Planning") both at `sort_order 0`.
+    Cause: the seeder's bulk phase insert used `onConflictDoNothing` keyed
+    on `(event_id, name)`, so a manually-added phase with a *different*
+    name at the same slot never conflicted and both rows kept sort_order 0.
+    Fixed at three levels: (1) migration `0023_phase-sort-order-integrity.sql`
+    — dedupes any existing collision (preferring the event's current phase,
+    then a canonical `DEFAULT_PHASES` name, then lowest id as a last
+    resort), renumbers every event's phases contiguously 0..n-1, then adds
+    a **unique index** `(event_id, sort_order)` so the class of bug is
+    structurally impossible from here on; (2) `movePhase` rewritten to a
+    transaction routed through a negative scratch sort_order — the old
+    direct two-step swap would now fail outright against the new unique
+    index (Postgres checks non-deferred unique indexes per-statement, not
+    at commit); (3) `deletePhase` now renumbers the remainder contiguously
+    in the same transaction, closing gaps immediately instead of letting
+    sort_order drift; (4) `seed.ts` now skips an event entirely if it
+    already has ANY phases, instead of trusting per-name conflict
+    resolution. Verified E2E: 4 repeated up/down moves stay contiguous, a
+    fresh `addPhase` lands collision-free, `deletePhase` closes the gap,
+    and a raw duplicate insert is rejected by the new index — 5/5 PASS.
+  - **Dependency badge coverage extended.** The ⧗/N↩ badge (EPIC-012)
+    previously only appeared on the Board and List kanban/list cards.
+    Added to My Tasks' Assigned/Created/Watched tabs and the Dashboard's
+    Milestones list — everywhere a task title is listed for someone to
+    scan now shows whether it's waiting on something or is itself a
+    bottleneck others are waiting on.
+  - Gates green (179 tests, clean build); deployed DEV; live-verified the
+    context bar on `/list` (shows current phase + day count, hidden on
+    root), all my-tasks tabs 200, and a service-level E2E confirming badge
+    data resolves correctly on the new surfaces.
+
 - 2026-08-07 **T-114 batch: design-overhaul leveling pass** (spreading
   packages A-D to every remaining surface, per Owner review after the
   first overhaul commit).
