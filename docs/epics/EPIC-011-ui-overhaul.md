@@ -49,6 +49,18 @@ instead of a page navigation. Keep the RVC monochrome chrome; color becomes func
 
 ## Automation Log
 
+- 2026-08-07 **T-114 batch (Owner): "Your work" My Tasks profile** (Plane
+  reference screenshot). `/my-tasks` rebuilt: tabs Summary / Assigned /
+  Created / Watched / Activity (?tab=). Summary = overview cards (created /
+  assigned / watched counts), 7-status Workload cards, open-task bars by
+  priority + state (token colors), personal Recent activity (humanized via
+  `lib/activity-labels`, relative timestamps). Right profile panel: avatar,
+  email, role, joined date, WIB clock, My divisions (membership + role),
+  "Working on" events with open-task counts. Assigned tab keeps the original
+  T-033 due-buckets. Data in `src/lib/tasks/my-work.ts` — strictly me-scoped
+  queries; clock reads live in lib (render purity rule). Sign-out moved into
+  the profile card. Gates green; deployed DEV; all five tabs live 200.
+
 - 2026-08-07 **T-114 batch (Owner): event workspace navigation.** Sidebar event
   entries now expand (chevron; auto-open inside the event) into Board / List /
   Calendar / Handoffs / Budget / Guests / Documents / Run of show / Tickets —
