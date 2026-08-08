@@ -55,6 +55,11 @@ export const tasks = pgTable("tasks", {
   startDate: timestamp("start_date", { withTimezone: true }),
   dueDate: timestamp("due_date", { withTimezone: true }),
   recurrence: taskRecurrenceEnum("recurrence").notNull().default("none"),
+  // single accountable Lead/PIC (Owner 2026-08-07) — the assignee LIST is
+  // who works on it; the lead is who answers for it
+  leadId: uuid("lead_id").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
   createdBy: uuid("created_by").references(() => profiles.id, {
     onDelete: "set null",
   }),

@@ -14,6 +14,7 @@ import {
   deleteExternalDependency,
   removeDependency,
   setExternalDependencyResolved,
+  setTaskLead,
   addLabelToTask,
   assignUser,
   createTask,
@@ -70,6 +71,7 @@ export async function createTaskAction(
         | "daily"
         | "weekly"
         | "monthly",
+      leadId: String(formData.get("leadId") ?? "") || undefined,
       assigneeIds: formData.getAll("assignees").map(String).filter(Boolean),
       labelIds: formData.getAll("labels").map(String).filter(Boolean),
       newLabel: String(formData.get("newLabelName") ?? "").trim()
@@ -238,6 +240,14 @@ export async function dependencyAddAction(
   } catch (error) {
     return friendly(error);
   }
+}
+
+export async function setLeadAction(formData: FormData): Promise<void> {
+  const actor = await requireActor();
+  const taskId = String(formData.get("taskId"));
+  const userId = String(formData.get("userId") ?? "");
+  await setTaskLead(actor, taskId, userId || null);
+  revalidatePath(`/tasks/${taskId}`);
 }
 
 export async function dependencyRemoveAction(formData: FormData): Promise<void> {

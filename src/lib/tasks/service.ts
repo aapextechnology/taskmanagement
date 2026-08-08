@@ -229,6 +229,7 @@ export async function createTask(
     startDate?: Date;
     dueDate?: Date;
     recurrence?: "none" | "daily" | "weekly" | "monthly";
+    leadId?: string;
     assigneeIds?: string[];
     labelIds?: string[];
     newLabel?: { name: string; color: string };
@@ -246,9 +247,19 @@ export async function createTask(
       startDate: input.startDate ?? null,
       dueDate: input.dueDate ?? null,
       recurrence: input.recurrence ?? "none",
+      leadId: input.leadId ?? null,
       createdBy: actor.id,
     })
     .returning();
+
+  if (input.leadId && input.leadId !== actor.id) {
+    await notify({
+      userId: input.leadId,
+      type: "assigned",
+      title: "You are the lead (PIC) of a new task",
+      href: `/tasks/${task.id}`,
+    });
+  }
 
   for (const userId of input.assigneeIds ?? []) {
     await assignUser(actor, task.id, userId, { skipFetch: task });
@@ -406,6 +417,36 @@ async function onTaskCompleted(task: {
   for (const dep of dependents) {
     await maybeNotifyUnblocked(dep.taskId);
   }
+}
+
+// set/replace/clear the single Lead-PIC (Owner 2026-08-07); same gate as
+// assigning workers
+export async function setTaskLead(
+  actor: Actor,
+  taskId: string,
+  userId: string | null,
+) {
+  const task = await requireTask(actor, taskId);
+  assertCan(actor, "task.assign", { divisionId: task.divisionId });
+  await db
+    .update(tasks)
+    .set({ leadId: userId, updatedAt: new Date() })
+    .where(eq(tasks.id, taskId));
+  if (userId && userId !== actor.id) {
+    await notify({
+      userId,
+      type: "assigned",
+      title: "You are now the lead (PIC) of a task",
+      href: `/tasks/${taskId}`,
+    });
+  }
+  await logActivity({
+    actorId: actor.id,
+    action: userId ? "task.lead_set" : "task.lead_clear",
+    entity: `task:${taskId}`,
+    detail: { userId },
+    eventId: task.eventId,
+  });
 }
 
 export async function assignUser(
@@ -1069,6 +1110,15 @@ export async function getTaskDetail(actor: Actor, taskId: string) {
           .from(profiles)
           .where(inArray(profiles.id, task.assigneeIds));
 
+  const lead = task.leadId
+    ? await db
+        .select({ id: profiles.id, name: profiles.name })
+        .from(profiles)
+        .where(eq(profiles.id, task.leadId))
+        .limit(1)
+        .then((r) => r[0] ?? null)
+    : null;
+
   // names of mentioned users, for socmed-style bolding in comment bodies
   const mentionIds = [
     ...new Set(
@@ -1093,6 +1143,7 @@ export async function getTaskDetail(actor: Actor, taskId: string) {
   return {
     ...task,
     event,
+    lead,
     assignees,
     checklist,
     labels: taskLabelRows,

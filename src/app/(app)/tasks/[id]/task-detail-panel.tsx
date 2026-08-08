@@ -31,6 +31,7 @@ import {
   watchAction,
 } from "../actions";
 import { AssigneeManager } from "./assignee-manager";
+import { LeadPicker } from "./lead-picker";
 import { AttachmentForm } from "./attachment-form";
 import { ChecklistItemDialog } from "./checklist-item-dialog";
 import { CommentForm } from "./comment-form";
@@ -157,6 +158,18 @@ export async function TaskDetailPanel({
       </div>
 
       {/* assignees — popover manager (Owner request) */}
+      <div className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wider">
+          Lead / PIC
+        </h2>
+        <LeadPicker
+          taskId={task.id}
+          members={members.map((m) => ({ id: m.id, name: m.name }))}
+          leadId={task.leadId}
+          canAssign={canAssign}
+        />
+      </div>
+
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold uppercase tracking-wider">
           Assignees

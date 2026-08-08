@@ -49,6 +49,15 @@ instead of a page navigation. Keep the RVC monochrome chrome; color becomes func
 
 ## Automation Log
 
+- 2026-08-07 **T-114 batch (Owner): task Lead/PIC.** `tasks.lead_id` (migration
+  0022) — one accountable person per task, shown ABOVE Assignees in the drawer
+  (crown chip + single-select popover `lead-picker.tsx`; replace/clear;
+  optimistic). Create-task dialog gains a "Lead / PIC" single-select chip row
+  (`LeadSelect`, resets per division). `setTaskLead` gated `task.assign`;
+  new lead notified ("You are now the lead (PIC)"); set/clear logged. E2E:
+  create-with-lead + notify + cross-division denial + replace + clear all
+  PASS; gates green; deployed DEV; drawer live shows Lead / PIC section.
+
 - 2026-08-07 **T-114 batch (Owner): "Your work" My Tasks profile** (Plane
   reference screenshot). `/my-tasks` rebuilt: tabs Summary / Assigned /
   Created / Watched / Activity (?tab=). Summary = overview cards (created /

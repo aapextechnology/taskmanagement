@@ -3,7 +3,7 @@
 import { CalendarClock, Repeat } from "lucide-react";
 import { useActionState, useState } from "react";
 import { createTaskAction, type TaskActionState } from "@/app/(app)/tasks/actions";
-import { AssigneePicker } from "@/components/assignee-picker";
+import { AssigneePicker, LeadSelect } from "@/components/assignee-picker";
 import { LabelPicker } from "@/components/label-picker";
 import { PriorityPicker } from "@/components/priority-picker";
 import { Segmented } from "@/components/segmented";
@@ -144,6 +144,13 @@ export function NewTaskDialog({
                   ]}
                 />
               </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                Lead / PIC{divisions.length > 1 ? ` — ${division.name}` : ""}
+              </Label>
+              <LeadSelect key={`lead-${division.id}`} members={division.members} />
             </div>
 
             <div className="flex flex-col gap-1.5">
