@@ -23,7 +23,7 @@ export function CalendarMonthNav({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <h2 className="min-w-40 text-lg font-semibold uppercase tracking-tight">
+      <h2 className="min-w-40 text-lg font-semibold tracking-tight">
         {formatMonthLabel(year, monthIndex)}
       </h2>
       <div className="flex items-center gap-1.5">

@@ -148,7 +148,7 @@ export default async function EventGanttPage({
           ← {event.name}
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold uppercase tracking-tight">
+          <h1 className="text-2xl font-semibold tracking-tight">
             Schedule
           </h1>
           <ScheduleViewToggle eventId={id} active="gantt" />
@@ -207,7 +207,7 @@ export default async function EventGanttPage({
 
       {unscheduledTasks.length > 0 ? (
         <div className="flex flex-col gap-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <h2 className="text-xs font-semibold text-muted-foreground">
             Unscheduled ({unscheduledTasks.length})
           </h2>
           <ul className="flex flex-wrap gap-2">
@@ -230,10 +230,10 @@ export default async function EventGanttPage({
           they surface here instead (EPIC-012) */}
       {crossEventDeps.length > 0 ? (
         <div className="flex flex-col gap-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <h2 className="text-xs font-semibold text-muted-foreground">
             Cross-event dependencies ({crossEventDeps.length})
           </h2>
-          <ul className="flex flex-col divide-y rounded-md border bg-card">
+          <ul className="flex flex-col divide-y rounded-md border bg-card elev">
             {crossEventDeps.map((dep) => (
               <li
                 key={`${dep.localTaskId}-${dep.remoteTaskId}`}

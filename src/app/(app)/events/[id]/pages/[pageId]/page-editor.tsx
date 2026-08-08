@@ -315,7 +315,7 @@ export function PageEditor({
           }}
           placeholder="Untitled"
           aria-label="Page title"
-          className="w-full bg-transparent text-3xl font-semibold uppercase tracking-tight outline-none placeholder:text-muted-foreground/40"
+          className="w-full bg-transparent text-3xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/40"
         />
         <span
           className={cn(

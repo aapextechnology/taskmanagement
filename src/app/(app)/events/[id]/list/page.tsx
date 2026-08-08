@@ -151,7 +151,7 @@ export default async function TaskListPage({
           >
             ← {event.name}
           </Link>
-          <h1 className="text-2xl font-semibold uppercase tracking-tight">
+          <h1 className="text-2xl font-semibold tracking-tight">
             Task list
           </h1>
         </div>
@@ -207,7 +207,7 @@ export default async function TaskListPage({
                 No tasks.
               </p>
             ) : (
-              <ul className="flex flex-col divide-y rounded-md border bg-card">
+              <ul className="flex flex-col divide-y rounded-md border bg-card elev">
                 {items.map((task) => (
                   <li key={task.id}>
                     <Link

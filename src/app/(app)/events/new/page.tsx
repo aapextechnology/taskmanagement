@@ -15,7 +15,7 @@ export default async function NewEventPage() {
 
   return (
     <section className="mx-auto flex w-full max-w-xl flex-col gap-8">
-      <h1 className="text-3xl font-semibold uppercase tracking-tight">
+      <h1 className="text-3xl font-semibold tracking-tight">
         New event
       </h1>
       <NewEventForm

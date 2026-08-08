@@ -96,6 +96,28 @@ export function PriorityIcon({
   );
 }
 
+// deterministic per-person tint (design overhaul 2026-08-07): same person =
+// same color everywhere, so boards can be scanned by face, not by reading.
+// Tints ride the label palette dots at low alpha — works in both themes.
+const AVATAR_TINTS = [
+  "#94a3b8",
+  "#60a5fa",
+  "#4ade80",
+  "#fbbf24",
+  "#fb923c",
+  "#f87171",
+  "#a78bfa",
+  "#f472b6",
+] as const;
+
+function avatarTint(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) | 0;
+  }
+  return AVATAR_TINTS[Math.abs(hash) % AVATAR_TINTS.length];
+}
+
 export function UserAvatar({
   name,
   className,
@@ -110,11 +132,17 @@ export function UserAvatar({
     .slice(0, 2)
     .join("")
     .toUpperCase();
+  const tint = avatarTint(name);
   return (
     <span
       title={name}
+      style={{
+        backgroundColor: `color-mix(in oklch, ${tint} 22%, transparent)`,
+        color: tint,
+        borderColor: `color-mix(in oklch, ${tint} 45%, transparent)`,
+      }}
       className={cn(
-        "inline-flex size-5 shrink-0 select-none items-center justify-center rounded-full border bg-muted text-[9px] font-semibold uppercase",
+        "inline-flex size-5 shrink-0 select-none items-center justify-center rounded-full border text-[9px] font-semibold uppercase",
         className,
       )}
     >

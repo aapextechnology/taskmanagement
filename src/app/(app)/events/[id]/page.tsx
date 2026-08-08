@@ -117,7 +117,7 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
                 <form action={setCurrentPhaseAction}>
                   <input type="hidden" name="eventId" value={event.id} />
                   <input type="hidden" name="phaseId" value={nextPhase.id} />
-                  <Button type="submit" variant="outline">
+                  <Button type="submit">
                     Advance to {nextPhase.name} ↗
                   </Button>
                 </form>
@@ -137,7 +137,7 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
       {/* task summary — the tabs moved into the sidebar's expandable event
           entry (Owner 2026-08-07); this page now answers "how are we doing" */}
       <div className="flex flex-col gap-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
+        <h2 className="text-sm font-semibold">
           Task summary
         </h2>
         {progress.total === 0 ? (

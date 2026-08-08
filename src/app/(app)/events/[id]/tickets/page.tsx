@@ -62,7 +62,7 @@ export default async function TicketsPage({
         >
           ← {event.name}
         </Link>
-        <h1 className="text-2xl font-semibold uppercase tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           Ticket sales
         </h1>
       </div>
@@ -149,7 +149,7 @@ export default async function TicketsPage({
         </p>
       ) : (
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider">
+          <h2 className="text-sm font-semibold">
             Daily sales
           </h2>
           <div className="flex items-end gap-1.5 overflow-x-auto rounded-md border bg-card p-4">

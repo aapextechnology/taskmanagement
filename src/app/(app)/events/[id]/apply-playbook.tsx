@@ -1,7 +1,8 @@
 "use client";
 
 import { BookOpenCheck } from "lucide-react";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   applyTemplateAction,
   type EventActionState,
@@ -24,6 +25,10 @@ export function ApplyPlaybook({
     EventActionState,
     FormData
   >(applyTemplateAction, {});
+
+  useEffect(() => {
+    if (state.info) toast.success(state.info);
+  }, [state.info]);
 
   if (templates.length === 0) return null;
 
@@ -48,7 +53,7 @@ export function ApplyPlaybook({
     >
       <input type="hidden" name="eventId" value={eventId} />
       <input type="hidden" name="templateId" value={templateId} />
-      <span className="text-xs font-semibold uppercase tracking-wider">
+      <span className="text-xs font-semibold">
         Apply a playbook
       </span>
       <div className="flex flex-wrap gap-1.5">

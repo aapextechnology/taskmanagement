@@ -49,6 +49,28 @@ instead of a page navigation. Keep the RVC monochrome chrome; color becomes func
 
 ## Automation Log
 
+- 2026-08-07 **T-114 batch (Owner): design overhaul — packages A–D + sentence
+  case, all four approved via AskUserQuestion.**
+  - A Hierarchy/depth: elevation tokens `--shadow-elev(-hover)` both themes +
+    `.elev` / `.elev-hover` utilities (lift on hover = clickability
+    affordance); dark bg 0.125 / card 0.19 for more separation; primary action
+    per page now SOLID (Advance phase, New task, New page), secondary outline,
+    destructive ghost.
+  - Typography: uppercase removed from page h1s, section h2s, task titles
+    (sweep of 4 class patterns across ~40 files); kept for micro-labels,
+    breadcrumb links, table headers, logo, and event NAMES (poster identity).
+  - B Feedback: sonner Toaster mounted in root layout (theme-aware, elev
+    shadow); toasts on kanban status move, preferences save, playbook apply;
+    skeleton `loading.tsx` for dashboard / my-tasks / event workspace.
+  - C Guidance: one-line subtitles under Dashboard/Events/Approvals/Timeline
+    h1s; `EmptyState` component (icon + invitation + CTA) applied to events
+    index + timeline; dashboard section headers got icons.
+  - D Functional color: HealthBadge now tinted fills (green/amber/red);
+    `UserAvatar` deterministic per-person tint (hash → 8-color palette via
+    color-mix, both themes).
+  - Gates green (179 tests); deployed DEV; 7 main pages 200 with elev +
+    colored badges + subtitles verified in payload.
+
 - 2026-08-07 **T-114 batch (Owner): task Lead/PIC.** `tasks.lead_id` (migration
   0022) — one accountable person per task, shown ABOVE Assignees in the drawer
   (crown chip + single-select popover `lead-picker.tsx`; replace/clear;

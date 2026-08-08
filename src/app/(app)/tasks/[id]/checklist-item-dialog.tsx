@@ -60,7 +60,7 @@ export function ChecklistItemDialog({
           <input type="hidden" name="taskId" value={taskId} />
           <input type="hidden" name="itemId" value={item.id} />
           <div className="flex flex-col gap-4 px-6 pb-4 pt-6">
-            <DialogTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            <DialogTitle className="text-xs font-semibold text-muted-foreground">
               Edit checklist item
             </DialogTitle>
             <div className="flex flex-col gap-1.5">

@@ -76,7 +76,7 @@ export default async function BoardPage({
           >
             ← {event.name}
           </Link>
-          <h1 className="text-2xl font-semibold uppercase tracking-tight">
+          <h1 className="text-2xl font-semibold tracking-tight">
             {allMode ? "All departments board" : `${division!.name} board`}
           </h1>
         </div>

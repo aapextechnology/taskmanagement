@@ -41,9 +41,14 @@ export default async function ApprovalsPage() {
   return (
     <section className="flex flex-col gap-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-semibold uppercase tracking-tight">
-          Approvals
-        </h1>
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Approvals
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Requests waiting for a decision, and where yours stand.
+          </p>
+        </div>
         {myDivisions.length > 0 ? (
           <NewApprovalForm
             divisions={myDivisions.map((d) => ({ id: d.id, name: d.name }))}
@@ -54,7 +59,7 @@ export default async function ApprovalsPage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
+        <h2 className="text-sm font-semibold">
           Waiting on you{queue.length > 0 ? ` · ${queue.length}` : ""}
         </h2>
         {queue.length === 0 ? (
@@ -92,7 +97,7 @@ export default async function ApprovalsPage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
+        <h2 className="text-sm font-semibold">
           Your requests
         </h2>
         {requests.length === 0 ? (

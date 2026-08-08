@@ -64,7 +64,7 @@ export default async function AuditPage({
         >
           ← Admin
         </Link>
-        <h1 className="text-2xl font-semibold uppercase tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           Audit log
         </h1>
       </div>

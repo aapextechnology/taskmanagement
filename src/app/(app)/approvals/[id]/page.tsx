@@ -73,7 +73,7 @@ export default async function ApprovalDetailPage({
       </div>
 
       <div className="flex flex-col gap-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
+        <h2 className="text-sm font-semibold">
           Approval chain
         </h2>
         <ol className="flex flex-col gap-0">

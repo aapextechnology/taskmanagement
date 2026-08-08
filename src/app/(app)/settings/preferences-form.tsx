@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -62,11 +63,12 @@ export function PreferencesForm({
       data.set("phone", prefs.phone);
       await updateMyPreferencesAction(data);
       setSaved(true);
+      toast.success("Preferences saved");
     });
 
   return (
     <div className="flex max-w-xl flex-col gap-6">
-      <div className="flex flex-col divide-y rounded-md border bg-card">
+      <div className="flex flex-col divide-y rounded-md border bg-card elev">
         <Row
           title="Email notifications"
           hint="Assignments, mentions, due dates, approvals — as they happen"
@@ -93,7 +95,7 @@ export function PreferencesForm({
         </div>
       </div>
 
-      <div className="flex flex-col divide-y rounded-md border bg-card">
+      <div className="flex flex-col divide-y rounded-md border bg-card elev">
         <Row
           title="Daily digest"
           hint="One morning email (07:00 WIB): overdue, due today, approvals waiting"

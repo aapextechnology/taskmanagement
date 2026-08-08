@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { MessagesSquare } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { redirect } from "next/navigation";
 import { AttachmentView } from "@/components/attachment-view";
 import { CommentBody } from "@/components/comment-body";
@@ -80,9 +82,12 @@ export default async function TimelinePage({
 
   return (
     <section className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-      <h1 className="text-3xl font-semibold uppercase tracking-tight">
-        Timeline
-      </h1>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Timeline
+        </h1>
+        <p className="text-sm text-muted-foreground">What every division is talking about, as it happens.</p>
+      </div>
 
       <div className="flex gap-1 border-b">
         {(
@@ -112,11 +117,15 @@ export default async function TimelinePage({
       </div>
 
       {posts.length === 0 ? (
-        <p className="rounded-md border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
-          {tab === "mentions"
-            ? "No one has mentioned you yet."
-            : "No activity yet — comments on tasks show up here."}
-        </p>
+        <EmptyState
+          icon={MessagesSquare}
+          title={tab === "mentions" ? "No mentions yet" : "No activity yet"}
+          hint={
+            tab === "mentions"
+              ? "When someone @mentions you in a task comment, it lands here."
+              : "Comments and attachments on any task show up here as a feed."
+          }
+        />
       ) : (
         <ul className="flex flex-col divide-y rounded-lg border bg-card">
           {posts.map((post) => (

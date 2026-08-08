@@ -216,7 +216,7 @@ export function DependencySection({
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider">
+      <h2 className="flex items-center gap-2 text-sm font-semibold">
         Dependencies
         {waitingOn > 0 ? (
           <span className="rounded-full border px-2 py-0.5 text-[10px] font-medium normal-case tracking-normal text-muted-foreground">

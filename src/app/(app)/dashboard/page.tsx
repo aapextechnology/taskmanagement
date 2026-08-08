@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import {
+  Activity,
+  ClipboardCheck,
+  Flag,
+  Flame,
+  Ticket,
+  TriangleAlert,
+} from "lucide-react";
 import { formatIDR, TYPE_LABELS } from "@/app/(app)/approvals/shared";
 import { Countdown } from "@/components/countdown";
 import { HealthBadge } from "@/components/health-badge";
@@ -52,9 +60,12 @@ export default async function DashboardPage() {
 
   return (
     <section className="flex flex-col gap-10">
-      <h1 className="text-3xl font-semibold uppercase tracking-tight">
-        Dashboard
-      </h1>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Dashboard
+        </h1>
+        <p className="text-sm text-muted-foreground">The whole portfolio at a glance — approvals, milestones, bottlenecks, sales.</p>
+      </div>
 
       {/* portfolio cards */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -63,7 +74,7 @@ export default async function DashboardPage() {
             key={event.id}
             href={`/events/${event.id}`}
             // `dark` pins the card to jet black with light text in BOTH themes
-            className="dark group flex flex-col gap-3 rounded-lg border bg-surface-jet p-4 text-foreground shadow-sm transition-colors hover:border-foreground/30"
+            className="dark group flex flex-col gap-3 rounded-lg border bg-surface-jet p-4 text-foreground elev elev-hover hover:border-foreground/30"
           >
             <div className="flex items-start justify-between gap-3">
               <h2 className="font-semibold uppercase leading-tight tracking-tight">
@@ -146,7 +157,8 @@ export default async function DashboardPage() {
 
       {/* pending approvals — the Owner's main action surface */}
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
+        <h2 className="flex items-center gap-2 text-sm font-semibold">
+          <ClipboardCheck className="size-4 text-muted-foreground" />
           Pending approvals{queue.length > 0 ? ` · ${queue.length}` : ""}
         </h2>
         {queue.length === 0 ? (
@@ -154,7 +166,7 @@ export default async function DashboardPage() {
             Nothing waiting for your decision. 🎉
           </p>
         ) : (
-          <ul className="flex flex-col divide-y rounded-md border bg-card">
+          <ul className="flex flex-col divide-y rounded-md border bg-card elev">
             {queue.map((approval) => (
               <li
                 key={approval.id}
@@ -185,10 +197,11 @@ export default async function DashboardPage() {
             from being sized by its widest row, which pushed the whole
             dashboard past a phone viewport (T-103 responsive audit) */}
         <div className="flex min-w-0 flex-col gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <Flag className="size-4 text-muted-foreground" />
             Milestones — next 14 days
           </h2>
-          <ul className="flex flex-col divide-y rounded-md border bg-card">
+          <ul className="flex flex-col divide-y rounded-md border bg-card elev">
             {milestones.length === 0 ? (
               <li className="px-4 py-6 text-sm text-muted-foreground">
                 No high-priority deadlines in the window.
@@ -219,10 +232,11 @@ export default async function DashboardPage() {
         {/* blockers + hotspots */}
         <div className="flex min-w-0 flex-col gap-6">
           <div className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <TriangleAlert className="size-4 text-muted-foreground" />
               Bottlenecks — most waited-on
             </h2>
-            <ul className="flex flex-col divide-y rounded-md border bg-card">
+            <ul className="flex flex-col divide-y rounded-md border bg-card elev">
               {bottlenecks.length === 0 ? (
                 <li className="px-4 py-4 text-sm text-muted-foreground">
                   Nothing is holding other tasks up. 🎐
@@ -266,10 +280,11 @@ export default async function DashboardPage() {
             </ul>
           </div>
           <div className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <Flame className="size-4 text-muted-foreground" />
               Overdue hotspots
             </h2>
-            <ul className="flex flex-col divide-y rounded-md border bg-card">
+            <ul className="flex flex-col divide-y rounded-md border bg-card elev">
               {hotspots.length === 0 ? (
                 <li className="px-4 py-4 text-sm text-muted-foreground">
                   Nothing overdue. 🌤
@@ -298,7 +313,8 @@ export default async function DashboardPage() {
       {/* ticket sales (T-093) */}
       {sales.length > 0 ? (
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <Ticket className="size-4 text-muted-foreground" />
             Ticket sales
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
@@ -308,7 +324,7 @@ export default async function DashboardPage() {
                 <Link
                   key={s.eventId}
                   href={`/events/${s.eventId}/tickets`}
-                  className="flex flex-col gap-3 rounded-lg border bg-card p-4 transition-colors hover:border-foreground/30"
+                  className="flex flex-col gap-3 rounded-lg border bg-card p-4 elev elev-hover hover:border-foreground/30"
                 >
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="min-w-0 truncate text-sm font-semibold">
@@ -343,10 +359,11 @@ export default async function DashboardPage() {
 
       {/* activity feed */}
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
+        <h2 className="flex items-center gap-2 text-sm font-semibold">
+          <Activity className="size-4 text-muted-foreground" />
           Recent activity
         </h2>
-        <ul className="flex flex-col divide-y rounded-md border bg-card">
+        <ul className="flex flex-col divide-y rounded-md border bg-card elev">
           {feed.map((entry) => (
             <li
               key={entry.id}

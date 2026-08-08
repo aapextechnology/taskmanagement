@@ -93,7 +93,7 @@ function TaskRows({
     );
   }
   return (
-    <ul className="flex flex-col divide-y rounded-md border bg-card">
+    <ul className="flex flex-col divide-y rounded-md border bg-card elev">
       {rows.map(({ task, eventName }) => (
         <li key={task.id}>
           <Link
@@ -135,7 +135,7 @@ function ActivityList({
     );
   }
   return (
-    <ul className="flex flex-col divide-y rounded-md border bg-card">
+    <ul className="flex flex-col divide-y rounded-md border bg-card elev">
       {items.map((entry) => (
         <li key={entry.id} className="flex flex-col gap-0.5 px-4 py-2.5">
           <span className="flex flex-wrap items-center gap-1.5 text-sm">
@@ -194,7 +194,7 @@ export default async function MyTasksPage({
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-4">
-        <h1 className="text-3xl font-semibold uppercase tracking-tight">
+        <h1 className="text-3xl font-semibold tracking-tight">
           Your work
         </h1>
         <nav className="flex gap-1 overflow-x-auto border-b">
@@ -222,7 +222,7 @@ export default async function MyTasksPage({
             <>
               {/* overview */}
               <div className="flex flex-col gap-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wider">
+                <h2 className="text-sm font-semibold">
                   Overview
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-3">
@@ -253,7 +253,7 @@ export default async function MyTasksPage({
 
               {/* workload */}
               <div className="flex flex-col gap-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wider">
+                <h2 className="text-sm font-semibold">
                   Workload
                 </h2>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
@@ -277,7 +277,7 @@ export default async function MyTasksPage({
               {/* charts */}
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="flex flex-col gap-3">
-                  <h2 className="text-sm font-semibold uppercase tracking-wider">
+                  <h2 className="text-sm font-semibold">
                     Open tasks by priority
                   </h2>
                   <div className="flex flex-col gap-2.5 rounded-md border bg-card p-4">
@@ -306,7 +306,7 @@ export default async function MyTasksPage({
                   </div>
                 </div>
                 <div className="flex flex-col gap-3">
-                  <h2 className="text-sm font-semibold uppercase tracking-wider">
+                  <h2 className="text-sm font-semibold">
                     Open tasks by state
                   </h2>
                   <div className="flex flex-col gap-2.5 rounded-md border bg-card p-4">
@@ -339,7 +339,7 @@ export default async function MyTasksPage({
               {/* recent activity */}
               <div className="flex flex-col gap-3">
                 <div className="flex items-baseline justify-between">
-                  <h2 className="text-sm font-semibold uppercase tracking-wider">
+                  <h2 className="text-sm font-semibold">
                     Recent activity
                   </h2>
                   <Link
@@ -432,7 +432,7 @@ export default async function MyTasksPage({
 
           {work.divisions.length > 0 ? (
             <div className="flex flex-col gap-2 rounded-md border bg-card p-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <h3 className="text-xs font-semibold text-muted-foreground">
                 My divisions
               </h3>
               {work.divisions.map((d) => (
@@ -447,7 +447,7 @@ export default async function MyTasksPage({
           ) : null}
 
           <div className="flex flex-col gap-2 rounded-md border bg-card p-4">
-            <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <h3 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
               <CalendarRange className="size-3.5" /> Working on
             </h3>
             {work.events.length === 0 ? (

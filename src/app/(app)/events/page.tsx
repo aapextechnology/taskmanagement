@@ -5,6 +5,8 @@ import { Countdown } from "@/components/countdown";
 import { HealthBadge } from "@/components/health-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { sessionActor } from "@/lib/auth/session-actor";
+import { CalendarRange } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { listActiveEvents } from "@/lib/events/service";
 import { can } from "@/lib/permissions";
 
@@ -21,9 +23,14 @@ export default async function EventsPage() {
   return (
     <section className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold uppercase tracking-tight">
-          Events
-        </h1>
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Events
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Every active show — open one to reach its board, budget, and crew.
+          </p>
+        </div>
         {canCreate ? (
           <Link href="/events/new" className={buttonVariants()}>
             New event ↗
@@ -32,16 +39,25 @@ export default async function EventsPage() {
       </div>
 
       {events.length === 0 ? (
-        <p className="py-16 text-sm text-muted-foreground">
-          No active events. {canCreate ? "Create the first one." : ""}
-        </p>
+        <EmptyState
+          icon={CalendarRange}
+          title="No active events"
+          hint="Create the first show — its board, budget, and crew spaces come with it."
+          action={
+            canCreate ? (
+              <Link href="/events/new" className={buttonVariants()}>
+                New event ↗
+              </Link>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {events.map((event) => (
             <Link
               key={event.id}
               href={`/events/${event.id}`}
-              className="group flex flex-col overflow-hidden rounded-md border transition-colors hover:border-foreground/40"
+              className="group flex flex-col overflow-hidden rounded-md border elev elev-hover hover:border-foreground/40"
             >
               <div className="relative aspect-[3/2] w-full overflow-hidden bg-muted">
                 {event.coverImagePath ? (

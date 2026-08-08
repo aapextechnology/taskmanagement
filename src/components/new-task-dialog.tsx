@@ -51,14 +51,14 @@ export function NewTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline">New task ↗</Button>} />
+      <DialogTrigger render={<Button>New task ↗</Button>} />
       <DialogContent className="max-h-[85vh] gap-0 overflow-y-auto p-0 sm:max-w-2xl">
         <form action={formAction} className="flex flex-col">
           <input type="hidden" name="eventId" value={eventId} />
           <input type="hidden" name="divisionId" value={division.id} />
 
           <div className="flex flex-col gap-1 px-6 pb-2 pt-6">
-            <DialogTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            <DialogTitle className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
               Create task
               {divisions.length === 1 ? (
                 <span className="rounded-sm border px-1.5 py-0.5 text-[10px] normal-case tracking-normal">

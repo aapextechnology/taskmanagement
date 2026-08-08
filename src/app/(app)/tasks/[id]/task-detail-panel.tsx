@@ -92,7 +92,7 @@ export async function TaskDetailPanel({
             className={
               compact
                 ? "text-xl font-semibold leading-tight tracking-tight"
-                : "text-3xl font-semibold uppercase leading-tight tracking-tight"
+                : "text-3xl font-semibold leading-tight tracking-tight"
             }
           >
             {task.title}
@@ -147,7 +147,7 @@ export async function TaskDetailPanel({
 
       {/* description — wide, always available (Owner request) */}
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
+        <h2 className="text-sm font-semibold">
           Description
         </h2>
         <DescriptionEditor
@@ -159,7 +159,7 @@ export async function TaskDetailPanel({
 
       {/* assignees — popover manager (Owner request) */}
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
+        <h2 className="text-sm font-semibold">
           Lead / PIC
         </h2>
         <LeadPicker
@@ -171,7 +171,7 @@ export async function TaskDetailPanel({
       </div>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
+        <h2 className="text-sm font-semibold">
           Assignees
         </h2>
         <AssigneeManager
@@ -185,7 +185,7 @@ export async function TaskDetailPanel({
       {/* checklist with progress (Owner request) */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider">
+          <h2 className="text-sm font-semibold">
             Checklist
           </h2>
           {task.checklist.length > 0 ? (
@@ -342,7 +342,7 @@ export async function TaskDetailPanel({
 
       {/* labels */}
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">Labels</h2>
+        <h2 className="text-sm font-semibold">Labels</h2>
         <div className="flex flex-wrap items-center gap-2">
           {task.labels.map((label) => (
             <form action={labelRemoveAction} key={label.id} className="inline-flex">
@@ -398,7 +398,7 @@ export async function TaskDetailPanel({
 
       {/* attachments */}
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
+        <h2 className="text-sm font-semibold">
           Attachments
         </h2>
         <ul className="flex flex-col gap-1 text-sm">
@@ -418,7 +418,7 @@ export async function TaskDetailPanel({
 
       {/* comments */}
       <div className="flex flex-col gap-4 border-t pt-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
+        <h2 className="text-sm font-semibold">
           Comments
         </h2>
         <ul className="flex flex-col gap-4">

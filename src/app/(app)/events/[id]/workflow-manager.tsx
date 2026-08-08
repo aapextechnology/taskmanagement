@@ -37,7 +37,7 @@ export function WorkflowManager({
 
   return (
     <div className="flex w-full flex-col gap-3 rounded-md border bg-card p-4">
-      <span className="text-xs font-semibold uppercase tracking-wider">
+      <span className="text-xs font-semibold">
         Workflow phases
       </span>
       <ol className="flex flex-col gap-1.5">

@@ -34,7 +34,7 @@ export default async function TemplatesPage({
         >
           ← Admin
         </Link>
-        <h1 className="text-2xl font-semibold uppercase tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           Event playbooks
         </h1>
         <p className="text-sm text-muted-foreground">

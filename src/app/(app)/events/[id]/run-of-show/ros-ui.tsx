@@ -108,7 +108,7 @@ function EditItemDialog({ eventId, item }: { eventId: string; item: RosItem }) {
           <input type="hidden" name="eventId" value={eventId} />
           <input type="hidden" name="itemId" value={item.id} />
           <div className="flex flex-col gap-4 px-6 pb-4 pt-6">
-            <DialogTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            <DialogTitle className="text-xs font-semibold text-muted-foreground">
               Edit rundown item
             </DialogTitle>
             <ItemFields item={item} />

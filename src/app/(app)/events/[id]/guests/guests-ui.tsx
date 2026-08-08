@@ -132,7 +132,7 @@ export function InviteList({
     );
   }
   return (
-    <ul className="flex flex-col divide-y rounded-md border bg-card">
+    <ul className="flex flex-col divide-y rounded-md border bg-card elev">
       {invites.map((invite) => (
         <li
           key={invite.id}

@@ -43,7 +43,7 @@ export default async function GuestsPage({
         >
           ← {event.name}
         </Link>
-        <h1 className="text-2xl font-semibold uppercase tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           External guests
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -60,7 +60,7 @@ export default async function GuestsPage({
       ) : null}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
+        <h2 className="text-sm font-semibold">
           Invites{invites.length > 0 ? ` · ${invites.length}` : ""}
         </h2>
         <InviteList
@@ -79,7 +79,7 @@ export default async function GuestsPage({
       </div>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
+        <h2 className="text-sm font-semibold">
           Submissions{submissions.length > 0 ? ` · ${submissions.length}` : ""}
         </h2>
         <SubmissionReviewList

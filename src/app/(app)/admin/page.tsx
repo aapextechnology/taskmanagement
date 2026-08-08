@@ -20,7 +20,7 @@ export default async function AdminPage() {
   return (
     <section className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold uppercase tracking-tight">Admin</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Admin</h1>
         <Link
           href="/admin/audit"
           className="text-xs font-medium uppercase tracking-wider text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"

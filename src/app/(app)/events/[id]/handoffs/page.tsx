@@ -47,7 +47,7 @@ export default async function HandoffsPage({
         >
           ← {event.name}
         </Link>
-        <h1 className="text-2xl font-semibold uppercase tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           Handoffs
         </h1>
         <p className="text-sm text-muted-foreground">

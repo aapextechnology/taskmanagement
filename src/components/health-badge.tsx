@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils";
 
-// Monochrome health badge: severity reads through weight and border, not hue;
-// only CRITICAL borrows the destructive token.
+// Health badge (design overhaul 2026-08-07): full functional-color fills so
+// health reads at a glance — green/amber/red tints, chrome stays monochrome.
 const STYLES = {
-  on_track: "border-border text-muted-foreground",
-  at_risk: "border-foreground text-foreground",
-  critical: "border-destructive text-destructive",
+  on_track: "border-transparent bg-status-done/15 text-status-done",
+  at_risk: "border-transparent bg-status-in-progress/15 text-status-in-progress",
+  critical: "border-transparent bg-status-blocked/15 text-status-blocked",
 } as const;
 
 const LABELS = {

@@ -53,7 +53,7 @@ export function DivisionsManager({
       {[...selected].map((id) => (
         <input key={id} type="hidden" name="divisionIds" value={id} />
       ))}
-      <span className="text-xs font-semibold uppercase tracking-wider">
+      <span className="text-xs font-semibold">
         Divisions on this event
       </span>
       <div className="flex flex-wrap gap-1.5">

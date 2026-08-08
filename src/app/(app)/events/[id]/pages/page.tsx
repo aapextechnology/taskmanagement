@@ -40,13 +40,13 @@ export default async function EventPagesPage({
           >
             ← {event.name}
           </Link>
-          <h1 className="text-2xl font-semibold uppercase tracking-tight">
+          <h1 className="text-2xl font-semibold tracking-tight">
             Pages
           </h1>
         </div>
         <form action={createPageAction}>
           <input type="hidden" name="eventId" value={id} />
-          <Button type="submit" variant="outline" className="gap-1.5">
+          <Button type="submit" className="gap-1.5">
             <Plus className="size-3.5" /> New page
           </Button>
         </form>
@@ -58,7 +58,7 @@ export default async function EventPagesPage({
           first one.
         </p>
       ) : (
-        <ul className="flex flex-col divide-y rounded-md border bg-card">
+        <ul className="flex flex-col divide-y rounded-md border bg-card elev">
           {pages.map((page) => (
             <li key={page.id}>
               <Link

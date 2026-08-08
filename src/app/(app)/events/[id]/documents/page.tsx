@@ -64,7 +64,7 @@ export default async function DocumentsPage({
         >
           ← {event.name}
         </Link>
-        <h1 className="text-2xl font-semibold uppercase tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           Documents
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -113,7 +113,7 @@ export default async function DocumentsPage({
           {category ? "No documents in this category yet." : "No documents uploaded yet."}
         </p>
       ) : (
-        <ul className="flex flex-col divide-y rounded-md border bg-card">
+        <ul className="flex flex-col divide-y rounded-md border bg-card elev">
           {docs.map((doc) => (
             <li
               key={doc.id}

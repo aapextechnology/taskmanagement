@@ -58,7 +58,7 @@ export default async function BudgetPage({
         >
           ← {event.name}
         </Link>
-        <h1 className="text-2xl font-semibold uppercase tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           Budget
         </h1>
       </div>
@@ -88,7 +88,7 @@ export default async function BudgetPage({
 
       {/* budget lines */}
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
+        <h2 className="text-sm font-semibold">
           Budget lines
         </h2>
         {lines.length === 0 ? (
@@ -170,7 +170,7 @@ export default async function BudgetPage({
       {/* expenses */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wider">
+          <h2 className="text-sm font-semibold">
             Expense requests
           </h2>
           {myExpenseDivisions.length > 0 ? (

@@ -60,7 +60,7 @@ export default async function GuestHome() {
   return (
     <section className="flex flex-col gap-10">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold uppercase leading-tight tracking-tight">
+        <h1 className="text-3xl font-semibold leading-tight tracking-tight">
           {context.eventName}
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -77,7 +77,7 @@ export default async function GuestHome() {
       {/* requested forms */}
       {requestedForms.length > 0 ? (
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider">
+          <h2 className="text-sm font-semibold">
             Requested forms
           </h2>
           <ul className="grid gap-3 sm:grid-cols-2">
@@ -125,7 +125,7 @@ export default async function GuestHome() {
 
       {/* assigned tasks */}
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider">
+        <h2 className="text-sm font-semibold">
           Your tasks
         </h2>
         {tasks.length === 0 ? (

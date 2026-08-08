@@ -39,7 +39,7 @@ export default async function RunOfShowPage({
           >
             ← {event.name}
           </Link>
-          <h1 className="text-2xl font-semibold uppercase tracking-tight">
+          <h1 className="text-2xl font-semibold tracking-tight">
             Run of show
           </h1>
           {!canManage ? (
@@ -53,7 +53,7 @@ export default async function RunOfShowPage({
 
       {/* print header */}
       <div className="hidden print:block">
-        <h1 className="text-2xl font-bold uppercase">{event.name} — Run of show</h1>
+        <h1 className="text-2xl font-bold">{event.name} — Run of show</h1>
         <p className="text-sm">
           {showDateFormat.format(event.showDate)} · {event.venue}
         </p>

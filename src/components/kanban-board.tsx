@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { updateStatusAction } from "@/app/(app)/tasks/actions";
 import { DependencyBadge } from "@/components/dependency-badge";
 import { LabelChip } from "@/components/label-chip";
@@ -59,6 +60,7 @@ export function KanbanBoard({ tasks }: { tasks: KanbanTask[] }) {
     formData.set("status", status);
     startTransition(async () => {
       await updateStatusAction(formData);
+      toast.success(`Moved to ${STATUS_TEXT[status]}`);
       router.refresh();
     });
   };
@@ -106,7 +108,7 @@ export function KanbanBoard({ tasks }: { tasks: KanbanTask[] }) {
                     onDragStart={() => setDragId(task.id)}
                     onDragEnd={() => setDragId(null)}
                     className={cn(
-                      "group flex cursor-grab flex-col gap-2 rounded-md border bg-card p-3 shadow-xs transition-all hover:border-foreground/25 hover:shadow-sm active:cursor-grabbing",
+                      "group flex cursor-grab flex-col gap-2 rounded-md border bg-card p-3 elev elev-hover hover:border-foreground/25 active:cursor-grabbing",
                       dragId === task.id && "rotate-1 opacity-60",
                     )}
                   >

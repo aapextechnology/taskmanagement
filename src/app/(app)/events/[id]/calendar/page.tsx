@@ -56,7 +56,7 @@ export default async function EventCalendarPage({
           ← {event.name}
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold uppercase tracking-tight">
+          <h1 className="text-2xl font-semibold tracking-tight">
             Schedule
           </h1>
           <ScheduleViewToggle eventId={id} active="calendar" />
