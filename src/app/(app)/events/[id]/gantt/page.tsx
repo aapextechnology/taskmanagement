@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ScheduleViewToggle } from "@/components/schedule-view-toggle";
 import { notFound, redirect } from "next/navigation";
 import { StatusDot, type StatusKey } from "@/components/task-meta";
 import { sessionActor } from "@/lib/auth/session-actor";
@@ -146,7 +147,12 @@ export default async function EventGanttPage({
         >
           ← {event.name}
         </Link>
-        <h1 className="text-2xl font-semibold uppercase tracking-tight">Gantt</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold uppercase tracking-tight">
+            Schedule
+          </h1>
+          <ScheduleViewToggle eventId={id} active="gantt" />
+        </div>
       </div>
 
       <div className="flex items-center gap-4 text-xs text-muted-foreground">

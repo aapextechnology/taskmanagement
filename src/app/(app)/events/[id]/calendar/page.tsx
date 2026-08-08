@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ScheduleViewToggle } from "@/components/schedule-view-toggle";
 import { notFound, redirect } from "next/navigation";
 import { CalendarGrid } from "@/components/calendar-grid";
 import { CalendarMonthNav } from "@/components/calendar-month-nav";
@@ -54,9 +55,12 @@ export default async function EventCalendarPage({
         >
           ← {event.name}
         </Link>
-        <h1 className="text-2xl font-semibold uppercase tracking-tight">
-          Calendar
-        </h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold uppercase tracking-tight">
+            Schedule
+          </h1>
+          <ScheduleViewToggle eventId={id} active="calendar" />
+        </div>
       </div>
 
       <CalendarMonthNav

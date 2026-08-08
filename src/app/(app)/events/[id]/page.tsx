@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Countdown } from "@/components/countdown";
 import { HealthBadge } from "@/components/health-badge";
 import { PhaseSteps } from "@/components/phase-steps";
+import { StatusDot } from "@/components/task-meta";
 import { FileDown } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { sessionActor } from "@/lib/auth/session-actor";
@@ -12,7 +14,9 @@ import {
   listPhases,
 } from "@/lib/events/service";
 import { listDivisions } from "@/lib/org/service";
+import { buildEventTaskSummary } from "@/lib/events/task-summary";
 import { can } from "@/lib/permissions";
+import { listEventTasks } from "@/lib/tasks/service";
 import { listTemplates } from "@/lib/templates/service";
 import { archiveEventAction, setCurrentPhaseAction } from "../actions";
 import { ApplyPlaybook } from "./apply-playbook";
@@ -39,12 +43,22 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
   const canManage = can(actor, "event.updatePhase");
   const canManageDivisions = can(actor, "event.manageDivisions");
   const canManageWorkflow = can(actor, "event.manageWorkflow");
-  const [activeDivisions, allDivisions, phases, templates] = await Promise.all([
-    listEventDivisions(actor, event.id),
-    canManageDivisions ? listDivisions() : [],
-    listPhases(actor, event.id),
-    can(actor, "event.create") ? listTemplates() : [],
-  ]);
+  const [activeDivisions, allDivisions, phases, templates, eventTasks] =
+    await Promise.all([
+      listEventDivisions(actor, event.id),
+      canManageDivisions ? listDivisions() : [],
+      listPhases(actor, event.id),
+      can(actor, "event.create") ? listTemplates() : [],
+      listEventTasks(actor, event.id),
+    ]);
+
+  // task summary (Owner 2026-08-07) — same progress rule as dashboard + PDF
+  const {
+    progress,
+    overdueCount,
+    statusMix,
+    divisions: divisionSummary,
+  } = buildEventTaskSummary(eventTasks, activeDivisions);
   const currentIndex = phases.findIndex((p) => p.id === event.currentPhaseId);
   const nextPhase = currentIndex >= 0 ? phases[currentIndex + 1] : phases[0];
 
@@ -120,31 +134,88 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
         </div>
       </div>
 
-      <nav className="flex flex-wrap gap-6">
-        {[
-          { href: `/events/${event.id}/board`, label: "Board" },
-          { href: `/events/${event.id}/list`, label: "List" },
-          { href: `/events/${event.id}/calendar`, label: "Calendar" },
-          { href: `/events/${event.id}/gantt`, label: "Gantt" },
-          { href: `/events/${event.id}/handoffs`, label: "Handoffs" },
-          { href: `/events/${event.id}/budget`, label: "Budget" },
-          { href: `/events/${event.id}/guests`, label: "Guests" },
-          { href: `/events/${event.id}/documents`, label: "Documents" },
-          { href: `/events/${event.id}/run-of-show`, label: "Run of show" },
-          { href: `/events/${event.id}/tickets`, label: "Tickets" },
-        ].map((tab) => (
-          <a
-            key={tab.href}
-            href={tab.href}
-            className="group inline-flex items-center gap-1 text-sm font-medium uppercase tracking-wider underline-offset-4 hover:underline"
-          >
-            {tab.label}
-            <span aria-hidden className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
-              ↗
-            </span>
-          </a>
-        ))}
-      </nav>
+      {/* task summary — the tabs moved into the sidebar's expandable event
+          entry (Owner 2026-08-07); this page now answers "how are we doing" */}
+      <div className="flex flex-col gap-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wider">
+          Task summary
+        </h2>
+        {progress.total === 0 ? (
+          <p className="rounded-md border border-dashed px-4 py-4 text-sm text-muted-foreground">
+            No tasks yet — open the{" "}
+            <Link href={`/events/${event.id}/board`} className="underline">
+              board
+            </Link>{" "}
+            or apply a playbook below.
+          </p>
+        ) : (
+          <>
+            <div className="flex flex-col gap-2 rounded-md border bg-card p-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-2xl font-semibold tabular-nums">
+                  {progress.pct !== null ? `${progress.pct}%` : "—"}
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    {progress.done}/{progress.committed} committed tasks done
+                  </span>
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {progress.backlog > 0 ? `${progress.backlog} in backlog · ` : ""}
+                  {overdueCount > 0 ? (
+                    <span className="font-semibold text-status-blocked">
+                      {overdueCount} overdue
+                    </span>
+                  ) : (
+                    "nothing overdue"
+                  )}
+                </span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full bg-foreground/70 transition-all"
+                  style={{ width: `${progress.pct ?? 0}%` }}
+                />
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs text-muted-foreground">
+                {statusMix.map((s) => (
+                  <span key={s.status} className="flex items-center gap-1.5">
+                    <StatusDot status={s.status} />
+                    {s.label} <span className="tabular-nums">{s.count}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <ul className="grid gap-x-6 gap-y-1 rounded-md border bg-card px-4 py-3 sm:grid-cols-2">
+              {divisionSummary.map((d) => (
+                <li key={d.id}>
+                  <Link
+                    href={`/events/${event.id}/board?division=${d.id}`}
+                    className="flex items-center gap-3 py-1 text-sm hover:underline"
+                  >
+                    <span className="min-w-0 flex-1 truncate">{d.name}</span>
+                    {d.overdue > 0 ? (
+                      <span className="rounded-full bg-status-blocked/15 px-1.5 text-[10px] font-semibold tabular-nums text-status-blocked">
+                        {d.overdue}
+                      </span>
+                    ) : null}
+                    <span className="w-14 text-right text-xs tabular-nums text-muted-foreground">
+                      {d.done}/{d.total}
+                    </span>
+                    <span className="h-1 w-16 overflow-hidden rounded-full bg-muted">
+                      <span
+                        className="block h-full bg-foreground/60"
+                        style={{
+                          width: `${d.total > 0 ? Math.round((d.done / d.total) * 100) : 0}%`,
+                        }}
+                      />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-start gap-3">
         {canManageWorkflow ? (

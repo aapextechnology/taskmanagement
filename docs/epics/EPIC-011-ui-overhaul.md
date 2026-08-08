@@ -49,6 +49,19 @@ instead of a page navigation. Keep the RVC monochrome chrome; color becomes func
 
 ## Automation Log
 
+- 2026-08-07 **T-114 batch (Owner): event workspace navigation.** Sidebar event
+  entries now expand (chevron; auto-open inside the event) into Board / List /
+  Calendar / Handoffs / Budget / Guests / Documents / Run of show / Tickets —
+  same component serves desktop + mobile nav. Gantt merged under Calendar as a
+  "Schedule" page pair with a Calendar⇄Gantt view toggle (`schedule-view-toggle`);
+  sidebar highlights Calendar for both routes. Event detail page: plain tab
+  links removed, replaced by a Task summary (shared progress rule from
+  `lib/tasks/progress`, status mix, overdue count, per-division bars linking to
+  filtered boards; computed in `lib/events/task-summary` — clock reads banned in
+  render by react-hooks purity). Manage controls (Workflow/Divisions/PDF/
+  Playbook) unchanged. Gates green; deployed DEV; verified live.
+
+
 - 2026-08-06 **T-110..T-113 done** — sidebar shell (desktop fixed + mobile sheet, events quick list with health dots, user block), task peek drawer via Next intercepting route (`@modal` slot + `(...)tasks/[id]`; back closes, refresh → full page, shared `TaskDetailPanel`), functional color tokens + `task-meta.tsx` atoms (StatusDot/Chip, PriorityIcon Jira-style chevrons, AvatarStack), kanban/List/My-Tasks re-skinned. `/` now redirects to my-tasks. Gotcha: react-hooks v7 `purity` rule bans `Date.now()` in render — capture via `useState(() => Date.now())`. Deployed to DEV; all pages 200. **T-114 open**: Owner reviews the new look (esp. dark/light + events pages density) and reports what still feels stiff.
 - 2026-08-06 Epic created from Owner UX feedback — supersedes the top-bar shell from T-004.
 
