@@ -1,6 +1,6 @@
 # EPIC-016: Assistant upgrade — named assistant, workspace Pages, file attachments
 
-status: on-progress
+status: ready-for-qa
 environment: dev
 retries: 0
 
