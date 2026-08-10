@@ -21,6 +21,11 @@ import { logActivity } from "@/lib/activity";
 import { recomputeEventHealth } from "@/lib/events/service";
 import { notify, notifyMany } from "@/lib/notifications";
 import {
+  notifyLeadAssigned,
+  notifyMemberAssigned,
+  notifyPriorityUrgent,
+} from "./wa-notify";
+import {
   assertCan,
   can,
   PermissionError,
@@ -228,12 +233,7 @@ export async function createTask(
     .returning();
 
   if (input.leadId && input.leadId !== actor.id) {
-    await notify({
-      userId: input.leadId,
-      type: "assigned",
-      title: "You are the lead (PIC) of a new task",
-      href: `/tasks/${task.id}`,
-    });
+    await notifyLeadAssigned(task.id, input.leadId);
   }
 
   for (const userId of input.assigneeIds ?? []) {
@@ -296,6 +296,11 @@ export async function updateTaskFields(
     detail: { fields: Object.keys(fields) },
     eventId: task.eventId,
   });
+  // a human raising a task to urgent pings its PIC on WhatsApp (T-151);
+  // only on the transition, so re-saving an already-urgent task is silent
+  if (fields.priority === "urgent" && task.priority !== "urgent") {
+    await notifyPriorityUrgent(taskId, { kind: "manual", actorId: actor.id });
+  }
   await recomputeEventHealth(task.eventId);
   // due-date edits shift the overdue input of the bottleneck rule
   if (fields.dueDate !== undefined || fields.priority !== undefined) {
@@ -408,12 +413,7 @@ export async function setTaskLead(
     .set({ leadId: userId, updatedAt: new Date() })
     .where(eq(tasks.id, taskId));
   if (userId && userId !== actor.id) {
-    await notify({
-      userId,
-      type: "assigned",
-      title: "You are now the lead (PIC) of a task",
-      href: `/tasks/${taskId}`,
-    });
+    await notifyLeadAssigned(taskId, userId);
   }
   await logActivity({
     actorId: actor.id,
@@ -437,12 +437,7 @@ export async function assignUser(
     .values({ taskId, userId })
     .onConflictDoNothing();
   if (userId !== actor.id) {
-    await notify({
-      userId,
-      type: "assigned",
-      title: "You were assigned a task",
-      href: `/tasks/${taskId}`,
-    });
+    await notifyMemberAssigned(taskId, userId);
   }
   await logActivity({
     actorId: actor.id,

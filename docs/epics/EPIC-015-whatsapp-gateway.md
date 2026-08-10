@@ -81,3 +81,43 @@ no Meta Business account, no per-message fees.
     typecheck ✅ 190 tests ✅ build ✅.
   - Not done (deliberate): media/attachment sending, inbound message
     handling, group targets, and per-action recipient overrides.
+
+- **T-151 — WhatsApp message templates for assignment and urgent escalation**
+  (2026-08-10). Owner asked for two triggers with proper wording, each
+  message carrying the recipient's name, the task name, and its URL.
+  - Scope decision. The Owner first said "task whose status becomes
+    Critical". There is no Critical *status* in this app; the candidates were
+    the EPIC-012 bottleneck level and priority `urgent`. Owner confirmed
+    **priority = urgent**, which is broader: it covers a human raising the
+    priority by hand *and* the dependency engine's auto-bump.
+  - `src/lib/whatsapp/templates.ts` (new, +9 unit tests): pure builders —
+    `taskAssignedLeadMessage`, `taskAssignedMemberMessage`,
+    `taskUrgentMessage`, plus the reason clauses `manualUrgentReason` and
+    `autoUrgentReason`. Greets by first name only (a full legal name reads
+    wrong on WhatsApp) and falls back to "Hi there" when the name is blank.
+    All wording lives in this one file.
+  - `notify()` gained an optional `waText` builder. The recipient's name is
+    only known inside `fanOutChannels`, so the template is rendered at the
+    last moment rather than at the call site; without it the old generic
+    body is still used, so untouched triggers are unaffected.
+  - `src/lib/tasks/wa-notify.ts` (new): bridges mutations to templates and
+    fetches task title + event name in one join. Separate from `service.ts`
+    so `dependency-engine.ts` can use it without a circular import.
+  - Triggers wired: `createTask` (lead), `setTaskLead`, `assignUser`, and
+    priority→urgent from both `updateTaskFields` (human) and
+    `recomputeBottleneck`'s bump (auto). New notification type
+    `priority_urgent`, routed to in-app + WhatsApp but **not** email —
+    priority churn would make the inbox noisy.
+  - Deliberate limits: the urgent notice goes to the **Lead/PIC only**, not
+    every assignee — blasting the whole team makes the alert cheap. It is
+    silent when the task has no lead, when the lead raised the priority
+    themselves, and on the transition only (re-saving an already-urgent task
+    sends nothing). `decideBump` already returns `none` when priority is
+    already urgent, so a manual edit followed by the recompute cannot
+    double-send.
+  - Gates: lint ✅ typecheck ✅ 199 tests ✅ build ✅ security ✅. Deployed;
+    the gateway auto-resumed on boot (`[whatsapp] connected as 6285…`).
+  - **Open gap, reported to the Owner:** a DB check shows all 14 profiles
+    have `phone = NULL` and `whatsapp_notifications = false`, so the
+    triggers currently reach nobody. Each person must set a number and
+    enable WhatsApp in their own Settings; Admin has no field for it.

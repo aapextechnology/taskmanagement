@@ -100,6 +100,15 @@ export async function recomputeBottleneck(taskId: string): Promise<void> {
 
   await db.update(tasks).set(action.set).where(eq(tasks.id, taskId));
   if (action.kind === "bump") {
+    // the auto-escalation to urgent reaches the PIC on WhatsApp (T-151)
+    const { notifyPriorityUrgent } = await import("./wa-notify");
+    await notifyPriorityUrgent(taskId, {
+      kind: "auto",
+      waiters,
+      overdue: task.dueDate !== null && task.dueDate.getTime() < Date.now(),
+    }).catch((error) =>
+      console.error("[bottleneck] urgent notice failed:", error),
+    );
     await logActivity({
       actorId: null, // system actor — feed renders "System"
       action: "task.priority_auto_bump",
