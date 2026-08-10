@@ -42,6 +42,7 @@ export default async function AdminPage() {
         orgName={branding.orgName}
         orgShortName={branding.orgShortName}
         productName={branding.productName}
+        assistantName={branding.assistantName}
       />
 
       <WhatsAppGateway />

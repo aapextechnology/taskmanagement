@@ -115,6 +115,7 @@ function Markdown({ text }: { text: string }) {
 
 export function AssistantChat({
   userName,
+  assistantName,
   events,
   configured,
   conversationId: initialConversationId = null,
@@ -122,6 +123,8 @@ export function AssistantChat({
   initialEventId = "",
 }: {
   userName: string;
+  /** installation-configured display name (Admin → branding) */
+  assistantName: string;
   events: Array<{ id: string; name: string }>;
   configured: boolean;
   conversationId?: string | null;
@@ -225,7 +228,9 @@ export function AssistantChat({
     return (
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-2 rounded-md border border-dashed px-6 py-16 text-center">
         <Sparkles className="size-6 text-muted-foreground" />
-        <p className="text-sm font-medium">AI assistant is not configured</p>
+        <p className="text-sm font-medium">
+          {assistantName} is not configured
+        </p>
         <p className="text-xs text-muted-foreground">
           Set OPENAI_API_KEY in the server environment, then redeploy.
         </p>

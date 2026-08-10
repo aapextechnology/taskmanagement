@@ -5,6 +5,7 @@ import {
   CalendarRange,
   ChevronRight,
   ClipboardCheck,
+  FileText,
   LayoutDashboard,
   ListChecks,
   MessagesSquare,
@@ -28,6 +29,7 @@ const ICONS: Record<string, LucideIcon> = {
   admin: Settings,
   settings: SlidersHorizontal,
   assistant: Sparkles,
+  pages: FileText,
 };
 
 export interface NavItem {

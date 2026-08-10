@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { getPage } from "@/lib/pages/service";
 import { can } from "@/lib/permissions";
-import { deletePageAction } from "../actions";
-import { PageEditor } from "./page-editor";
+import { deletePageAction, savePageAction } from "../actions";
+import { PageEditor } from "@/components/page-editor";
 
 export const metadata: Metadata = { title: "Page" };
 
@@ -53,6 +53,7 @@ export default async function EventPageDetail({
         pageId={page.id}
         initialTitle={page.title}
         initialContent={page.content}
+        save={savePageAction}
       />
     </section>
   );

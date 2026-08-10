@@ -27,11 +27,19 @@ import TextAlign from "@tiptap/extension-text-align";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { savePageAction } from "../actions";
 import { cn } from "@/lib/utils";
 
-// The per-event page editor (Owner 2026-08-07, Plane/Notion-style).
+// Shared rich-text page editor (Owner 2026-08-07, Plane/Notion-style).
 // Content autosaves as Tiptap JSON ~1.2s after the last keystroke.
+//
+// Used by BOTH the per-event wiki and the standalone Pages module
+// (EPIC-016), which is why the save call arrives as a prop: the two modules
+// have different services and permission rules, but an identical editor.
+
+export type PageSaveAction = (
+  pageId: string,
+  fields: { title?: string; contentJson?: string },
+) => Promise<{ error?: string; savedAt?: string }>;
 
 const COLORS = [
   { key: "default", value: null, swatch: "bg-foreground" },
@@ -260,10 +268,16 @@ export function PageEditor({
   pageId,
   initialTitle,
   initialContent,
+  save,
+  editable = true,
 }: {
   pageId: string;
   initialTitle: string;
   initialContent: unknown;
+  /** module-specific server action — see PageSaveAction */
+  save: PageSaveAction;
+  /** false renders the page read-only (shared without edit rights) */
+  editable?: boolean;
 }) {
   const [title, setTitle] = useState(initialTitle);
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -273,7 +287,7 @@ export function PageEditor({
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setState("saving");
     saveTimer.current = setTimeout(async () => {
-      const result = await savePageAction(pageId, fields);
+      const result = await save(pageId, fields);
       setState(result.error ? "error" : "saved");
     }, 1200);
   };
@@ -292,6 +306,7 @@ export function PageEditor({
       Placeholder.configure({ placeholder: "Write something…" }),
     ],
     content: (initialContent as object | null) ?? undefined,
+    editable,
     onUpdate: ({ editor: current }) => {
       queueSave({ contentJson: JSON.stringify(current.getJSON()) });
     },
@@ -313,6 +328,7 @@ export function PageEditor({
             setTitle(e.target.value);
             queueSave({ title: e.target.value });
           }}
+          readOnly={!editable}
           placeholder="Untitled"
           aria-label="Page title"
           className="w-full bg-transparent text-3xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/40"
@@ -333,7 +349,7 @@ export function PageEditor({
         </span>
       </div>
 
-      {editor ? <Toolbar editor={editor} /> : null}
+      {editor && editable ? <Toolbar editor={editor} /> : null}
 
       <EditorContent
         editor={editor}

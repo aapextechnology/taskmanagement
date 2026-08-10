@@ -40,9 +40,18 @@ export async function AppShell({ children }: { children: ReactNode }) {
       badge: timelineCounts.timeline + timelineCounts.mentions,
     },
     { href: "/approvals", label: "Approvals", icon: "approvals" },
+    ...(actor && can(actor, "page.use")
+      ? [{ href: "/pages", label: "Pages", icon: "pages" as const }]
+      : []),
     { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
     ...(actor && can(actor, "ai.assistant")
-      ? [{ href: "/assistant", label: "AI Assistant", icon: "assistant" as const }]
+      ? [
+          {
+            href: "/assistant",
+            label: branding.assistantName,
+            icon: "assistant" as const,
+          },
+        ]
       : []),
     ...(actor && can(actor, "org.manage")
       ? [{ href: "/admin", label: "Admin", icon: "admin" as const }]

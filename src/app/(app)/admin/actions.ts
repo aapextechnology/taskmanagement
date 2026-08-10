@@ -122,6 +122,7 @@ export async function updateBrandingAction(
       orgName: String(formData.get("orgName") ?? ""),
       orgShortName: String(formData.get("orgShortName") ?? ""),
       productName: String(formData.get("productName") ?? ""),
+      assistantName: String(formData.get("assistantName") ?? ""),
     });
     // branding shows in the shell on every page
     revalidatePath("/", "layout");

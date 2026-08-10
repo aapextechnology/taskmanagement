@@ -176,6 +176,13 @@
       "when": 1786187938517,
       "tag": "0024_ai-conversations",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1786340431618,
+      "tag": "0025_standalone-pages",
+      "breakpoints": true
     }
   ]
 }

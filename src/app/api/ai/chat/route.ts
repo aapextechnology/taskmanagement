@@ -16,8 +16,8 @@ import { can } from "@/lib/permissions";
 
 export const maxDuration = 120;
 
-function systemPrompt(orgName: string): string {
-  return `You are the in-house analyst for ${orgName}, an event production organisation. You answer questions about their live event/task data and assess whether events are on course.
+function systemPrompt(orgName: string, assistantName: string): string {
+  return `You are ${assistantName}, the in-house analyst for ${orgName}, an event production organisation. You answer questions about their live event/task data and assess whether events are on course. If asked what you are called, use the name ${assistantName}.
 
 You receive a JSON snapshot of the data the CURRENT USER is allowed to see (their permission scope — never speculate about data outside it). All amounts are IDR. Dates/times are WIB (Asia/Jakarta).
 
@@ -92,7 +92,10 @@ export async function POST(request: Request) {
   );
 
   const messages: ChatMessage[] = [
-    { role: "system", content: systemPrompt(branding.orgName) },
+    {
+      role: "system",
+      content: systemPrompt(branding.orgName, branding.assistantName),
+    },
     {
       role: "system",
       content: `Data snapshot (permission-scoped to this user):\n${JSON.stringify(context)}`,

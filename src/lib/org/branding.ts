@@ -16,12 +16,20 @@ export interface Branding {
   orgShortName: string;
   /** what the product itself is called after the org name */
   productName: string;
+  /**
+   * What the AI assistant is called in the sidebar, page title and its own
+   * introduction. Configurable rather than hardcoded (Owner 2026-08-10):
+   * RVC calls it "Kintsugi Intelligence", but the open-source default has to
+   * stay generic for whoever installs it.
+   */
+  assistantName: string;
 }
 
 export const DEFAULT_BRANDING: Branding = {
   orgName: "Your Organisation",
   orgShortName: "ORG",
   productName: "Backstage",
+  assistantName: "AI Assistant",
 };
 
 function str(value: unknown, fallback: string): string {
@@ -39,6 +47,8 @@ export async function getBranding(): Promise<Branding> {
       process.env.ORG_SHORT_NAME?.trim() || DEFAULT_BRANDING.orgShortName,
     productName:
       process.env.PRODUCT_NAME?.trim() || DEFAULT_BRANDING.productName,
+    assistantName:
+      process.env.ASSISTANT_NAME?.trim() || DEFAULT_BRANDING.assistantName,
   };
 
   try {
@@ -50,6 +60,7 @@ export async function getBranding(): Promise<Branding> {
           "org_name",
           "org_short_name",
           "product_name",
+          "assistant_name",
         ]),
       );
     const byKey = new Map(rows.map((r) => [r.key, r.value]));
@@ -57,6 +68,10 @@ export async function getBranding(): Promise<Branding> {
       orgName: str(byKey.get("org_name"), envDefaults.orgName),
       orgShortName: str(byKey.get("org_short_name"), envDefaults.orgShortName),
       productName: str(byKey.get("product_name"), envDefaults.productName),
+      assistantName: str(
+        byKey.get("assistant_name"),
+        envDefaults.assistantName,
+      ),
     };
   } catch {
     // never let branding take a page down (e.g. during first boot before
@@ -81,6 +96,8 @@ export async function updateBranding(
     entries.push(["org_short_name", input.orgShortName.trim()]);
   if (input.productName !== undefined)
     entries.push(["product_name", input.productName.trim()]);
+  if (input.assistantName !== undefined)
+    entries.push(["assistant_name", input.assistantName.trim()]);
 
   for (const [key, value] of entries) {
     if (!value) continue; // empty input means "keep current"

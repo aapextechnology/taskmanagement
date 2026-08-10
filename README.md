@@ -93,6 +93,7 @@ All configuration is environment variables — see `.env.example`.
 | `AUTH_SECRET` | Session signing secret (required) — `openssl rand -base64 32` |
 | `APP_URL` / `AUTH_URL` | Public URL. Set both when serving behind a domain or reverse proxy |
 | `ORG_NAME` / `ORG_SHORT_NAME` / `PRODUCT_NAME` | First-boot branding; editable later in Admin |
+| `ASSISTANT_NAME` | What the AI assistant is called (default `AI Assistant`) |
 | `SMTP_*` | Outgoing email. The dev stack includes Mailpit at `localhost:8025` |
 | `UPLOADS_DIR` | Where uploaded files land |
 | `OPENAI_API_KEY` | Optional — enables the AI assistant. Empty disables it cleanly |
@@ -105,6 +106,10 @@ The app carries **your** organisation's name, not ours. Set `ORG_NAME`,
 in **Admin → Organisation branding**. The name flows to the sidebar, page titles,
 the installable app name, notification and digest emails, guest invitations, PDF
 report headers, and the AI assistant's own description of who it works for.
+
+The assistant itself is named separately via `ASSISTANT_NAME` (or the same Admin
+screen) — call it whatever suits your team. It defaults to the neutral
+"AI Assistant".
 
 ---
 
