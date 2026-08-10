@@ -4,6 +4,7 @@ import { ArrowUp, Paperclip, Sparkles, Square, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { UserAvatar } from "@/components/task-meta";
+import { SaveToPage } from "./save-to-page";
 import { cn } from "@/lib/utils";
 
 // Claude-style chat for the AI assistant (EPIC-014, Owner request).
@@ -346,7 +347,17 @@ export function AssistantChat({
               <div className="min-w-0 flex-1 pt-1">
                 {message.role === "assistant" ? (
                   message.content ? (
-                    <Markdown text={message.content} />
+                    <>
+                      <Markdown text={message.content} />
+                      {/* offered once the answer is complete — saving a
+                          half-streamed answer would store a truncated page */}
+                      {streaming && index === messages.length - 1 ? null : (
+                        <SaveToPage
+                          markdown={message.content}
+                          conversationId={conversationRef.current}
+                        />
+                      )}
+                    </>
                   ) : (
                     <span className="inline-block animate-pulse text-sm text-muted-foreground">
                       Thinking…

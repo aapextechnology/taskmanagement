@@ -125,3 +125,37 @@ documents and produces durable output:
     (both sheets, right totals, over-budget verdict), a `.doc` produced the
     warning and no stored row, and a real PNG was described by the vision
     path. Gates: lint ✅ typecheck ✅ 243 tests ✅ build ✅.
+
+- **T-163 — "Save to page" from an assistant answer** (2026-08-10). The
+  answer is markdown; a page stores editor JSON, so pasting it would leave
+  literal `**bold**` on screen.
+  - `src/lib/pages/markdown.ts` — a focused markdown → ProseMirror converter
+    (22 unit tests): headings, bullet/ordered lists, **tables**, blockquotes,
+    fenced code, rules, and the inline marks (bold, italic, code, link).
+    Written by hand rather than pulling in a markdown library: every option
+    needs a DOM or an HTML round-trip, which would drag jsdom into the server
+    bundle for a job this small. Marks nest (a bold link keeps both), code
+    spans are not re-parsed, and `event_id` is not mistaken for italics.
+    Tables pad short rows to the header width, which ProseMirror requires.
+  - **The assistant never writes a page by itself.** The offer appears under
+    a finished answer and a person chooses; nothing reaches a shared surface
+    without that click. It is also hidden while the answer is still
+    streaming, since saving then would store a truncated page.
+  - New pages are created **private**, matching T-160's model — a summary of
+    an uploaded document is exactly the kind of thing that must not default
+    to visible.
+  - The "add to an existing page" picker offers **only the actor's own
+    pages**: `PageListItem` does not carry edit rights, and a page shared
+    with them may be read-only, so offering it would fail on save. Failing
+    closed beats an offer the service then refuses.
+  - `titleFromMarkdown` prefers any heading over the first line — answers
+    often open with "Here is the summary:" before the real title. Caught by
+    a test whose own name contradicted the behaviour I had written.
+  - Verified live end to end: a realistic answer became a page with
+    heading + paragraph (bold mark intact) + a 3-row table + list, appending
+    added blocks without stacking blank paragraphs, and the page was 200 for
+    its author and 404 for another user. Test page deleted afterwards.
+  - **Dependency hygiene:** exceljs pulled a `uuid` with a buffer
+    bounds-check advisory, taking the audit from 1 to 2 moderate. Pinned via
+    a pnpm override to >=11.1.1 and re-proved xlsx extraction still works;
+    the audit is back to the single pre-existing dev-only drizzle-kit one.
