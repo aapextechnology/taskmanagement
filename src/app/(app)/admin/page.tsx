@@ -6,6 +6,7 @@ import { listDivisions, listUsersWithMemberships } from "@/lib/org/service";
 import { can } from "@/lib/permissions";
 import { getBranding } from "@/lib/org/branding";
 import { BrandingForm } from "./branding-form";
+import { WhatsAppGateway } from "./whatsapp-gateway";
 import { AdminTabs } from "./admin-tabs";
 
 export const metadata: Metadata = { title: "Admin" };
@@ -42,6 +43,8 @@ export default async function AdminPage() {
         orgShortName={branding.orgShortName}
         productName={branding.productName}
       />
+
+      <WhatsAppGateway />
 
       <AdminTabs
         users={users.map((u) => ({

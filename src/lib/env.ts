@@ -22,6 +22,9 @@ const schema = z.object({
   ORG_NAME: z.string().default(""),
   ORG_SHORT_NAME: z.string().default(""),
   PRODUCT_NAME: z.string().default(""),
+  // WhatsApp gateway (EPIC-015)
+  WHATSAPP_SESSION_DIR: z.string().default(""),
+  WHATSAPP_COUNTRY_CODE: z.string().default("62"),
   // AI assistant (EPIC-014). Key comes ONLY from the environment — an empty
   // string disables the feature gracefully (route returns a friendly error).
   OPENAI_API_KEY: z.string().default(""),

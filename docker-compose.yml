@@ -59,6 +59,10 @@ services:
       # CHANGE THIS before exposing the app: openssl rand -base64 32
       AUTH_SECRET: ${AUTH_SECRET:-dev-only-secret-change-me}
       UPLOADS_DIR: /data/uploads
+      # WhatsApp gateway: linked-device credentials live on the uploads
+      # volume so a redeploy never forces a re-scan of the QR
+      WHATSAPP_SESSION_DIR: ${WHATSAPP_SESSION_DIR:-/data/uploads/whatsapp-session}
+      WHATSAPP_COUNTRY_CODE: ${WHATSAPP_COUNTRY_CODE:-62}
       # AI assistant (EPIC-014) — interpolated from the host .env, never
       # hardcoded here
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
