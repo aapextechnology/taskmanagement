@@ -7,6 +7,7 @@ import {
   createUser,
   removeMembership,
   setUserActive,
+  setUserContact,
 } from "@/lib/org/service";
 import { getActor } from "@/lib/permissions/actor";
 import { PermissionError } from "@/lib/permissions";
@@ -52,6 +53,7 @@ export async function createUserAction(
         | "member"
         | "external",
       password: String(formData.get("password") ?? "") || undefined,
+      phone: String(formData.get("phone") ?? "") || undefined,
     });
     // optional initial divisions — a user can belong to several
     const divisionIds = formData.getAll("divisionIds").map(String).filter(Boolean);
@@ -61,6 +63,23 @@ export async function createUserAction(
     for (const divisionId of divisionIds) {
       await assignMembership(actor, user.id, divisionId, divisionRole);
     }
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (error) {
+    return asError(error);
+  }
+}
+
+export async function setUserContactAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const actor = await requireActor();
+    await setUserContact(actor, String(formData.get("userId")), {
+      phone: String(formData.get("phone") ?? ""),
+      whatsappNotifications: formData.get("whatsapp") === "on",
+    });
     revalidatePath("/admin");
     return { ok: true };
   } catch (error) {

@@ -14,6 +14,7 @@ import {
   assignMembershipAction,
   createUserAction,
   removeMembershipAction,
+  setUserContactAction,
   toggleActiveAction,
   type ActionState,
 } from "./actions";
@@ -24,6 +25,8 @@ export interface AdminUser {
   email: string;
   role: string;
   isActive: boolean;
+  phone: string | null;
+  whatsappNotifications: boolean;
   memberships: Array<{ divisionId: string; role: string }>;
 }
 
@@ -121,6 +124,61 @@ function ActiveSwitch({ user }: { user: AdminUser }) {
   );
 }
 
+/**
+ * Phone + WhatsApp switch, editable by an admin. Without this a number could
+ * only be set by each person in their own Settings, which left the gateway
+ * with no recipients at all.
+ */
+function ContactCell({ user }: { user: AdminUser }) {
+  const [phone, setPhone] = useState(user.phone ?? "");
+  const [wa, setWa] = useState(user.whatsappNotifications);
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    setUserContactAction,
+    {},
+  );
+  const dirty = phone.trim() !== (user.phone ?? "") || wa !== user.whatsappNotifications;
+
+  return (
+    <form action={formAction} className="flex flex-col gap-1.5">
+      <input type="hidden" name="userId" value={user.id} />
+      {wa ? <input type="hidden" name="whatsapp" value="on" /> : null}
+      <div className="flex items-center gap-2">
+        <Input
+          name="phone"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="08123456789"
+          inputMode="tel"
+          aria-label={`Phone number for ${user.name}`}
+          className="h-8 w-36 text-xs"
+        />
+        <Switch
+          checked={wa}
+          onCheckedChange={setWa}
+          disabled={!phone.trim()}
+          aria-label={`WhatsApp notifications for ${user.name}`}
+        />
+      </div>
+      {state.error ? (
+        <span role="alert" className="text-[10px] text-destructive">
+          {state.error}
+        </span>
+      ) : null}
+      {dirty ? (
+        <Button type="submit" size="sm" disabled={pending} className="h-7 self-start text-xs">
+          {pending ? "Saving…" : "Save"}
+        </Button>
+      ) : user.phone && user.whatsappNotifications ? (
+        <span className="text-[10px] text-status-done">WhatsApp on</span>
+      ) : (
+        <span className="text-[10px] text-muted-foreground">
+          {user.phone ? "Number set, WhatsApp off" : "No number — WhatsApp can't reach them"}
+        </span>
+      )}
+    </form>
+  );
+}
+
 function UsersTable({
   users,
   divisions,
@@ -138,6 +196,7 @@ function UsersTable({
             <th className="px-4 py-3 font-medium">User</th>
             <th className="px-4 py-3 font-medium">Role</th>
             <th className="px-4 py-3 font-medium">Divisions</th>
+            <th className="px-4 py-3 font-medium">WhatsApp</th>
             <th className="px-4 py-3 font-medium">Status</th>
           </tr>
         </thead>
@@ -206,6 +265,9 @@ function UsersTable({
                   )}
                 </div>
               </td>
+              <td className="px-4 py-3 align-top">
+                <ContactCell user={user} />
+              </td>
               <td className="px-4 py-3">
                 <ActiveSwitch user={user} />
               </td>
@@ -239,9 +301,18 @@ function CreateUserForm({ divisions }: { divisions: AdminDivision[] }) {
         <Label>Global role</Label>
         <Segmented name="role" options={GLOBAL_ROLE_OPTIONS} defaultValue="member" />
       </div>
-      <div className="flex max-w-xs flex-col gap-2">
-        <Label htmlFor="new-password">Password (internal roles)</Label>
-        <Input id="new-password" name="password" type="password" minLength={8} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="new-password">Password (internal roles)</Label>
+          <Input id="new-password" name="password" type="password" minLength={8} />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="new-phone">Phone — optional</Label>
+          <Input id="new-phone" name="phone" placeholder="08123456789" inputMode="tel" />
+          <span className="text-[11px] text-muted-foreground">
+            Setting a number switches WhatsApp notifications on for them.
+          </span>
+        </div>
       </div>
       <div className="flex flex-col gap-2.5">
         <Label>Divisions — optional, pick several</Label>

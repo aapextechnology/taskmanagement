@@ -157,3 +157,30 @@ no Meta Business account, no per-message fees.
     default, and a deliberately corrupt body (`{taks}`) was ignored in
     favour of the default rather than sent.
   - Gates: lint ✅ typecheck ✅ 210 tests ✅ build ✅ security ✅.
+
+- **T-153 — Admin-side phone numbers** (2026-08-10). The Owner confirmed what
+  the T-151 check had predicted: assigning a task sent no WhatsApp, because
+  every profile had `phone = NULL`. The templates and the gateway were fine;
+  there were simply no recipients.
+  - The blocker was structural, not a missing value: a number could **only**
+    be set by each person in their own Settings, so getting 14 people
+    connected meant 14 people each remembering to do it.
+  - `setUserContact(actor, userId, …)` (org.manage) plus a WhatsApp column in
+    the Admin users table — phone field and a switch per person — and an
+    optional phone on the Create user form.
+  - **Two behaviours that prevent a silent no-op**, both of which looked
+    "working" before: setting a number in Admin switches WhatsApp *on* (a
+    stored number nobody sends to is pointless), and clearing the number
+    forces the switch *off* (a flag with nowhere to send looks enabled but
+    does nothing). The switch is disabled while the field is empty.
+  - Numbers are normalised through the existing `normalizeMsisdn`, so
+    `0858 8097 4659`, `+62…` and `0062…` all store as one msisdn; junk is
+    rejected at save with a readable message rather than stored and silently
+    skipped at send time. The audit log records *whether* a number is set,
+    never the number itself.
+  - The empty state is explicit — "No number — WhatsApp can't reach them" —
+    so this cannot go unnoticed again.
+  - Verified live: admin 200 with the new column, staff 307; typed
+    `0858 8097 4659` stored as `6285880974659` with the switch on; junk
+    rejected; clearing the number forced the switch off; a real WhatsApp send
+    to the stored number returned `{"ok":true}` with the gateway connected.

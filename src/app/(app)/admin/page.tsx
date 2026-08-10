@@ -54,6 +54,8 @@ export default async function AdminPage() {
           email: u.email,
           role: u.role,
           isActive: u.isActive,
+          phone: u.phone,
+          whatsappNotifications: u.whatsappNotifications,
           memberships: u.memberships.map((m) => ({
             divisionId: m.divisionId,
             role: m.role,
