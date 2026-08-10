@@ -2,6 +2,7 @@
 
 import { Loader2, MessageCircle, Power, QrCode, Send } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -106,13 +107,21 @@ export function WhatsAppGateway() {
             number.
           </p>
         </div>
-        <span className="flex shrink-0 items-center gap-2 rounded-full border px-2.5 py-1 text-xs">
-          <span className={cn("size-2 rounded-full", DOT[state.status])} />
-          {LABEL[state.status]}
-          {state.me ? (
-            <span className="text-muted-foreground">· {state.me}</span>
-          ) : null}
-        </span>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <span className="flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs">
+            <span className={cn("size-2 rounded-full", DOT[state.status])} />
+            {LABEL[state.status]}
+            {state.me ? (
+              <span className="text-muted-foreground">· {state.me}</span>
+            ) : null}
+          </span>
+          <Link
+            href="/admin/notifications"
+            className="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Edit message templates ↗
+          </Link>
+        </div>
       </div>
 
       {state.lastError ? (

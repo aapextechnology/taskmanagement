@@ -1,74 +1,176 @@
-// WhatsApp message templates (EPIC-015 T-151).
+// WhatsApp message templates (EPIC-015 T-151/T-152).
 //
-// Pure string builders — no I/O — so the wording is unit-testable and lives
-// in ONE place to edit. Every template carries the three things a person
-// needs on their phone: who it is for, which task, and a link to open it.
+// Pure, DB-free and client-safe: the admin editor imports renderTemplate and
+// validateTemplate to preview and check wording in the browser, while the
+// notification fan-out imports the same functions on the server. Identical
+// code on both sides is the point — the preview cannot drift from what the
+// team actually receives.
 //
-// WhatsApp formatting: *bold*, _italic_. Keep messages short — this is a
-// personal channel, not a report.
+// The stored bodies live in app_settings (see template-store.ts). These
+// defaults apply until someone edits them, and again after a reset.
+//
+// WhatsApp formatting: *bold*, _italic_.
 
-export interface TaskMessageContext {
-  /** the person receiving the message */
-  recipientName: string;
-  taskTitle: string;
-  eventName: string;
-  /** absolute URL to the task */
-  url: string;
+export type WaTemplateKey =
+  | "task_assigned_lead"
+  | "task_assigned_member"
+  | "task_urgent";
+
+export type PlaceholderName = "name" | "task" | "event" | "url" | "reason";
+
+export interface PlaceholderSpec {
+  name: PlaceholderName;
+  /** shown in the editor next to the insert button */
+  description: string;
+}
+
+const COMMON: PlaceholderSpec[] = [
+  { name: "name", description: "Recipient's first name" },
+  { name: "task", description: "Task title" },
+  { name: "event", description: "Event name" },
+  { name: "url", description: "Link to the task" },
+];
+
+const REASON: PlaceholderSpec = {
+  name: "reason",
+  description: "Why it became urgent",
+};
+
+export interface TemplateSpec {
+  key: WaTemplateKey;
+  label: string;
+  /** when this message is sent, in plain words */
+  trigger: string;
+  placeholders: PlaceholderSpec[];
+}
+
+export const TEMPLATE_SPECS: readonly TemplateSpec[] = [
+  {
+    key: "task_assigned_lead",
+    label: "Assigned as lead (PIC)",
+    trigger:
+      "Sent to the person who becomes the lead of a task, on creation or when the lead changes.",
+    placeholders: COMMON,
+  },
+  {
+    key: "task_assigned_member",
+    label: "Assigned as member",
+    trigger: "Sent to each person added to a task's assignees.",
+    placeholders: COMMON,
+  },
+  {
+    key: "task_urgent",
+    label: "Task became urgent",
+    trigger:
+      "Sent to the lead (PIC) when a task reaches priority Urgent — raised by a person, or auto-escalated by dependencies.",
+    placeholders: [...COMMON, REASON],
+  },
+];
+
+export const DEFAULT_TEMPLATES: Record<WaTemplateKey, string> = {
+  task_assigned_lead: `Hi {name}, you are now the *lead (PIC)* of a task.
+
+*{task}*
+Event: {event}
+
+Open it: {url}`,
+  task_assigned_member: `Hi {name}, you have been *assigned a task*.
+
+*{task}*
+Event: {event}
+
+Open it: {url}`,
+  task_urgent: `Hi {name}, a task you lead is now *URGENT*.
+
+*{task}*
+Event: {event}
+Why: {reason}.
+
+Open it: {url}`,
+};
+
+/** Longest body we accept. WhatsApp itself allows far more; this keeps a
+ *  notification a notification rather than a newsletter. */
+export const MAX_TEMPLATE_LENGTH = 1000;
+
+/** Placeholders a message is useless without. */
+const REQUIRED: PlaceholderName[] = ["task", "url"];
+
+const PLACEHOLDER_RE = /\{([a-zA-Z_]+)\}/g;
+
+export type TemplateVars = Partial<Record<PlaceholderName, string>>;
+
+/**
+ * Substitutes {placeholders}. Unknown names are left verbatim rather than
+ * blanked, so a typo that slipped past validation is visible in the message
+ * instead of silently producing a hole.
+ */
+export function renderTemplate(body: string, vars: TemplateVars): string {
+  return body.replace(PLACEHOLDER_RE, (whole, rawName: string) => {
+    const value = vars[rawName as PlaceholderName];
+    return value === undefined ? whole : value;
+  });
+}
+
+export type TemplateValidation =
+  | { ok: true }
+  | { ok: false; error: string };
+
+/**
+ * Checked on save so a broken template is rejected at the editor rather than
+ * discovered by the whole team on WhatsApp.
+ */
+export function validateTemplate(
+  key: WaTemplateKey,
+  body: string,
+): TemplateValidation {
+  const trimmed = body.trim();
+  if (!trimmed) {
+    return { ok: false, error: "The message cannot be empty." };
+  }
+  if (trimmed.length > MAX_TEMPLATE_LENGTH) {
+    return {
+      ok: false,
+      error: `Too long — ${trimmed.length} characters, the limit is ${MAX_TEMPLATE_LENGTH}.`,
+    };
+  }
+
+  const spec = TEMPLATE_SPECS.find((s) => s.key === key);
+  const allowed = new Set<string>(
+    (spec?.placeholders ?? COMMON).map((p) => p.name),
+  );
+
+  const used = new Set<string>();
+  for (const match of trimmed.matchAll(PLACEHOLDER_RE)) used.add(match[1]);
+
+  const unknown = [...used].filter((n) => !allowed.has(n));
+  if (unknown.length > 0) {
+    return {
+      ok: false,
+      error: `Unknown placeholder${unknown.length > 1 ? "s" : ""}: ${unknown
+        .map((n) => `{${n}}`)
+        .join(", ")}. Allowed: ${[...allowed].map((n) => `{${n}}`).join(", ")}.`,
+    };
+  }
+
+  const missing = REQUIRED.filter((n) => allowed.has(n) && !used.has(n));
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      error: `Keep ${missing
+        .map((n) => `{${n}}`)
+        .join(" and ")} — without it the message cannot be acted on.`,
+    };
+  }
+
+  return { ok: true };
 }
 
 /** First name only — a WhatsApp message greeting a full legal name reads odd. */
-function firstName(fullName: string): string {
+export function firstName(fullName: string): string {
   const clean = fullName.trim();
   if (!clean) return "there";
   return clean.split(/\s+/)[0];
-}
-
-/**
- * Sent when someone is made the Lead/PIC of a task — the person accountable
- * for it, as opposed to the people working on it.
- */
-export function taskAssignedLeadMessage(ctx: TaskMessageContext): string {
-  return [
-    `Hi ${firstName(ctx.recipientName)}, you are now the *lead (PIC)* of a task.`,
-    "",
-    `*${ctx.taskTitle}*`,
-    `Event: ${ctx.eventName}`,
-    "",
-    `Open it: ${ctx.url}`,
-  ].join("\n");
-}
-
-/** Sent to each person added to a task's assignee list. */
-export function taskAssignedMemberMessage(ctx: TaskMessageContext): string {
-  return [
-    `Hi ${firstName(ctx.recipientName)}, you have been *assigned a task*.`,
-    "",
-    `*${ctx.taskTitle}*`,
-    `Event: ${ctx.eventName}`,
-    "",
-    `Open it: ${ctx.url}`,
-  ].join("\n");
-}
-
-export interface UrgentMessageContext extends TaskMessageContext {
-  /** one clause explaining the escalation, rendered after "Why:" */
-  reason: string;
-}
-
-/**
- * Sent to the Lead/PIC the moment a task they own reaches priority URGENT —
- * whether a human raised it or the dependency engine auto-escalated it.
- */
-export function taskUrgentMessage(ctx: UrgentMessageContext): string {
-  return [
-    `Hi ${firstName(ctx.recipientName)}, a task you lead is now *URGENT*.`,
-    "",
-    `*${ctx.taskTitle}*`,
-    `Event: ${ctx.eventName}`,
-    `Why: ${ctx.reason}.`,
-    "",
-    `Open it: ${ctx.url}`,
-  ].join("\n");
 }
 
 /** Reason clause for a priority a person set by hand. */
@@ -89,7 +191,14 @@ export function autoUrgentReason(input: {
     input.waiters === 1
       ? "1 other task is waiting on it"
       : `${input.waiters} other tasks are waiting on it`;
-  return input.overdue
-    ? `${blocked}, and it is past its due date`
-    : blocked;
+  return input.overdue ? `${blocked}, and it is past its due date` : blocked;
 }
+
+/** Sample values so the editor can preview without touching the database. */
+export const PREVIEW_VARS: Required<TemplateVars> = {
+  name: "Tono",
+  task: "Confirm stage rigging vendor",
+  event: "YE Live in Jakarta",
+  url: "https://example.com/tasks/8f2e-4c1a",
+  reason: "3 other tasks are waiting on it, and it is past its due date",
+};

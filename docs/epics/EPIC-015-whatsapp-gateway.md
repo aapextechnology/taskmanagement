@@ -121,3 +121,39 @@ no Meta Business account, no per-message fees.
     have `phone = NULL` and `whatsapp_notifications = false`, so the
     triggers currently reach nobody. Each person must set a number and
     enable WhatsApp in their own Settings; Admin has no field for it.
+
+- **T-152 — Admin-only editor for the WhatsApp message templates**
+  (2026-08-10). Owner asked where the template editor was; there wasn't one,
+  the wording lived in code. Built it, because the project is now open
+  source: another organisation should be able to reword or translate the
+  messages without forking and rebuilding.
+  - `templates.ts` refactored from fixed builders to placeholder bodies:
+    `DEFAULT_TEMPLATES`, `renderTemplate`, `validateTemplate`,
+    `TEMPLATE_SPECS` (label, trigger description, allowed placeholders).
+    The module stays pure and DB-free, so the **browser preview imports the
+    same render/validate functions the server sends with** — the preview
+    cannot drift from the real message.
+  - `template-store.ts`: bodies persist in `app_settings` under
+    `wa_template_<key>`, the same accessor pattern as branding — **no new
+    table, no migration**. A missing/empty row means "use the default",
+    which makes reset a write of `""` and makes a fresh install work before
+    anyone opens the editor. Reads never throw and a stored body that fails
+    validation is ignored in favour of the default, so a bad template can
+    never stop a notification going out.
+  - `/admin/notifications`: one card per template with textarea, insert
+    buttons for each placeholder (caret-aware), live preview rendering
+    WhatsApp's `*bold*`, inline validation, Save/Discard, and Reset to
+    default with an "Edited" badge. Linked from the gateway panel on
+    `/admin` so it is findable.
+  - Validation rejects: empty, >1000 chars, unknown placeholders (named in
+    the error), `{reason}` on templates that never receive one, and dropping
+    `{task}`/`{url}` — without those the message cannot be acted on.
+    `{name}` and `{event}` are optional. Permission and validation both live
+    in the service, so the server action is a thin wrapper that cannot be
+    bypassed.
+  - Verified live: owner → 200 with the editor; staff → 307 to `/my-tasks`.
+    Store round-trip proven against the running app — a custom Indonesian
+    body persisted and showed "Edited", an empty value fell back to the
+    default, and a deliberately corrupt body (`{taks}`) was ignored in
+    favour of the default rather than sent.
+  - Gates: lint ✅ typecheck ✅ 210 tests ✅ build ✅ security ✅.

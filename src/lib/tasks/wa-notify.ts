@@ -3,15 +3,16 @@ import { db } from "@/db";
 import { events, profiles, tasks } from "@/db/schema";
 import { env } from "@/lib/env";
 import { notify } from "@/lib/notifications";
+import { getWaTemplate } from "@/lib/whatsapp/template-store";
 import {
   autoUrgentReason,
+  firstName,
   manualUrgentReason,
-  taskAssignedLeadMessage,
-  taskAssignedMemberMessage,
-  taskUrgentMessage,
+  renderTemplate,
 } from "@/lib/whatsapp/templates";
 
-// Bridge between task mutations and the WhatsApp templates (EPIC-015 T-151).
+// Bridge between task mutations and the WhatsApp templates (EPIC-015
+// T-151/T-152).
 //
 // Lives apart from service.ts so dependency-engine.ts can use it too without
 // importing back into service.ts (service.ts already imports the engine).
@@ -20,8 +21,8 @@ import {
 // mutation that triggered it.
 
 interface TaskContext {
-  taskTitle: string;
-  eventName: string;
+  task: string;
+  event: string;
   url: string;
 }
 
@@ -34,8 +35,8 @@ async function taskContext(taskId: string): Promise<TaskContext | null> {
     .limit(1);
   if (!row) return null;
   return {
-    taskTitle: row.title,
-    eventName: row.eventName,
+    task: row.title,
+    event: row.eventName,
     url: `${env.APP_URL}/tasks/${taskId}`,
   };
 }
@@ -45,7 +46,10 @@ export async function notifyLeadAssigned(
   taskId: string,
   userId: string,
 ): Promise<void> {
-  const ctx = await taskContext(taskId);
+  const [ctx, body] = await Promise.all([
+    taskContext(taskId),
+    getWaTemplate("task_assigned_lead"),
+  ]);
   await notify({
     userId,
     type: "assigned",
@@ -53,7 +57,7 @@ export async function notifyLeadAssigned(
     href: `/tasks/${taskId}`,
     waText: ctx
       ? ({ recipientName }) =>
-          taskAssignedLeadMessage({ recipientName, ...ctx })
+          renderTemplate(body, { ...ctx, name: firstName(recipientName) })
       : undefined,
   });
 }
@@ -63,7 +67,10 @@ export async function notifyMemberAssigned(
   taskId: string,
   userId: string,
 ): Promise<void> {
-  const ctx = await taskContext(taskId);
+  const [ctx, body] = await Promise.all([
+    taskContext(taskId),
+    getWaTemplate("task_assigned_member"),
+  ]);
   await notify({
     userId,
     type: "assigned",
@@ -71,7 +78,7 @@ export async function notifyMemberAssigned(
     href: `/tasks/${taskId}`,
     waText: ctx
       ? ({ recipientName }) =>
-          taskAssignedMemberMessage({ recipientName, ...ctx })
+          renderTemplate(body, { ...ctx, name: firstName(recipientName) })
       : undefined,
   });
 }
@@ -96,7 +103,11 @@ export async function notifyPriorityUrgent(
   if (!leadId) return; // nobody accountable yet — nothing to send
   if (source.kind === "manual" && source.actorId === leadId) return; // they just did it
 
-  const ctx = await taskContext(taskId);
+  const [ctx, body] = await Promise.all([
+    taskContext(taskId),
+    getWaTemplate("task_urgent"),
+  ]);
+
   let reason: string;
   if (source.kind === "auto") {
     reason = autoUrgentReason(source);
@@ -115,7 +126,12 @@ export async function notifyPriorityUrgent(
     title: "A task you lead is now urgent",
     href: `/tasks/${taskId}`,
     waText: ctx
-      ? ({ recipientName }) => taskUrgentMessage({ recipientName, reason, ...ctx })
+      ? ({ recipientName }) =>
+          renderTemplate(body, {
+            ...ctx,
+            name: firstName(recipientName),
+            reason,
+          })
       : undefined,
   });
 }
