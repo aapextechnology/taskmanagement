@@ -5,8 +5,23 @@ import {
   appendExchange,
   createConversation,
   getConversation,
+  saveAttachments,
 } from "@/lib/ai/conversations";
-import { aiConfigured, streamChat, type ChatMessage } from "@/lib/ai/openai";
+import {
+  buildAttachmentPrompt,
+  describeAttachments,
+  extractAttachment,
+  MAX_CHARS_TOTAL,
+  MAX_FILES,
+  type ExtractedAttachment,
+} from "@/lib/ai/extract";
+import {
+  aiConfigured,
+  streamChat,
+  type ChatMessage,
+  type ContentPart,
+} from "@/lib/ai/openai";
+import { saveFileUpload } from "@/lib/uploads";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { can } from "@/lib/permissions";
 
@@ -51,8 +66,31 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json().catch(() => ({}))) as ChatRequestBody;
-  const history: ChatMessage[] = (body.messages ?? [])
+  // The client posts multipart when the turn carries attachments, plain JSON
+  // otherwise — so a chat without files is unchanged.
+  let body: ChatRequestBody = {};
+  let uploads: File[] = [];
+  if ((request.headers.get("content-type") ?? "").includes("multipart/form-data")) {
+    const form = await request.formData().catch(() => null);
+    if (form) {
+      try {
+        body = JSON.parse(String(form.get("payload") ?? "{}")) as ChatRequestBody;
+      } catch {
+        body = {};
+      }
+      uploads = form
+        .getAll("files")
+        .filter((f): f is File => f instanceof File && f.size > 0)
+        .slice(0, MAX_FILES);
+    }
+  } else {
+    body = (await request.json().catch(() => ({}))) as ChatRequestBody;
+  }
+  // strings only at this stage, so `question` stays a plain string even
+  // after images turn the final turn into content parts below
+  const history: Array<{ role: "user" | "assistant"; content: string }> = (
+    body.messages ?? []
+  )
     .filter(
       (m): m is { role: "user" | "assistant"; content: string } =>
         (m.role === "user" || m.role === "assistant") &&
@@ -84,12 +122,57 @@ export async function POST(request: Request) {
     eventId,
   });
 
+  // Read every attachment before the prompt is built. Extraction never
+  // throws: an unreadable file comes back with an error we show the user
+  // instead of quietly sending the model an empty document.
+  const attachments: Array<{
+    extracted: ExtractedAttachment;
+    filePath: string | null;
+  }> = [];
+  let charBudget = MAX_CHARS_TOTAL;
+  for (const upload of uploads) {
+    const bytes = Buffer.from(await upload.arrayBuffer());
+    const extracted = await extractAttachment(
+      { name: upload.name, type: upload.type, bytes },
+      charBudget,
+    );
+    charBudget -= extracted.chars;
+    let filePath: string | null = null;
+    if (!extracted.error) {
+      // keep the original so the user can reopen what they sent; a file we
+      // could not read is not worth storing
+      filePath = await saveFileUpload(upload, "ai").catch(() => null);
+    }
+    attachments.push({ extracted, filePath });
+  }
+  const extractedFiles = attachments.map((a) => a.extracted);
+
   const { getBranding } = await import("@/lib/org/branding");
   const branding = await getBranding();
   const context = await buildAssistantContext(
     actor,
     eventId ?? conversation.eventId ?? undefined,
   );
+
+  const attachmentPrompt = buildAttachmentPrompt(extractedFiles);
+  const images = extractedFiles.filter(
+    (f) => f.kind === "image" && f.dataUrl && !f.error,
+  );
+
+  // images ride on the user turn itself as content parts (T-162); document
+  // text goes in its own system message so a document cannot impersonate the
+  // user's instruction
+  const turns: ChatMessage[] = [...history];
+  if (images.length > 0) {
+    const parts: ContentPart[] = [
+      { type: "text", text: question },
+      ...images.map((img) => ({
+        type: "image_url" as const,
+        image_url: { url: img.dataUrl as string },
+      })),
+    ];
+    turns[turns.length - 1] = { role: "user", content: parts };
+  }
 
   const messages: ChatMessage[] = [
     {
@@ -100,7 +183,10 @@ export async function POST(request: Request) {
       role: "system",
       content: `Data snapshot (permission-scoped to this user):\n${JSON.stringify(context)}`,
     },
-    ...history,
+    ...(attachmentPrompt
+      ? [{ role: "system" as const, content: attachmentPrompt }]
+      : []),
+    ...turns,
   ];
 
   await logActivity({
@@ -108,7 +194,10 @@ export async function POST(request: Request) {
     action: "ai.chat",
     entity: `ai:${eventId ?? "portfolio"}`,
     detail: {
-      question: history[history.length - 1].content.slice(0, 200),
+      question: question.slice(0, 200),
+      attachments: extractedFiles.length
+        ? describeAttachments(extractedFiles)
+        : undefined,
     },
     eventId,
   });
@@ -119,6 +208,15 @@ export async function POST(request: Request) {
     async start(controller) {
       let assistantText = "";
       try {
+        // tell the user up front about anything that could not be read,
+        // rather than letting the answer quietly ignore a file
+        const unreadable = extractedFiles.filter((f) => f.error);
+        if (unreadable.length > 0) {
+          const notice = `${unreadable
+            .map((f) => `⚠️ ${f.fileName}: ${f.error}`)
+            .join("\n")}\n\n`;
+          controller.enqueue(encoder.encode(notice));
+        }
         for await (const chunk of streamChat(messages)) {
           assistantText += chunk;
           controller.enqueue(encoder.encode(chunk));
@@ -132,7 +230,28 @@ export async function POST(request: Request) {
         // persist the exchange even on partial/failed answers so the
         // history reflects what the user actually saw
         try {
-          await appendExchange(actor, conversationId, question, assistantText);
+          const { userMessageId } = await appendExchange(
+            actor,
+            conversationId,
+            question,
+            assistantText,
+          );
+          if (userMessageId) {
+            await saveAttachments(
+              userMessageId,
+              attachments
+                .filter((a) => a.filePath)
+                .map((a) => ({
+                  fileName: a.extracted.fileName,
+                  filePath: a.filePath as string,
+                  kind: a.extracted.kind,
+                  sizeBytes: a.extracted.sizeBytes,
+                  chars: a.extracted.chars,
+                  truncated: a.extracted.truncated,
+                  error: a.extracted.error ?? null,
+                })),
+            );
+          }
         } catch (persistError) {
           console.error("[ai] failed to persist exchange:", persistError);
         }

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, Sparkles, Square } from "lucide-react";
+import { ArrowUp, Paperclip, Sparkles, Square, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { UserAvatar } from "@/components/task-meta";
@@ -13,7 +13,15 @@ import { cn } from "@/lib/utils";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  /** names of files sent with this turn — display only (EPIC-016 T-161) */
+  files?: string[];
 }
+
+/** Extensions the server can actually read; anything else is refused here
+ *  so the user finds out before an upload rather than after. */
+const ACCEPTED =
+  ".pdf,.docx,.xlsx,.csv,.tsv,.txt,.md,.json,.log,.png,.jpg,.jpeg,.webp,.gif";
+const MAX_ATTACHMENTS = 5;
 
 const SUGGESTIONS = [
   "Prediksi apakah event ini akan berjalan lancar, dan apa alasannya?",
@@ -136,6 +144,9 @@ export function AssistantChat({
   const [input, setInput] = useState("");
   const [eventId, setEventId] = useState(initialEventId);
   const [streaming, setStreaming] = useState(false);
+  // files chosen but not yet sent — they ride along with the next message
+  const [pending, setPending] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const conversationRef = useRef<string | null>(initialConversationId);
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -147,11 +158,17 @@ export function AssistantChat({
 
   const send = async (text: string) => {
     const question = text.trim();
-    if (!question || streaming) return;
+    if ((!question && pending.length === 0) || streaming) return;
     setInput("");
+    const sending = pending;
+    setPending([]);
     const nextMessages: Message[] = [
       ...messages,
-      { role: "user", content: question },
+      {
+        role: "user",
+        content: question,
+        files: sending.map((f) => f.name),
+      },
     ];
     setMessages([...nextMessages, { role: "assistant", content: "" }]);
     setStreaming(true);
@@ -159,16 +176,29 @@ export function AssistantChat({
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const res = await fetch("/api/ai/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: nextMessages,
-          eventId: eventId || undefined,
-          conversationId: conversationRef.current ?? undefined,
-        }),
-        signal: controller.signal,
-      });
+      const payload = {
+        // strip the display-only file names before sending the history back
+        messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
+        eventId: eventId || undefined,
+        conversationId: conversationRef.current ?? undefined,
+      };
+      let init: RequestInit;
+      if (sending.length > 0) {
+        // multipart only when there is something to upload; a plain chat
+        // keeps the original JSON request
+        const form = new FormData();
+        form.set("payload", JSON.stringify(payload));
+        for (const file of sending) form.append("files", file);
+        init = { method: "POST", body: form, signal: controller.signal };
+      } else {
+        init = {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        };
+      }
+      const res = await fetch("/api/ai/chat", init);
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as {
           error?: string;
@@ -323,9 +353,26 @@ export function AssistantChat({
                     </span>
                   )
                 ) : (
-                  <p className="whitespace-pre-wrap text-sm font-medium">
-                    {message.content}
-                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    {message.files?.length ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {message.files.map((name) => (
+                          <span
+                            key={name}
+                            className="flex items-center gap-1.5 rounded-full border bg-background/60 px-2.5 py-1 text-[11px]"
+                          >
+                            <Paperclip className="size-3 text-muted-foreground" />
+                            <span className="max-w-48 truncate">{name}</span>
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                    {message.content ? (
+                      <p className="whitespace-pre-wrap text-sm font-medium">
+                        {message.content}
+                      </p>
+                    ) : null}
+                  </div>
                 )}
               </div>
             </div>
@@ -336,6 +383,29 @@ export function AssistantChat({
 
       {/* composer */}
       <div className="sticky bottom-4 rounded-xl border bg-card p-2 elev">
+        {pending.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5 px-1 pb-1.5">
+            {pending.map((file, i) => (
+              <span
+                key={`${file.name}-${i}`}
+                className="flex items-center gap-1.5 rounded-full border bg-muted/40 py-1 pl-2.5 pr-1.5 text-xs"
+              >
+                <Paperclip className="size-3 text-muted-foreground" />
+                <span className="max-w-40 truncate">{file.name}</span>
+                <button
+                  type="button"
+                  aria-label={`Remove ${file.name}`}
+                  onClick={() =>
+                    setPending((prev) => prev.filter((_, j) => j !== i))
+                  }
+                  className="text-muted-foreground transition-colors hover:text-destructive"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : null}
         <textarea
           ref={textareaRef}
           value={input}
@@ -351,10 +421,39 @@ export function AssistantChat({
           className="max-h-40 w-full resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
         />
         <div className="flex items-center justify-between px-1 pb-0.5">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={ACCEPTED}
+            className="hidden"
+            onChange={(e) => {
+              const chosen = Array.from(e.target.files ?? []);
+              setPending((prev) => [...prev, ...chosen].slice(0, MAX_ATTACHMENTS));
+              // reset so picking the same file twice still fires onChange
+              e.target.value = "";
+            }}
+          />
+          <span className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={streaming || pending.length >= MAX_ATTACHMENTS}
+              title={
+                pending.length >= MAX_ATTACHMENTS
+                  ? `Up to ${MAX_ATTACHMENTS} files per message`
+                  : "Attach a file — PDF, Word, Excel, CSV, text or image"
+              }
+              aria-label="Attach a file"
+              className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground disabled:opacity-40"
+            >
+              <Paperclip className="size-4" />
+            </button>
           <span className="text-[10px] text-muted-foreground">
             {eventId
               ? `Fokus: ${events.find((e) => e.id === eventId)?.name ?? ""}`
               : "Semua event dalam scope Anda"}
+          </span>
           </span>
           {streaming ? (
             <button
@@ -369,11 +468,11 @@ export function AssistantChat({
             <button
               type="button"
               onClick={() => void send(input)}
-              disabled={!input.trim()}
+              disabled={!input.trim() && pending.length === 0}
               aria-label="Send"
               className={cn(
                 "flex size-8 items-center justify-center rounded-lg transition-colors",
-                input.trim()
+                input.trim() || pending.length > 0
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground",
               )}

@@ -183,6 +183,13 @@
       "when": 1786340431618,
       "tag": "0025_standalone-pages",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1786344118252,
+      "tag": "0026_ai-attachments",
+      "breakpoints": true
     }
   ]
 }

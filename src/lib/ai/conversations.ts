@@ -1,6 +1,7 @@
 import { and, asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  aiAttachments,
   aiConversationGroups,
   aiConversations,
   aiMessages,
@@ -103,14 +104,36 @@ export async function appendExchange(
 ) {
   const conversation = await getConversation(actor, conversationId);
   if (!conversation) throw new Error("Conversation not found.");
-  await db.insert(aiMessages).values([
-    { conversationId, role: "user", content: userContent },
-    { conversationId, role: "assistant", content: assistantContent },
-  ]);
+  // ids come back so the caller can hang attachments off the user turn
+  const [userMessage] = await db
+    .insert(aiMessages)
+    .values([
+      { conversationId, role: "user" as const, content: userContent },
+      { conversationId, role: "assistant" as const, content: assistantContent },
+    ])
+    .returning({ id: aiMessages.id });
   await db
     .update(aiConversations)
     .set({ updatedAt: new Date() })
     .where(eq(aiConversations.id, conversationId));
+  return { userMessageId: userMessage?.id ?? null };
+}
+
+/** Records what was attached to a user turn (EPIC-016 T-161). */
+export async function saveAttachments(
+  messageId: string,
+  rows: Array<{
+    fileName: string;
+    filePath: string;
+    kind: "text" | "image";
+    sizeBytes: number;
+    chars: number;
+    truncated: boolean;
+    error: string | null;
+  }>,
+) {
+  if (rows.length === 0) return;
+  await db.insert(aiAttachments).values(rows.map((r) => ({ ...r, messageId })));
 }
 
 export async function moveConversation(

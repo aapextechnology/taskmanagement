@@ -18,13 +18,19 @@ const FILE_EXTENSIONS = new Set([
   ".txt",
   ".csv",
   ".zip",
+  // assistant attachments (EPIC-016) — kept in step with src/lib/ai/extract.ts
+  ".md",
+  ".json",
+  ".tsv",
+  ".log",
+  ".gif",
 ]);
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 
 // Generic attachment upload (T-034): documents + images, 20 MB cap.
 export async function saveFileUpload(
   file: File,
-  subdir: "attachments" | "comments" | "documents",
+  subdir: "attachments" | "comments" | "documents" | "ai",
 ): Promise<string> {
   const ext = path.extname(file.name).toLowerCase();
   if (!FILE_EXTENSIONS.has(ext)) {

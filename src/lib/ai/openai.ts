@@ -3,9 +3,18 @@ import { env } from "@/lib/env";
 // Thin OpenAI Chat Completions client (EPIC-014). Plain fetch — no SDK
 // dependency; we only need streaming chat. The key lives in env only.
 
+/**
+ * A multimodal message part. Images are sent as data: URLs so nothing has to
+ * be publicly reachable — the assistant's uploads live behind auth.
+ */
+export type ContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
-  content: string;
+  /** a plain string, or parts when the turn carries images (EPIC-016 T-162) */
+  content: string | ContentPart[];
 }
 
 export function aiConfigured(): boolean {
