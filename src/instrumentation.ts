@@ -7,6 +7,15 @@ export async function register() {
   const { recomputeAllEventHealth } = await import("@/lib/events/service");
   const { sweepDueNotifications } = await import("@/lib/tasks/service");
 
+  // WhatsApp gateway (EPIC-015): re-link silently if a previous pairing left
+  // credentials on the volume, so a redeploy doesn't require a new QR scan.
+  try {
+    const { resumeIfLinked } = await import("@/lib/whatsapp/session");
+    if (await resumeIfLinked()) console.log("[whatsapp] resuming linked device");
+  } catch (error) {
+    console.error("[whatsapp] resume failed:", error);
+  }
+
   // hourly: due/overdue notifications (deduped) then health sweep;
   // mutations also trigger targeted recomputes
   const { sweepBottlenecks } = await import("@/lib/tasks/dependency-engine");

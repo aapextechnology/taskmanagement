@@ -153,8 +153,16 @@ export async function connect(): Promise<void> {
             "Logged out on the phone. Scan the QR again to reconnect.";
           void rm(sessionDir(), { recursive: true, force: true }).catch(() => {});
         } else {
-          state.lastError = `Connection closed (${code ?? "unknown"}). Reconnecting…`;
-          // transient drop — Baileys expects us to re-dial
+          // A transient drop — including 515 "restart required", which
+          // WhatsApp ALWAYS sends right after a successful QR pairing.
+          // Report "connecting" (not "disconnected") so the admin UI keeps
+          // polling and sees the reconnect land, instead of freezing on a
+          // stale error message.
+          state.status = "connecting";
+          state.lastError =
+            code === 515
+              ? "Finishing pairing…"
+              : `Connection dropped (${code ?? "unknown"}). Reconnecting…`;
           setTimeout(() => void connect().catch(() => {}), 3_000);
         }
       }
@@ -207,4 +215,21 @@ export async function sendText(to: string, text: string): Promise<boolean> {
     console.error(`[whatsapp] send failed to ${jid}:`, error);
     return false;
   }
+}
+
+/**
+ * Called once at server boot (see instrumentation.ts). Re-links silently when
+ * credentials from a previous pairing are still on disk — without this the
+ * gateway stays down after every redeploy until someone opens Admin and
+ * clicks Connect.
+ */
+export async function resumeIfLinked(): Promise<boolean> {
+  try {
+    const { access } = await import("node:fs/promises");
+    await access(path.join(sessionDir(), "creds.json"));
+  } catch {
+    return false; // never paired, or the user unlinked — stay idle
+  }
+  void connect().catch(() => {});
+  return true;
 }

@@ -116,7 +116,15 @@ export function WhatsAppGateway() {
       </div>
 
       {state.lastError ? (
-        <p className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+        <p
+          className={cn(
+            "rounded-md border px-3 py-2 text-xs",
+            // a message while we're still dialling is progress, not failure
+            state.status === "connecting"
+              ? "border-border bg-muted/40 text-muted-foreground"
+              : "border-destructive/40 bg-destructive/5 text-destructive",
+          )}
+        >
           {state.lastError}
         </p>
       ) : null}

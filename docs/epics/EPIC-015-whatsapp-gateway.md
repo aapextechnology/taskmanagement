@@ -33,6 +33,24 @@ no Meta Business account, no per-message fees.
 
 ## Automation Log
 
+- 2026-08-09 **Owner-reported: panel stuck on "Connection closed (515)"
+  after a successful scan.** Two real defects behind it, both fixed:
+  1. **515 is expected** — WhatsApp always forces a `restartRequired`
+     disconnect immediately after QR pairing. The socket reconnected fine
+     (verified in logs), but the close handler set status `disconnected`,
+     which is outside the admin panel's polling set — so the UI stopped
+     refreshing at exactly the moment it needed to and froze on a stale
+     error. Transient closes now report `connecting`, so polling continues
+     and the message renders as progress ("Finishing pairing…") rather than
+     a red error.
+  2. **No auto-resume at boot.** Credentials persisted, but nothing dialled
+     on start, so every redeploy silently left the gateway down until an
+     admin opened the page and clicked Connect. `resumeIfLinked()` now runs
+     from `instrumentation.ts` when `creds.json` exists.
+  Verified after a real redeploy: logs show `resuming linked device` →
+  `connected as 6285880974659`, and the status endpoint reports `connected`
+  with no human action. Owner confirmed sending works end-to-end.
+
 - **2026-08-09 — T-150 done → ready-for-qa.**
   - `src/lib/whatsapp/session.ts`: Baileys socket cached on `globalThis`
     (same pattern as the db pool) — a second socket on the same credentials
