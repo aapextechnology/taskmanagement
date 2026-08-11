@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { sessionActor } from "@/lib/auth/session-actor";
-import { eventUsage, listFiles, listFolders } from "@/lib/dataroom/service";
+import {
+  eventUsage,
+  listFiles,
+  listFolders,
+  listFolderMembers,
+} from "@/lib/dataroom/service";
 import { formatBytes } from "@/lib/dataroom/quota";
-import { listDivisions } from "@/lib/org/service";
+import { listDivisions, listUsersWithMemberships } from "@/lib/org/service";
 import { can } from "@/lib/permissions";
 import { DataroomBrowser } from "./dataroom-browser";
+import { SealedMembers } from "./sealed-members";
 
 export const metadata: Metadata = { title: "Dataroom" };
 
@@ -27,11 +33,20 @@ export default async function DataroomPage({
     (typeof sp.f === "string" ? sp.f : undefined) ??
     folders.find((f) => !f.parentId)?.id;
 
-  const [files, usage, divisions] = await Promise.all([
+  const open = folders.find((f) => f.id === openId) ?? null;
+  const [files, usage, divisions, people] = await Promise.all([
     openId ? listFiles(actor, openId).catch(() => []) : Promise.resolve([]),
     eventUsage(eventId),
     listDivisions(),
+    listUsersWithMemberships(),
   ]);
+
+  // the member list is only meaningful — and only reachable — for a sealed
+  // folder the actor can manage
+  const members =
+    open && open.visibility === "sealed" && open.canManage
+      ? await listFolderMembers(actor, open.id).catch(() => [])
+      : null;
 
   return (
     <section className="flex flex-col gap-6">
@@ -84,6 +99,18 @@ export default async function DataroomPage({
         }))}
         divisions={divisions.map((d) => ({ id: d.id, name: d.name }))}
       />
+
+      {members && open ? (
+        <SealedMembers
+          eventId={eventId}
+          folderId={open.id}
+          folderName={open.name}
+          members={members}
+          people={people
+            .filter((u) => u.role !== "external" && u.isActive)
+            .map((u) => ({ id: u.id, name: u.name }))}
+        />
+      ) : null}
     </section>
   );
 }

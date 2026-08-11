@@ -2,7 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { sessionActor } from "@/lib/auth/session-actor";
-import { createFolder, restoreFile, trashFile } from "@/lib/dataroom/service";
+import {
+  addFolderMember,
+  createFolder,
+  removeFolderMember,
+  restoreFile,
+  trashFile,
+} from "@/lib/dataroom/service";
 import type { Visibility } from "@/lib/dataroom/access";
 
 export interface DataroomActionState {
@@ -48,4 +54,50 @@ export async function restoreFileAction(formData: FormData): Promise<void> {
   const eventId = String(formData.get("eventId") ?? "");
   await restoreFile(actor, String(formData.get("fileId") ?? "")).catch(() => {});
   revalidatePath(`/events/${eventId}/dataroom`);
+}
+
+export async function addMemberAction(
+  _prev: DataroomActionState,
+  formData: FormData,
+): Promise<DataroomActionState> {
+  const actor = await sessionActor();
+  if (!actor) return { error: "Not signed in." };
+  const eventId = String(formData.get("eventId") ?? "");
+  try {
+    await addFolderMember(
+      actor,
+      String(formData.get("folderId") ?? ""),
+      String(formData.get("userId") ?? ""),
+      formData.get("canEdit") === "on",
+    );
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Could not add that person.",
+    };
+  }
+  revalidatePath(`/events/${eventId}/dataroom`);
+  return { ok: true };
+}
+
+export async function removeMemberAction(
+  _prev: DataroomActionState,
+  formData: FormData,
+): Promise<DataroomActionState> {
+  const actor = await sessionActor();
+  if (!actor) return { error: "Not signed in." };
+  const eventId = String(formData.get("eventId") ?? "");
+  try {
+    await removeFolderMember(
+      actor,
+      String(formData.get("folderId") ?? ""),
+      String(formData.get("userId") ?? ""),
+    );
+  } catch (error) {
+    // the orphan guard lands here; its message explains the consequence
+    return {
+      error: error instanceof Error ? error.message : "Could not remove them.",
+    };
+  }
+  revalidatePath(`/events/${eventId}/dataroom`);
+  return { ok: true };
 }

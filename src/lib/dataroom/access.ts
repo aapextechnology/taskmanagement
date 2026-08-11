@@ -119,10 +119,43 @@ export function resolveFolderAccess(
     ? self.members.some((m) => m.userId === subject.id && m.canEdit)
     : true;
 
+  // In a sealed folder the edit grant IS the management right. Tying control
+  // to "creator or global admin" strands the folder the moment the creator is
+  // removed: another editor remains, but nobody can touch the member list —
+  // and an Owner cannot step in, because they cannot see a sealed folder at
+  // all. The orphan guard in wouldOrphan() checks canEdit for exactly this
+  // reason, so the two rules have to agree.
   const canManage =
-    isOwnerOrAdmin(subject) || (self.createdBy !== null && self.createdBy === subject.id);
+    isOwnerOrAdmin(subject) ||
+    sealedAnywhere ||
+    (self.createdBy !== null && self.createdBy === subject.id);
 
   return { canView: true, canUpload, canManage: canManage && canUpload };
+}
+
+/**
+ * True when removing this person would leave the folder with nobody able to
+ * manage it. A sealed folder admits only its list, so an empty list — or one
+ * with readers alone — is unreachable forever: not even an Owner could open
+ * it to repair the mistake. Refusing here is the same defence as granting the
+ * creator a place on the list when the folder is made.
+ */
+export function wouldOrphan(
+  members: ReadonlyArray<{ userId: string; canEdit: boolean }>,
+  removingUserId: string,
+): boolean {
+  return !members.some((m) => m.canEdit && m.userId !== removingUserId);
+}
+
+/**
+ * The same guard for a downgrade: taking edit rights from the last editor
+ * strands the folder just as surely as removing them.
+ */
+export function wouldOrphanByDowngrade(
+  members: ReadonlyArray<{ userId: string; canEdit: boolean }>,
+  userId: string,
+): boolean {
+  return !members.some((m) => m.canEdit && m.userId !== userId);
 }
 
 /** A file is only as visible as the folder holding it. */

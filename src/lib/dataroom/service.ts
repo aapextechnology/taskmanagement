@@ -7,12 +7,15 @@ import {
   dataroomFolderMembers,
   dataroomFolders,
   events,
+  profiles,
 } from "@/db/schema";
 import { assertCan, PermissionError, type Actor } from "@/lib/permissions";
 import {
   canNest,
   DEFAULT_VISIBILITY,
   resolveFolderAccess,
+  wouldOrphan,
+  wouldOrphanByDowngrade,
   type AccessSubject,
   type FolderNode,
   type Visibility,
@@ -222,6 +225,112 @@ export async function createFolder(
     });
   }
   return row;
+}
+
+// ---- sealed folder membership --------------------------------------------
+
+export interface FolderMemberView {
+  userId: string;
+  name: string;
+  email: string;
+  canEdit: boolean;
+}
+
+export async function listFolderMembers(
+  actor: Actor,
+  folderId: string,
+): Promise<FolderMemberView[]> {
+  await requireFolder(actor, folderId, "manage");
+  const rows = await db
+    .select({
+      userId: dataroomFolderMembers.userId,
+      canEdit: dataroomFolderMembers.canEdit,
+      name: profiles.name,
+      email: profiles.email,
+    })
+    .from(dataroomFolderMembers)
+    .innerJoin(profiles, eq(dataroomFolderMembers.userId, profiles.id))
+    .where(eq(dataroomFolderMembers.folderId, folderId))
+    .orderBy(asc(profiles.name));
+  return rows;
+}
+
+async function membersOf(folderId: string) {
+  return db
+    .select({
+      userId: dataroomFolderMembers.userId,
+      canEdit: dataroomFolderMembers.canEdit,
+    })
+    .from(dataroomFolderMembers)
+    .where(eq(dataroomFolderMembers.folderId, folderId));
+}
+
+export async function addFolderMember(
+  actor: Actor,
+  folderId: string,
+  userId: string,
+  canEdit: boolean,
+) {
+  const { folder } = await requireFolder(actor, folderId, "manage");
+  if (folder.visibility !== "sealed") {
+    // any other level draws its audience from divisions or the event, so a
+    // member list there would be decoration that quietly implies control
+    throw new Error("Only a sealed folder has a member list.");
+  }
+  if (!isId(userId)) throw new Error("Unknown person.");
+
+  const [person] = await db
+    .select({ role: profiles.role })
+    .from(profiles)
+    .where(eq(profiles.id, userId))
+    .limit(1);
+  if (!person) throw new Error("Unknown person.");
+  if (person.role === "external") {
+    // externals never reach the dataroom; letting one onto a list would
+    // create a grant that silently never works
+    throw new Error("External accounts cannot be given dataroom access.");
+  }
+
+  // downgrading the last editor strands the folder exactly like removing them
+  if (!canEdit) {
+    const current = await membersOf(folderId);
+    if (current.some((m) => m.userId === userId && m.canEdit) &&
+        wouldOrphanByDowngrade(current, userId)) {
+      throw new Error(
+        "Someone must keep edit rights, or nobody could ever open this folder again.",
+      );
+    }
+  }
+
+  await db
+    .insert(dataroomFolderMembers)
+    .values({ folderId, userId, canEdit })
+    .onConflictDoUpdate({
+      target: [dataroomFolderMembers.folderId, dataroomFolderMembers.userId],
+      set: { canEdit },
+    });
+}
+
+export async function removeFolderMember(
+  actor: Actor,
+  folderId: string,
+  userId: string,
+) {
+  await requireFolder(actor, folderId, "manage");
+  const current = await membersOf(folderId);
+  if (wouldOrphan(current, userId)) {
+    throw new Error(
+      "This is the last person who can manage the folder. Add someone else first, or nobody could open it again.",
+    );
+  }
+  await db
+    .delete(dataroomFolderMembers)
+    .where(
+      and(
+        eq(dataroomFolderMembers.folderId, folderId),
+        eq(dataroomFolderMembers.userId, userId),
+      ),
+    );
 }
 
 // ---- quota ----------------------------------------------------------------

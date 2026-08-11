@@ -4,6 +4,8 @@ import {
   canNest,
   DEFAULT_VISIBILITY,
   resolveFolderAccess,
+  wouldOrphan,
+  wouldOrphanByDowngrade,
   type AccessSubject,
   type FolderNode,
   type Visibility,
@@ -176,9 +178,53 @@ describe("management rights", () => {
     expect(resolveFolderAccess(MKT, [f]).canManage).toBe(false);
   });
 
+  it("follow the edit grant inside a sealed folder, not who created it", () => {
+    // otherwise removing the creator strands the folder: an editor remains
+    // but nobody can manage the list, and an Owner cannot step in because a
+    // sealed folder is invisible to them
+    const sealed = folder({
+      visibility: "sealed",
+      createdBy: OWNER.id,
+      members: [
+        { userId: MKT.id, canEdit: true },
+        { userId: PROD.id, canEdit: false },
+      ],
+    });
+    expect(resolveFolderAccess(MKT, [sealed]).canManage).toBe(true);
+    expect(resolveFolderAccess(PROD, [sealed]).canManage).toBe(false);
+  });
+
   it("never exceed what the person can even see", () => {
     const sealed = folder({ visibility: "sealed", createdBy: OWNER.id, members: [] });
     // the Owner created it but is not on the list — no sight, so no control
     expect(resolveFolderAccess(OWNER, [sealed]).canManage).toBe(false);
+  });
+});
+
+describe("orphan guards", () => {
+  const editor = { userId: "a", canEdit: true };
+  const reader = { userId: "b", canEdit: false };
+
+  it("refuses to remove the last person who can manage the folder", () => {
+    // a sealed folder admits only its list, so an all-readers list is
+    // unreachable forever — not even an Owner could repair it
+    expect(wouldOrphan([editor], "a")).toBe(true);
+    expect(wouldOrphan([editor, reader], "a")).toBe(true);
+  });
+
+  it("allows removing someone while another editor remains", () => {
+    expect(wouldOrphan([editor, { userId: "c", canEdit: true }], "a")).toBe(false);
+    expect(wouldOrphan([editor, reader], "b")).toBe(false);
+  });
+
+  it("treats an empty list as already orphaned", () => {
+    expect(wouldOrphan([], "a")).toBe(true);
+  });
+
+  it("catches the same trap via a downgrade, not just a removal", () => {
+    expect(wouldOrphanByDowngrade([editor], "a")).toBe(true);
+    expect(wouldOrphanByDowngrade([editor, { userId: "c", canEdit: true }], "a")).toBe(
+      false,
+    );
   });
 });

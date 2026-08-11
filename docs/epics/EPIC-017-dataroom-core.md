@@ -195,6 +195,35 @@ that decides whether one department's contract is visible to another.
 
 ## Automation Log
 
+- **T-173 — Sealed folder membership** (2026-08-11). The task was the member
+  list; the value was a second orphaning bug it exposed.
+  - **Removing the creator stranded the folder even when another editor
+    remained.** `canManage` was "global admin, or the person who created it",
+    but a sealed folder is invisible to a global admin — so once the creator
+    left the list, an editor could still upload while nobody could touch the
+    membership, and no Owner could step in to repair it. In a sealed folder
+    the edit grant now *is* the management right, which also makes the guard
+    below check the right thing. Found by running the whole lifecycle against
+    the live service, not by a unit test.
+  - Two guards, both stated in terms of the consequence rather than the rule:
+    `wouldOrphan` refuses removing the last person who can manage
+    ("…or nobody could open it again"), and `wouldOrphanByDowngrade` catches
+    the same trap through the back door of taking away edit rights instead of
+    removing the person.
+  - **External accounts are refused from a sealed list** rather than accepted
+    and silently ignored. They can never reach the dataroom, so a grant that
+    looks real but never works is worse than a refusal.
+  - Member lists exist only for sealed folders; every other level draws its
+    audience from a division or the event, where a list would be decoration
+    that implies control it does not have.
+  - Verified live through the full lifecycle: creator holds edit at creation;
+    removing the only editor refused; an external account refused; an
+    outsider cannot read the list; a read-only member cannot manage it;
+    downgrading the last editor refused; removing the creator allowed once
+    another editor exists — and the creator then genuinely loses sight of the
+    folder, leaving no lingering back door.
+  - Gates: lint ✅ typecheck ✅ 344 tests ✅ build ✅ security ✅.
+
 - **T-172 — Service, gated streaming, and the event Dataroom tab**
   (2026-08-11). Verified end to end against the running app, which turned up
   three defects that unit tests could not have found.
