@@ -29,6 +29,7 @@ interface ShareRow {
   opens: number;
   expired: boolean;
   watermark: boolean;
+  requireEmail: boolean;
 }
 
 export function ShareDialog({
@@ -147,6 +148,15 @@ export function ShareDialog({
           </div>
 
           <label className="flex items-center gap-2.5 text-xs sm:col-span-2">
+            <Switch name="requireEmail" defaultChecked />
+            Ask who is opening it
+            <span className="text-muted-foreground">
+              — turn this off and the activity log records only “Shared link”,
+              so you lose the answer to who read the document
+            </span>
+          </label>
+
+          <label className="flex items-center gap-2.5 text-xs sm:col-span-2">
             <Switch name="watermark" />
             Stamp the recipient&apos;s email on every page
             <span className="text-muted-foreground">
@@ -204,6 +214,7 @@ export function ShareDialog({
                     {link.allowedEmails ? ` · ${link.allowedEmails.length} address(es)` : ""}
                     {link.allowDownload ? "" : " · view only"}
                     {link.watermark ? " · watermarked" : ""}
+                    {link.requireEmail ? "" : " · anonymous"}
                   </span>
                 </span>
                 <span className="flex items-center gap-2">

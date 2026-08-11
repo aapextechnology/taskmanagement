@@ -143,6 +143,7 @@ export interface ShareLinkView {
   hasPasscode: boolean;
   allowDownload: boolean;
   watermark: boolean;
+  requireEmail: boolean;
   allowedEmails: string[] | null;
   opens: number;
   createdAt: Date;
@@ -178,6 +179,7 @@ export async function listShareLinks(fileId: string): Promise<ShareLinkView[]> {
     hasPasscode: r.passcodeHash !== null,
     allowDownload: r.allowDownload,
     watermark: r.watermark,
+    requireEmail: r.requireEmail,
     allowedEmails: (r.allowedEmails as string[] | null) ?? null,
     opens: byLink.get(r.id) ?? 0,
     createdAt: r.createdAt,

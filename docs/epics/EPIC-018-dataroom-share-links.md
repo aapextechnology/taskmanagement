@@ -70,6 +70,20 @@ link here is therefore:
 
 ## Automation Log
 
+- **Follow-up — the email gate is now optional in the UI** (2026-08-11, Owner
+  QA). The service always supported `requireEmail: false`, but the dialog
+  never sent it, so every link asked for an address whether or not the sender
+  wanted one. A switch now exposes it, defaulting **on**.
+  - The switch states the cost where it is made, not in a help page: turn it
+    off and the activity log records only "Shared link", so the question the
+    dataroom exists to answer — who read this — goes unanswered.
+  - **An allowlist still forces the email box**, even with the switch off. An
+    allowlist is meaningless without knowing who is asking, and this was
+    already the rule in `gateRequirements`; the UI change did not weaken it.
+    Verified: passcode-only asks for the passcode alone and opens
+    anonymously; a link with no gates opens straight away; a link with the
+    switch off but an allowlist set still asks for the address.
+
 - **Fix — a passcode-protected link could never be opened** (2026-08-11,
   reported by the Owner during QA). Filling in the email produced "Enter your
   email address" again, forever.

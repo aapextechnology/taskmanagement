@@ -129,6 +129,7 @@ export async function createShareAction(
       expiryDays: Number(formData.get("expiryDays") ?? 14),
       passcode: String(formData.get("passcode") ?? "") || undefined,
       allowedEmails: parseAllowedEmails(String(formData.get("allowedEmails") ?? "")),
+      requireEmail: formData.get("requireEmail") === "on",
       allowDownload: formData.get("allowDownload") === "on",
       watermark: formData.get("watermark") === "on",
       label: String(formData.get("label") ?? "") || undefined,
