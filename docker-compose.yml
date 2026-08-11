@@ -59,6 +59,11 @@ services:
       # CHANGE THIS before exposing the app: openssl rand -base64 32
       AUTH_SECRET: ${AUTH_SECRET:-dev-only-secret-change-me}
       UPLOADS_DIR: /data/uploads
+      # Dataroom (EPIC-017) lives on the 3.6 TB spinning disk, deliberately
+      # apart from uploads: large archived documents do not belong next to
+      # avatars, posters and the WhatsApp session on NVMe, and no dataroom
+      # cleanup may ever reach that volume.
+      DATAROOM_DIR: /data/dataroom
       # WhatsApp gateway: linked-device credentials live on the uploads
       # volume so a redeploy never forces a re-scan of the QR
       WHATSAPP_SESSION_DIR: ${WHATSAPP_SESSION_DIR:-/data/uploads/whatsapp-session}
@@ -69,6 +74,7 @@ services:
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.6}
     volumes:
       - uploads:/data/uploads
+      - dataroom:/data/dataroom
     depends_on:
       db:
         condition: service_healthy
@@ -95,3 +101,12 @@ services:
 volumes:
   db_data:
   uploads:
+  # Bound to the second 3.6 TB disk. hdd1 already hosts cdn/websites for other
+  # projects and would compete for space; hdd2 held nothing but an unused,
+  # empty Nextcloud directory.
+  dataroom:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATAROOM_DEVICE:-/mnt/hdd2/rvc-dataroom}

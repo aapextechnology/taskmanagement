@@ -18,6 +18,10 @@ const schema = z.object({
     .string()
     .default("Backstage <backstage@example.com>"),
   UPLOADS_DIR: z.string().default("./uploads"),
+  // Dataroom storage (EPIC-017). Kept apart from UPLOADS_DIR: this lives on
+  // the 3.6 TB spinning disk, while uploads stays on NVMe with the small hot
+  // files and the WhatsApp session.
+  DATAROOM_DIR: z.string().default(""),
   // installation branding — first-boot defaults; editable later in Admin
   ORG_NAME: z.string().default(""),
   ORG_SHORT_NAME: z.string().default(""),

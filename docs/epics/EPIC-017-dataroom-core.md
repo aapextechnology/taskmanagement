@@ -195,6 +195,46 @@ that decides whether one department's contract is visible to another.
 
 ## Automation Log
 
+- **T-170 — Storage module, path safety and quota arithmetic** (2026-08-11).
+  Built and proven before any schema or UI sits on top of it.
+  - `quota.ts` (18 tests) — pure arithmetic for the three rules that decide
+    whether a quota figure is honest. `decideUpload` checks the **global disk
+    floor first**, so when the server itself is nearly full the refusal names
+    the real cause instead of blaming the event's quota. Refusals carry the
+    actual numbers ("used 9.6 GB of 10 GB, that file needs 1 GB").
+    `crossesWarningLine` fires only on the upload that passes 80%, so the
+    WhatsApp alert cannot repeat on every subsequent upload.
+    `isOverLimit` exists so lowering a limit blocks uploads without ever
+    implying a deletion.
+  - `paths.ts` (13 tests) — kept separate because this is where
+    caller-supplied ids become filesystem paths, the classic traversal bug.
+    Ids are validated as UUIDs **before** any `path.join`, `resolveInRoot`
+    refuses anything escaping the root (including the sibling-prefix case
+    `/srv/dataroom-old` against `/srv/dataroom`), and `safeDownloadName`
+    strips the CR/LF that would inject a response header.
+  - `storage.ts` (19 tests, real filesystem in a temp root) — the only module
+    that knows where bytes live, so the rejected Nextcloud decision stays
+    reversible in one file. A version is always a new object; nothing is ever
+    overwritten. The write **counts bytes mid-stream** and aborts past the
+    allowance, because the browser's declared size is a claim, not a fact —
+    and a failed write is removed, since a partial file would count against
+    the quota while being unreadable. `statVersion` returns null when the
+    index knows a file the disk does not, which is the drift rule from the
+    epic. Range parsing supports open-ended and suffix ranges and flags
+    unsatisfiable ones for a 416.
+  - A test asserts the storage root cannot write outside itself, standing in
+    for the rule that no dataroom operation may reach the `uploads` volume
+    and its WhatsApp credentials.
+  - Two test failures during the run were my own wrong expectations, but the
+    first exposed a real flaw: `\r\n` in a filename became two spaces.
+    Whitespace runs are now collapsed.
+  - Compose gained a `dataroom` volume bound to `/mnt/hdd2/rvc-dataroom`
+    (overridable via `DATAROOM_DEVICE`) plus `DATAROOM_DIR`, with `uploads`
+    left untouched on NVMe. **The host directory must be created by hand**
+    (`sudo` needs a terminal): the container runs as uid 100/gid 101, so the
+    directory has to be owned by it.
+  - Gates: lint ✅ typecheck ✅ 319 tests ✅ build ✅ security ✅.
+
 - **2026-08-10 — Scoping and the storage decision.** Investigated Nextcloud
   against the running server (reachability, WebDAV, container network, empty
   data directory) and rejected it for the reasons above, after the Owner
