@@ -178,6 +178,7 @@ export function DataroomBrowser({
     {
       label: "Download",
       icon: <Download className="size-3.5" />,
+      // the menu entry downloads; clicking the name previews
       onSelect: () => window.open(`/api/dataroom/files/${file.id}`, "_blank"),
     },
     ...(open?.canUpload
@@ -395,16 +396,35 @@ export function DataroomBrowser({
                           setDropTarget(null);
                         }}
                         onContextMenu={(e) => fileMenu.openAt(e, file)}
-                        onDoubleClick={() =>
-                          window.open(`/api/dataroom/files/${file.id}`, "_blank")
+                        onClick={() =>
+                          window.open(
+                            `/api/dataroom/files/${file.id}?inline=1`,
+                            "_blank",
+                          )
                         }
-                        className="cursor-default border-b transition-colors last:border-0 hover:bg-accent/30"
+                        className="cursor-pointer border-b transition-colors last:border-0 hover:bg-accent/30"
                       >
                         <td className="px-4 py-2.5">
-                          <span className="flex items-center gap-2">
+                          {/* A real link, not a click handler: opening a file
+                              is navigation, so middle-click and ctrl-click
+                              behave as people expect and the row becomes
+                              reachable from the keyboard — previously nothing
+                              here was focusable except the ⋮ button.
+                              draggable={false} keeps the anchor from
+                              hijacking the row's drag-to-move. */}
+                          <a
+                            href={`/api/dataroom/files/${file.id}?inline=1`}
+                            target="_blank"
+                            rel="noreferrer"
+                            draggable={false}
+                            // the row already opens the file; without this the
+                            // anchor's own click would bubble and open it twice
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-2 underline-offset-4 hover:underline"
+                          >
                             <FileIcon className="size-4 shrink-0 text-muted-foreground" />
                             {file.name}
-                          </span>
+                          </a>
                         </td>
                         <td className="px-4 py-2.5 text-xs text-muted-foreground">
                           v{file.currentVersion}
@@ -421,7 +441,12 @@ export function DataroomBrowser({
                           <button
                             type="button"
                             aria-label={`Actions for ${file.name}`}
-                            onClick={(e) => fileMenu.openNear(e.currentTarget, file)}
+                            onClick={(e) => {
+                              // sits inside a clickable row — without this,
+                              // opening the menu would also open the file
+                              e.stopPropagation();
+                              fileMenu.openNear(e.currentTarget, file);
+                            }}
                             className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                           >
                             <MoreVertical className="size-4" />
