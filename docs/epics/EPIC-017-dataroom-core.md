@@ -195,6 +195,38 @@ that decides whether one department's contract is visible to another.
 
 ## Automation Log
 
+- **T-176 — Rebuilt as a file manager** (2026-08-11). Owner asked for
+  something that behaves like Drive or Dropbox rather than a form.
+  - **Right-click is not enough, so it is never the only way.** The gesture
+    does not exist on a tablet or phone and cannot be reached from a
+    keyboard, so every action also sits behind a "⋮" button on each row —
+    which is exactly what Drive and Dropbox do, and why.
+  - Drag and drop in both directions: files dropped from the desktop upload
+    into the folder they land on (the tree accepts drops too, not just the
+    open pane), and a row dragged onto a folder moves it.
+  - **Moving a document to a more open folder warns first.** Blocking it
+    outright would be theatre — anyone who can read the file could download
+    and re-upload it — so it is allowed, confirmed, and logged with *both*
+    visibility levels named, so a declassification is legible afterwards.
+    `moveFile` requires upload rights on both sides: taking a document out of
+    a folder is as consequential as putting one in.
+  - **Deleting a folder that still holds files is refused**, naming the
+    count. The files would go with it and there is no undo at that level.
+  - New folder moved into a dialog: the inline panel pushed the file list
+    around every time it opened, and creating a folder is a brief modal
+    decision.
+  - The page joins `/assistant` as fullscreen — a file manager and the app
+    sidebar compete for the same left column, and two nested trees side by
+    side is what makes people lose their place. Verified: the dataroom
+    renders no `<aside>`, `/events` still does.
+  - The context menu closes on a capture-phase mousedown, so the click that
+    dismisses it never also activates whatever sits underneath.
+  - Verified live: a non-member cannot move a file out of a sealed folder;
+    the Owner can, and the move is logged as `sealed → organisation`;
+    renaming works for files and folders; a folder holding a file refuses to
+    be deleted while an empty one goes.
+  - Gates: lint ✅ typecheck ✅ 371 tests ✅ build ✅ security ✅.
+
 - **T-174 / T-175 — Activity view, Admin storage, Documents retired**
   (2026-08-11). The 80% WhatsApp warning is **held at the Owner's request**;
   the crossing is still computed and surfaces as an in-app notice on upload,

@@ -751,6 +751,112 @@ export async function openForDownload(
   return { file, version };
 }
 
+export async function renameFile(actor: Actor, fileId: string, name: string) {
+  const file = await requireFile(actor, fileId, "upload");
+  const clean = name.trim();
+  if (!clean) throw new Error("A file needs a name.");
+  await db
+    .update(dataroomFiles)
+    .set({ name: clean, updatedAt: new Date() })
+    .where(eq(dataroomFiles.id, fileId));
+  await logActivity({
+    actorId: actor.id,
+    action: "dataroom.file_renamed",
+    entity: `dataroom_file:${fileId}`,
+    detail: { from: file.name, to: clean },
+    eventId: file.eventId,
+  });
+}
+
+export async function renameFolder(actor: Actor, folderId: string, name: string) {
+  const { folder } = await requireFolder(actor, folderId, "manage");
+  const clean = name.trim();
+  if (!clean) throw new Error("A folder needs a name.");
+  await db
+    .update(dataroomFolders)
+    .set({ name: clean, updatedAt: new Date() })
+    .where(eq(dataroomFolders.id, folderId));
+  await logActivity({
+    actorId: actor.id,
+    action: "dataroom.folder_renamed",
+    entity: `dataroom_folder:${folderId}`,
+    detail: { from: folder.name, to: clean },
+    eventId: folder.eventId,
+  });
+}
+
+/**
+ * Moves a file between folders — the drop half of drag-and-drop.
+ *
+ * Requires upload rights on BOTH sides: taking a document out of a folder is
+ * as consequential as putting one in. Moving from a tighter folder to a wider
+ * one effectively declassifies it, which the UI warns about; blocking it
+ * outright would be theatre, since anyone who can read the file could
+ * download and re-upload it anyway. So it is allowed, and it is logged with
+ * both visibility levels named.
+ */
+export async function moveFile(
+  actor: Actor,
+  fileId: string,
+  targetFolderId: string,
+) {
+  const file = await requireFile(actor, fileId, "upload");
+  if (file.folderId === targetFolderId) return;
+
+  const [source] = await db
+    .select()
+    .from(dataroomFolders)
+    .where(eq(dataroomFolders.id, file.folderId))
+    .limit(1);
+  const { folder: target } = await requireFolder(actor, targetFolderId, "upload");
+  if (target.eventId !== file.eventId) {
+    throw new Error("A file cannot move to another event's dataroom.");
+  }
+
+  await db
+    .update(dataroomFiles)
+    .set({ folderId: targetFolderId, updatedAt: new Date() })
+    .where(eq(dataroomFiles.id, fileId));
+  await logActivity({
+    actorId: actor.id,
+    action: "dataroom.file_moved",
+    entity: `dataroom_file:${fileId}`,
+    detail: {
+      fileName: file.name,
+      from: source?.name ?? "?",
+      to: target.name,
+      fromVisibility: source?.visibility ?? "?",
+      toVisibility: target.visibility,
+    },
+    eventId: file.eventId,
+  });
+}
+
+export async function deleteFolder(actor: Actor, folderId: string) {
+  const { folder } = await requireFolder(actor, folderId, "manage");
+  const [{ count } = { count: 0 }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(dataroomFiles)
+    .where(
+      and(eq(dataroomFiles.folderId, folderId), isNull(dataroomFiles.trashedAt)),
+    );
+  if (count > 0) {
+    // deleting a folder full of documents by accident is unrecoverable here,
+    // because the files go with it — make the person empty it first
+    throw new Error(
+      `“${folder.name}” still holds ${count} file${count === 1 ? "" : "s"}. Move or delete them first.`,
+    );
+  }
+  await db.delete(dataroomFolders).where(eq(dataroomFolders.id, folderId));
+  await logActivity({
+    actorId: actor.id,
+    action: "dataroom.folder_deleted",
+    entity: `dataroom_folder:${folderId}`,
+    detail: { name: folder.name },
+    eventId: folder.eventId,
+  });
+}
+
 // ---- share links (EPIC-018) ----------------------------------------------
 
 /** Creating a link requires the same rights as uploading: handing a document

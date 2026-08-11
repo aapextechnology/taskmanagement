@@ -7,7 +7,11 @@ import {
   createFolder,
   createShare,
   listSharesFor,
+  deleteFolder,
+  moveFile,
   removeFolderMember,
+  renameFile,
+  renameFolder,
   restoreFile,
   revokeShare,
   trashFile,
@@ -154,4 +158,35 @@ export async function listSharesAction(fileId: string) {
   const actor = await sessionActor();
   if (!actor) return [];
   return listSharesFor(actor, fileId).catch(() => []);
+}
+
+/** One entry point for the context-menu actions, so the browser component
+ *  does not grow an import per verb. */
+export async function fileMenuAction(
+  _prev: DataroomActionState,
+  formData: FormData,
+): Promise<DataroomActionState> {
+  const actor = await sessionActor();
+  if (!actor) return { error: "Not signed in." };
+  const eventId = String(formData.get("eventId") ?? "");
+  const verb = String(formData.get("verb") ?? "");
+  try {
+    if (verb === "rename-file") {
+      await renameFile(actor, String(formData.get("fileId")), String(formData.get("name")));
+    } else if (verb === "rename-folder") {
+      await renameFolder(actor, String(formData.get("folderId")), String(formData.get("name")));
+    } else if (verb === "move-file") {
+      await moveFile(actor, String(formData.get("fileId")), String(formData.get("folderId")));
+    } else if (verb === "delete-folder") {
+      await deleteFolder(actor, String(formData.get("folderId")));
+    } else if (verb === "trash-file") {
+      await trashFile(actor, String(formData.get("fileId")));
+    } else {
+      return { error: "Unknown action." };
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "That did not work." };
+  }
+  revalidatePath(`/events/${eventId}/dataroom`);
+  return { ok: true };
 }
