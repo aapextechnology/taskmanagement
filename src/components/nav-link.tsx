@@ -80,7 +80,10 @@ const EVENT_SUBPAGES = [
   { path: "handoffs", label: "Handoffs" },
   { path: "budget", label: "Budget" },
   { path: "guests", label: "Guests" },
-  { path: "documents", label: "Documents" },
+  // Documents was replaced by the Dataroom (EPIC-017): access levels,
+  // versioning and an access log, on the 3.6 TB disk. The old route stays
+  // until T-175 retires it.
+  { path: "dataroom", label: "Dataroom" },
   { path: "run-of-show", label: "Run of show" },
   { path: "tickets", label: "Tickets" },
 ] as const;

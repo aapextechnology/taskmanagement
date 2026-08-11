@@ -195,6 +195,46 @@ that decides whether one department's contract is visible to another.
 
 ## Automation Log
 
+- **T-172 — Service, gated streaming, and the event Dataroom tab**
+  (2026-08-11). Verified end to end against the running app, which turned up
+  three defects that unit tests could not have found.
+  - **Creating a sealed folder orphaned it.** A sealed folder admits only the
+    people on its list, and the creator was not implicitly on it — so the
+    moment it existed, nobody could open it, not even to add the first
+    member. Found because the narrow-only rule refused with the wrong error
+    ("Not allowed") instead of its own message. Fixed by granting the creator
+    an explicit `can_edit` row rather than special-casing them in the access
+    rules, which keeps the grant visible in the member list and auditable.
+  - **nginx capped uploads at 50 MB** and, more seriously, buffered every
+    request body to the system NVMe before passing it on — so a large upload
+    would fill the app server's own disk *before* the event quota could be
+    applied. `/api/dataroom/upload` now has its own location with
+    `client_max_body_size 0` and `proxy_request_buffering off`, handing bytes
+    straight to the counter in storage.ts. An 80 MB file, which the old cap
+    rejected outright, now lands in 0.4 s.
+    **The public reverse proxy in front of `rvc.reddie.id` is separate and
+    needs the same two settings**, or large uploads will fail from outside.
+  - A "the bytes are missing from the HDD" scare was **my own error**: the
+    storage directory is owned by the container user (uid 100) and my shell
+    could not read it. Confirmed from inside the container instead — 80 MB on
+    `/dev/sdb1`, laid out as `<eventId>/<fileId>/<version>`.
+  - Upload is a raw `PUT` with the file as the body, not multipart: multipart
+    is buffered before the handler runs, so a 2 GB upload would sit in memory
+    before any quota check.
+  - Download resolves and logs in one step, so a read cannot happen
+    unrecorded, and answers **404 rather than 403** for a file the actor may
+    not see — confirming existence is itself a disclosure. Range requests
+    work (206), so a PDF can be scrubbed rather than fetched whole. A file
+    the index knows but the disk does not returns 410 with a plain message.
+  - Live checks: upload 200; another division's staff refused on a sealed
+    folder (403 on upload, 404 on download) while the same person reads an
+    event-level folder normally; a 20 GB declared upload refused by the quota
+    with the real numbers ("used 1.4 KB of 10 GB… that file needs 20 GB");
+    a downloaded file byte-identical to the original; the access log holding
+    the upload and download rows with actor, file and version.
+  - Gates: lint ✅ typecheck ✅ 340 tests ✅ build ✅ security ✅. Test data
+    removed from the live event afterwards.
+
 - **T-171 — Schema and the access decision** (2026-08-11).
   - `access.ts` (21 tests) — the four levels as a pure function over
     (subject, folder chain). Tests assert the rules that are easy to get
