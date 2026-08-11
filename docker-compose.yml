@@ -46,6 +46,11 @@ services:
   app:
     build: .
     restart: unless-stopped
+    # `default` must be listed explicitly: naming any network opts the service
+    # out of the implicit one, which would cut it off from db/mailpit.
+    networks:
+      - default
+      - infra
     environment:
       DATABASE_URL: postgres://rvc:rvc_dev_password@db:5432/rvc_backstage
       SMTP_HOST: mailpit
@@ -91,6 +96,14 @@ services:
     depends_on:
       app:
         condition: service_healthy
+
+networks:
+  # Nextcloud (dataroom.reddie.id) runs on this host in its own stack; joining
+  # its network keeps file traffic inside Docker rather than going out through
+  # the public hostname and back in.
+  infra:
+    external: true
+    name: docker-infra_infra-net
 
 volumes:
   db_data:
