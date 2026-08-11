@@ -15,6 +15,7 @@ import { isId } from "./paths";
 import { watermarkDecision } from "./watermark";
 import {
   DEFAULT_EXPIRY_DAYS,
+  gateRequirements,
   refusalMessage,
   resolveExpiry,
   verifyShareAttempt,
@@ -230,28 +231,39 @@ export async function resolveShare(
       ? verifyPassword(attempt.passcode, link.passcodeHash)
       : false);
 
+  const state = link
+    ? {
+        expiresAt: link.expiresAt,
+        revokedAt: link.revokedAt,
+        passcodeHash: link.passcodeHash,
+        requireEmail: link.requireEmail,
+        allowedEmails: (link.allowedEmails as string[] | null) ?? null,
+      }
+    : null;
+
   const verdict: ShareVerdict = verifyShareAttempt(
-    link
-      ? {
-          expiresAt: link.expiresAt,
-          revokedAt: link.revokedAt,
-          passcodeHash: link.passcodeHash,
-          requireEmail: link.requireEmail,
-          allowedEmails: (link.allowedEmails as string[] | null) ?? null,
-        }
-      : null,
-    { passcodeOk, email: attempt.email ?? null },
+    state,
+    {
+      passcodeOk,
+      passcodeAttempted: Boolean(attempt.passcode),
+      email: attempt.email ?? null,
+    },
     new Date(),
   );
 
   if (!verdict.ok) {
+    // Once the link is known live, report EVERYTHING it asks for, so the form
+    // can show both boxes at once. A dead link (reason "unknown") reports
+    // nothing, so it still gives away neither its existence nor its shape.
+    const needs =
+      verdict.reason === "unknown" || !state
+        ? { passcode: false, email: false }
+        : gateRequirements(state);
     return {
       ok: false,
       message: refusalMessage(verdict.reason),
-      // only reveal which gate is next once the link itself is known good
-      needsPasscode: verdict.reason === "passcode",
-      needsEmail:
-        verdict.reason === "email_required" || verdict.reason === "email_not_allowed",
+      needsPasscode: needs.passcode,
+      needsEmail: needs.email,
     };
   }
 

@@ -2,7 +2,7 @@
 
 import { Lock, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,9 @@ export function GateForm({
   message: string | null;
 }) {
   const router = useRouter();
+  // kept across a failed attempt: retyping an address because the passcode
+  // was wrong is exactly the kind of thing that makes people give up
+  const [email, setEmail] = useState("");
   const [state, formAction, pending] = useActionState<GateState, FormData>(
     openShareAction,
     { needsPasscode, needsEmail },
@@ -29,6 +32,8 @@ export function GateForm({
     if (state.ok) router.refresh();
   }, [state.ok, router]);
 
+  // both boxes appear together: the link declares every requirement at once,
+  // so a visitor never loses one field by filling the other
   const askEmail = state.needsEmail ?? needsEmail;
   const askPasscode = state.needsPasscode ?? needsPasscode;
 
@@ -48,6 +53,8 @@ export function GateForm({
             required
             autoComplete="email"
             placeholder="you@company.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
           <span className="text-[11px] text-muted-foreground">
             Recorded with the sender so they know who opened the document.

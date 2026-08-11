@@ -70,6 +70,31 @@ link here is therefore:
 
 ## Automation Log
 
+- **Fix — a passcode-protected link could never be opened** (2026-08-11,
+  reported by the Owner during QA). Filling in the email produced "Enter your
+  email address" again, forever.
+  - **Cause: the gate revealed one requirement at a time.** The passcode is
+    checked before the email, so the first refusal said "passcode" and the
+    form rendered only that box. Supplying the passcode moved the refusal on
+    to "email", which rendered only the email box — dropping the passcode
+    field — so the next submission failed the passcode again. The visitor
+    ping-ponged between two screens that each threw away the other's answer.
+    Reproduced before touching anything: supplying both values at once opened
+    the document, which proved the verification logic was sound and the
+    disclosure protocol was not.
+  - **Fix:** once a link is confirmed live it reports *every* requirement at
+    once (`gateRequirements`), so both boxes appear together. A dead link
+    still reports nothing — it reveals neither its existence nor its shape,
+    which the tests pin down.
+  - Second fault found while fixing the first: a first-time visitor was told
+    "That passcode is not right" before typing anything. A refusal now
+    distinguishes "protected, please enter it" from "that was wrong".
+  - The email box also keeps what was typed across a failed attempt. Retyping
+    an address because the passcode was wrong is how people give up.
+  - Verified live: first visit asks for both; a wrong passcode keeps both
+    boxes and the typed email; the right pair opens the document; a revoked
+    link still answers with the generic message and asks for nothing.
+
 - **T-180 / T-181 / T-182 — Links, the public page, and share management**
   (2026-08-11). Shipped together; verified as an outsider with no account and
   no session.

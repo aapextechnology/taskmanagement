@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_EXPIRY_DAYS,
+  gateRequirements,
   MAX_EXPIRY_DAYS,
   isPlausibleEmail,
   normaliseEmail,
@@ -52,17 +53,55 @@ describe("verifyShareAttempt — refusals reveal nothing", () => {
     // otherwise a wrong passcode on a live link differs from one on a dead
     // link, and that difference is itself a disclosure
     const dead = link({ revokedAt: NOW, passcodeHash: "scrypt$x$y" });
-    expect(verifyShareAttempt(dead, { passcodeOk: false, email: "a@b.test" }, NOW)).toEqual(
-      { ok: false, reason: "unknown" },
-    );
+    expect(
+      verifyShareAttempt(
+        dead,
+        { passcodeOk: false, passcodeAttempted: true, email: "a@b.test" },
+        NOW,
+      ),
+    ).toEqual({ ok: false, reason: "unknown" });
+  });
+});
+
+describe("gateRequirements — every requirement at once", () => {
+  it("reports both boxes for a link that wants both", () => {
+    // the bug this replaced: requirements were revealed one refusal at a
+    // time, so filling the passcode dropped the email box and vice versa,
+    // and the visitor could never satisfy both
+    expect(
+      gateRequirements(link({ passcodeHash: "scrypt$x$y", requireEmail: true })),
+    ).toEqual({ passcode: true, email: true });
+  });
+
+  it("asks for an email when an allowlist exists even without requireEmail", () => {
+    expect(
+      gateRequirements(link({ requireEmail: false, allowedEmails: ["a@b.test"] })),
+    ).toEqual({ passcode: false, email: true });
+  });
+
+  it("asks for nothing when the link is open", () => {
+    expect(
+      gateRequirements(link({ requireEmail: false, allowedEmails: null })),
+    ).toEqual({ passcode: false, email: false });
   });
 });
 
 describe("verifyShareAttempt — passcode", () => {
+  it("does not call a passcode wrong before one has been typed", () => {
+    const guarded = link({ passcodeHash: "scrypt$x$y" });
+    const first = verifyShareAttempt(guarded, { passcodeOk: false, email: null }, NOW);
+    expect(first).toEqual({ ok: false, reason: "passcode_needed" });
+    expect(refusalMessage("passcode_needed")).not.toMatch(/not right/i);
+  });
+
   it("refuses a wrong passcode and allows a right one", () => {
     const guarded = link({ passcodeHash: "scrypt$x$y" });
     expect(
-      verifyShareAttempt(guarded, { passcodeOk: false, email: "a@b.test" }, NOW),
+      verifyShareAttempt(
+        guarded,
+        { passcodeOk: false, passcodeAttempted: true, email: "a@b.test" },
+        NOW,
+      ),
     ).toEqual({ ok: false, reason: "passcode" });
     expect(
       verifyShareAttempt(guarded, { passcodeOk: true, email: "a@b.test" }, NOW).ok,
@@ -147,7 +186,7 @@ describe("parseAllowedEmails", () => {
 
 describe("wording", () => {
   it("never mentions the file, even when the link is dead", () => {
-    for (const reason of ["unknown", "passcode", "email_required", "email_not_allowed"] as const) {
+    for (const reason of ["unknown", "passcode", "passcode_needed", "email_required", "email_not_allowed"] as const) {
       const text = refusalMessage(reason).toLowerCase();
       expect(text).not.toMatch(/file|document name|contract/);
     }

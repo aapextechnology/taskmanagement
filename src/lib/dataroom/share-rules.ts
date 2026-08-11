@@ -11,9 +11,31 @@ export const DEFAULT_EXPIRY_DAYS = 14;
 
 export type ShareRefusal =
   | "unknown" // no such link — also used for expired and revoked
+  | "passcode_needed" // protected, and nothing has been typed yet
   | "passcode"
   | "email_required"
   | "email_not_allowed";
+
+export interface GateRequirements {
+  passcode: boolean;
+  email: boolean;
+}
+
+/**
+ * Everything a live link asks for, in one answer.
+ *
+ * Reporting requirements one refusal at a time looked tidy and was unusable:
+ * the form rendered only the field just asked for, so supplying the passcode
+ * dropped the email box, supplying the email dropped the passcode box, and
+ * the visitor ping-ponged forever. A dead link still reveals nothing — the
+ * caller only asks once the link is known live.
+ */
+export function gateRequirements(link: ShareLinkState): GateRequirements {
+  return {
+    passcode: link.passcodeHash !== null,
+    email: link.requireEmail || link.allowedEmails !== null,
+  };
+}
 
 export interface ShareLinkState {
   expiresAt: Date;
@@ -27,6 +49,8 @@ export interface ShareLinkState {
 export interface ShareAttempt {
   /** already verified against passcodeHash by the caller */
   passcodeOk: boolean;
+  /** whether a passcode was supplied at all, right or wrong */
+  passcodeAttempted?: boolean;
   email: string | null;
 }
 
@@ -63,7 +87,12 @@ export function verifyShareAttempt(
   }
 
   if (link.passcodeHash !== null && !attempt.passcodeOk) {
-    return { ok: false, reason: "passcode" };
+    // "wrong" only once something was actually tried — telling a first-time
+    // visitor their passcode is wrong before they typed one reads as a fault
+    return {
+      ok: false,
+      reason: attempt.passcodeAttempted ? "passcode" : "passcode_needed",
+    };
   }
 
   if (!link.requireEmail && link.allowedEmails === null) {
@@ -88,6 +117,8 @@ export function refusalMessage(reason: ShareRefusal): string {
   switch (reason) {
     case "unknown":
       return "This link is no longer valid. Ask whoever sent it for a new one.";
+    case "passcode_needed":
+      return "This document is protected. Enter the passcode to open it.";
     case "passcode":
       return "That passcode is not right.";
     case "email_required":
