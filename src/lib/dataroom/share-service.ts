@@ -12,6 +12,7 @@ import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { env } from "@/lib/env";
 import type { Actor } from "@/lib/permissions";
 import { isId } from "./paths";
+import { watermarkDecision } from "./watermark";
 import {
   DEFAULT_EXPIRY_DAYS,
   refusalMessage,
@@ -41,6 +42,7 @@ export interface CreateShareInput {
   requireEmail?: boolean;
   allowedEmails?: string[] | null;
   allowDownload?: boolean;
+  watermark?: boolean;
   label?: string;
 }
 
@@ -58,9 +60,24 @@ export interface CreatedShare {
  */
 export async function createShareLink(
   actor: Actor,
-  file: { id: string; eventId: string; name: string },
+  file: {
+    id: string;
+    eventId: string;
+    name: string;
+    mimeType?: string;
+    sizeBytes?: number;
+  },
   input: Omit<CreateShareInput, "fileId">,
 ): Promise<CreatedShare> {
+  if (input.watermark) {
+    // decided now, not at view time: a switch that silently does nothing is
+    // worse than no switch, and the sender can still export to PDF instead
+    const verdict = watermarkDecision(
+      file.mimeType ?? "application/octet-stream",
+      file.sizeBytes ?? 0,
+    );
+    if (!verdict.ok) throw new Error(verdict.reason);
+  }
   const token = randomBytes(32).toString("hex");
   const expiresAt = resolveExpiry(input.expiryDays ?? DEFAULT_EXPIRY_DAYS, new Date());
 
@@ -78,6 +95,7 @@ export async function createShareLink(
       requireEmail: input.requireEmail ?? true,
       allowedEmails: (input.allowedEmails ?? null) as never,
       allowDownload: input.allowDownload ?? true,
+      watermark: input.watermark ?? false,
       createdBy: actor.id,
     })
     .returning({ id: dataroomShareLinks.id });
@@ -123,6 +141,7 @@ export interface ShareLinkView {
   revokedAt: Date | null;
   hasPasscode: boolean;
   allowDownload: boolean;
+  watermark: boolean;
   allowedEmails: string[] | null;
   opens: number;
   createdAt: Date;
@@ -157,6 +176,7 @@ export async function listShareLinks(fileId: string): Promise<ShareLinkView[]> {
     revokedAt: r.revokedAt,
     hasPasscode: r.passcodeHash !== null,
     allowDownload: r.allowDownload,
+    watermark: r.watermark,
     allowedEmails: (r.allowedEmails as string[] | null) ?? null,
     opens: byLink.get(r.id) ?? 0,
     createdAt: r.createdAt,
@@ -171,6 +191,7 @@ export interface ResolvedShare {
   versionNo: number;
   mimeType: string;
   allowDownload: boolean;
+  watermark: boolean;
   viewerEmail: string | null;
   /** so the gate can mint a pass that survives the next request */
   passcodeOk: boolean;
@@ -268,6 +289,7 @@ export async function resolveShare(
       versionNo: version.versionNo,
       mimeType: version.mimeType,
       allowDownload: link!.allowDownload,
+      watermark: link!.watermark,
       viewerEmail: verdict.viewerEmail,
       passcodeOk,
     },

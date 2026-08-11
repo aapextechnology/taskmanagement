@@ -162,6 +162,12 @@ export const dataroomShareLinks = pgTable(
     allowedEmails: jsonb("allowed_emails"),
     /** false = view in the browser, no download button */
     allowDownload: boolean("allow_download").notNull().default(true),
+    /**
+     * Stamp the recipient's identity into every page on the way out
+     * (EPIC-019). Never stored watermarked — the mark is per viewer, per
+     * request, so there is no cache carrying the wrong name.
+     */
+    watermark: boolean("watermark").notNull().default(false),
     createdBy: uuid("created_by").references(() => profiles.id, {
       onDelete: "set null",
     }),

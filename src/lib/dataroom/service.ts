@@ -764,12 +764,33 @@ export async function createShare(
     requireEmail?: boolean;
     allowedEmails?: string[] | null;
     allowDownload?: boolean;
+    watermark?: boolean;
     label?: string;
   },
 ) {
   const file = await requireFile(actor, fileId, "upload");
+  // the current version's type and size decide whether a watermark is even
+  // possible, so they travel with the file
+  const [version] = await db
+    .select()
+    .from(dataroomFileVersions)
+    .where(
+      and(
+        eq(dataroomFileVersions.fileId, file.id),
+        eq(dataroomFileVersions.versionNo, file.currentVersion),
+      ),
+    )
+    .limit(1);
   const { createShareLink } = await import("./share-service");
-  return createShareLink(actor, file, input);
+  return createShareLink(
+    actor,
+    {
+      ...file,
+      mimeType: version?.mimeType,
+      sizeBytes: version?.sizeBytes,
+    },
+    input,
+  );
 }
 
 export async function listSharesFor(actor: Actor, fileId: string) {

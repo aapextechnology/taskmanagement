@@ -28,6 +28,7 @@ interface ShareRow {
   allowedEmails: string[] | null;
   opens: number;
   expired: boolean;
+  watermark: boolean;
 }
 
 export function ShareDialog({
@@ -146,6 +147,15 @@ export function ShareDialog({
           </div>
 
           <label className="flex items-center gap-2.5 text-xs sm:col-span-2">
+            <Switch name="watermark" />
+            Stamp the recipient&apos;s email on every page
+            <span className="text-muted-foreground">
+              — PDFs and images only; makes a leaked copy traceable, it does
+              not prevent one
+            </span>
+          </label>
+
+          <label className="flex items-center gap-2.5 text-xs sm:col-span-2">
             <Switch name="allowDownload" defaultChecked />
             Allow downloading
             <span className="text-muted-foreground">
@@ -193,6 +203,7 @@ export function ShareDialog({
                     {link.hasPasscode ? " · passcode" : ""}
                     {link.allowedEmails ? ` · ${link.allowedEmails.length} address(es)` : ""}
                     {link.allowDownload ? "" : " · view only"}
+                    {link.watermark ? " · watermarked" : ""}
                   </span>
                 </span>
                 <span className="flex items-center gap-2">

@@ -126,6 +126,7 @@ export async function createShareAction(
       passcode: String(formData.get("passcode") ?? "") || undefined,
       allowedEmails: parseAllowedEmails(String(formData.get("allowedEmails") ?? "")),
       allowDownload: formData.get("allowDownload") === "on",
+      watermark: formData.get("watermark") === "on",
       label: String(formData.get("label") ?? "") || undefined,
     });
     revalidatePath(`/events/${eventId}/dataroom`);

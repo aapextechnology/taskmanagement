@@ -6,6 +6,13 @@ import {
 } from "@/lib/dataroom/share-service";
 import { readSharePass, SHARE_COOKIE } from "@/lib/dataroom/share-session";
 import { openVersion, parseRange, statVersion } from "@/lib/dataroom/storage";
+import {
+  watermarkDecision,
+  watermarkImage,
+  watermarkPdf,
+  watermarkText,
+} from "@/lib/dataroom/watermark";
+import { getBranding } from "@/lib/org/branding";
 
 // Bytes for an outside visitor (EPIC-018 T-181). The link is re-resolved on
 // every request — expiry, revocation and the allowlist are never cached — so
@@ -49,6 +56,50 @@ export async function GET(
   }
 
   await logShareAccess(share, wantsDownload ? "download" : "view");
+
+  // A watermarked copy is built per request, so it cannot be streamed or
+  // range-served: the bytes do not exist until they are stamped, and their
+  // length differs from the stored file. Size is capped at creation time, so
+  // "load it into memory" is a bounded promise rather than a hope.
+  if (share.watermark) {
+    const verdict = watermarkDecision(share.mimeType, stored.sizeBytes);
+    if (verdict.ok) {
+      const branding = await getBranding();
+      const text = watermarkText({
+        viewer: share.viewerEmail,
+        orgName: branding.orgName,
+        at: new Date(),
+      });
+      const original = Buffer.from(
+        await new Response(openVersion(stored)).arrayBuffer(),
+      );
+      try {
+        const stamped =
+          verdict.kind === "pdf"
+            ? await watermarkPdf(original, text)
+            : await watermarkImage(original, text);
+        return new NextResponse(new Uint8Array(stamped), {
+          status: 200,
+          headers: {
+            "Content-Type": share.mimeType,
+            "Content-Disposition": `${wantsDownload ? "attachment" : "inline"}; filename="${safeDownloadName(share.fileName)}"`,
+            "Content-Length": String(stamped.byteLength),
+            "Cache-Control": "private, no-store",
+            "X-Robots-Tag": "noindex, nofollow",
+          },
+        });
+      } catch (error) {
+        // A document that refuses to be stamped (encrypted, malformed) must
+        // NOT fall through to the unmarked original — the sender asked for a
+        // traceable copy and would never know they did not get one.
+        console.error("[dataroom] watermark failed:", error);
+        return NextResponse.json(
+          { error: "This document could not be prepared for viewing." },
+          { status: 500 },
+        );
+      }
+    }
+  }
 
   const range = parseRange(request.headers.get("range"), stored.sizeBytes);
   if (range === "unsatisfiable") {
