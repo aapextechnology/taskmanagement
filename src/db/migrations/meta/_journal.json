@@ -197,6 +197,13 @@
       "when": 1786411651031,
       "tag": "0027_dataroom",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1786414824062,
+      "tag": "0028_dataroom-log-folder",
+      "breakpoints": true
     }
   ]
 }

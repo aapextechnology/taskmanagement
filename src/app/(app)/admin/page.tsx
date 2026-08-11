@@ -30,12 +30,20 @@ export default async function AdminPage() {
             Manage users, divisions, and org-wide settings.
           </p>
         </div>
+        <div className="flex items-center gap-4">
+        <Link
+          href="/admin/storage"
+          className="text-xs font-medium uppercase tracking-wider text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Storage ↗
+        </Link>
         <Link
           href="/admin/audit"
           className="text-xs font-medium uppercase tracking-wider text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
         >
           Audit log ↗
         </Link>
+        </div>
       </div>
 
       <BrandingForm

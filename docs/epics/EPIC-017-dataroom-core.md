@@ -1,6 +1,6 @@
 # EPIC-017: Dataroom — core (Phase 1)
 
-status: on-progress
+status: ready-for-qa
 environment: dev
 retries: 0
 
@@ -194,6 +194,36 @@ that decides whether one department's contract is visible to another.
   which is why it is last.
 
 ## Automation Log
+
+- **T-174 / T-175 — Activity view, Admin storage, Documents retired**
+  (2026-08-11). The 80% WhatsApp warning is **held at the Owner's request**;
+  the crossing is still computed and surfaces as an in-app notice on upload,
+  so wiring the message later is a one-line change.
+  - **The activity view would have leaked sealed filenames.** An access log
+    listing "SECRET-settlement.pdf downloaded by X" to anyone who can see the
+    event defeats the folder it exists to audit. Fixed at the schema level:
+    the log now carries a denormalised `folder_id` (migration 0028, still no
+    FK) and `listAccessLog` filters by the same rules as the files. Rows
+    whose folder has since been deleted stay with Owner/Admin only — nobody
+    else is left who could be shown them safely.
+  - Proven live: with a rider in an event folder and a settlement in a sealed
+    one, the Owner (on the sealed list) sees both entries and a staff member
+    sees only the rider.
+  - **Two false results during that run, both worth recording.** The first
+    said "no leak" when in fact nothing had uploaded: the script ran on the
+    host with no `DATAROOM_DIR`, so free space read as 0 and the disk floor
+    refused everything. The second failed on a `/tmp` tmpfs of 16 GB, which
+    is below the 50 GB floor. Both were the floor working correctly in the
+    wrong place — a passing test that proves nothing is worse than a failing
+    one.
+  - Admin → Storage (org.manage): per-event used/limit bars, an editable
+    limit in GB, the installation default, and the real free disk with the
+    floor stated. Blank means "follow the default", so changing the default
+    moves every event without an override. Verified: owner 200, staff 307.
+  - **Documents retired.** Route deleted and the nav entry replaced; the
+    `documents` table is left in place — it holds 0 rows, and dropping a
+    table is not this task's risk to take. `/events/<id>/documents` now 404s.
+  - Gates: lint ✅ typecheck ✅ 345 tests ✅ build ✅ security ✅.
 
 - **T-173 — Sealed folder membership** (2026-08-11). The task was the member
   list; the value was a second orphaning bug it exposed.

@@ -28,7 +28,7 @@
 | [EPIC-014](EPIC-014-ai-assistant.md) | Phase 4 | AI Assistant (Predictive Chat) | P1 | ready-for-qa |
 | [EPIC-015](EPIC-015-whatsapp-gateway.md) | Phase 4 | WhatsApp Gateway (Baileys) | P1 | ready-for-qa |
 | [EPIC-016](EPIC-016-assistant-upgrade.md) | Phase 4 | Assistant upgrade — Pages, attachments, vision, save-to-page | P1 | ready-for-qa |
-| [EPIC-017](EPIC-017-dataroom-core.md) | Phase 4 | Dataroom core — per-event files, quota, sealed folders, access log | P1 | on-progress |
+| [EPIC-017](EPIC-017-dataroom-core.md) | Phase 4 | Dataroom core — per-event files, quota, sealed folders, access log | P1 | ready-for-qa |
 
 **Definition of MVP:** completion of **EPIC-000 → EPIC-003** (Phase 0 + Phase 1 — a division can run its event work end-to-end).
 

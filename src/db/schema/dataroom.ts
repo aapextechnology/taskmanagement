@@ -154,6 +154,13 @@ export const dataroomAccessLog = pgTable(
     }),
     /** kept as a plain column, not a reference — see above */
     fileId: uuid("file_id").notNull(),
+    /**
+     * Also denormalised, and for a different reason: the activity view has to
+     * be filtered by the SAME access rules as the files themselves, or it
+     * would list the names of sealed documents to everyone who can see the
+     * event — defeating the folder it is meant to audit.
+     */
+    folderId: uuid("folder_id"),
     eventId: uuid("event_id").notNull(),
     fileName: text("file_name").notNull(),
     versionNo: integer("version_no"),

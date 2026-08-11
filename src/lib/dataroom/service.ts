@@ -6,9 +6,11 @@ import {
   dataroomFiles,
   dataroomFolderMembers,
   dataroomFolders,
+  appSettings,
   events,
   profiles,
 } from "@/db/schema";
+import { logActivity } from "@/lib/activity";
 import { assertCan, PermissionError, type Actor } from "@/lib/permissions";
 import {
   canNest,
@@ -348,13 +350,131 @@ export async function usedBytes(eventId: string): Promise<number> {
   return Number(row?.total ?? 0);
 }
 
+/** Installation-wide default, editable in Admin; falls back to the figure
+ *  agreed in EPIC-017 (10 GB). */
+export async function defaultQuota(): Promise<number> {
+  try {
+    const [row] = await db
+      .select()
+      .from(appSettings)
+      .where(eq(appSettings.key, "dataroom_default_quota_bytes"))
+      .limit(1);
+    const value = Number(row?.value);
+    return Number.isFinite(value) && value > 0 ? value : DEFAULT_QUOTA_BYTES;
+  } catch {
+    return DEFAULT_QUOTA_BYTES;
+  }
+}
+
 export async function quotaFor(eventId: string): Promise<number> {
   const [row] = await db
     .select({ quota: events.dataroomQuotaBytes })
     .from(events)
     .where(eq(events.id, eventId))
     .limit(1);
-  return row?.quota ?? DEFAULT_QUOTA_BYTES;
+  // null = follow the default, so changing the default moves every event that
+  // never had an override, with no data migration
+  return row?.quota ?? (await defaultQuota());
+}
+
+export interface EventStorageRow {
+  eventId: string;
+  eventName: string;
+  usedBytes: number;
+  limitBytes: number;
+  /** false when the event follows the installation default */
+  hasOverride: boolean;
+  ratio: number;
+  level: "ok" | "warning" | "full";
+}
+
+/** Admin → Storage. One SUM per event, grouped in a single query. */
+export async function listEventStorage(actor: Actor): Promise<EventStorageRow[]> {
+  assertCan(actor, "org.manage");
+  const fallback = await defaultQuota();
+
+  const rows = await db
+    .select({
+      eventId: events.id,
+      eventName: events.name,
+      quota: events.dataroomQuotaBytes,
+    })
+    .from(events)
+    .orderBy(asc(events.name));
+
+  const sums = await db
+    .select({
+      eventId: dataroomFiles.eventId,
+      total: sql<number>`coalesce(sum(${dataroomFileVersions.sizeBytes}), 0)::bigint`,
+    })
+    .from(dataroomFileVersions)
+    .innerJoin(dataroomFiles, eq(dataroomFileVersions.fileId, dataroomFiles.id))
+    .groupBy(dataroomFiles.eventId);
+  const byEvent = new Map(sums.map((r) => [r.eventId, Number(r.total)]));
+
+  return rows.map((row) => {
+    const limit = row.quota ?? fallback;
+    const state = usage(byEvent.get(row.eventId) ?? 0, limit);
+    return {
+      eventId: row.eventId,
+      eventName: row.eventName,
+      usedBytes: state.usedBytes,
+      limitBytes: limit,
+      hasOverride: row.quota !== null,
+      ratio: state.ratio,
+      level: state.level,
+    };
+  });
+}
+
+/**
+ * Sets one event's cap. Owner/Admin only: a division head able to raise their
+ * own ceiling would turn the quota into a suggestion.
+ *
+ * Lowering it below current usage is allowed and deletes NOTHING — the event
+ * simply cannot upload again until it is back under. A settings change must
+ * never destroy a document.
+ */
+export async function setEventQuota(
+  actor: Actor,
+  eventId: string,
+  limitBytes: number | null,
+) {
+  assertCan(actor, "org.manage");
+  if (limitBytes !== null && (!Number.isFinite(limitBytes) || limitBytes <= 0)) {
+    throw new Error("Enter a size in GB, or leave it blank to use the default.");
+  }
+  await db
+    .update(events)
+    .set({ dataroomQuotaBytes: limitBytes })
+    .where(eq(events.id, eventId));
+  await logActivity({
+    actorId: actor.id,
+    action: "dataroom.quota_set",
+    entity: `event:${eventId}`,
+    detail: { limitBytes },
+    eventId,
+  });
+}
+
+export async function setDefaultQuota(actor: Actor, limitBytes: number) {
+  assertCan(actor, "org.manage");
+  if (!Number.isFinite(limitBytes) || limitBytes <= 0) {
+    throw new Error("Enter a size in GB.");
+  }
+  await db
+    .insert(appSettings)
+    .values({ key: "dataroom_default_quota_bytes", value: limitBytes })
+    .onConflictDoUpdate({
+      target: appSettings.key,
+      set: { value: limitBytes, updatedAt: new Date() },
+    });
+  await logActivity({
+    actorId: actor.id,
+    action: "dataroom.default_quota_set",
+    entity: "org:dataroom",
+    detail: { limitBytes },
+  });
 }
 
 export async function eventUsage(eventId: string) {
@@ -468,6 +588,7 @@ export async function uploadFile(
 
   await logAccess(actor, {
     fileId,
+    folderId: input.folderId,
     eventId,
     fileName: input.name,
     versionNo,
@@ -488,6 +609,7 @@ async function logAccess(
   actor: Actor,
   entry: {
     fileId: string;
+    folderId: string | null;
     eventId: string;
     fileName: string;
     versionNo: number | null;
@@ -497,6 +619,7 @@ async function logAccess(
   await db.insert(dataroomAccessLog).values({
     actorId: actor.id,
     fileId: entry.fileId,
+    folderId: entry.folderId,
     eventId: entry.eventId,
     fileName: entry.fileName,
     versionNo: entry.versionNo,
@@ -504,14 +627,53 @@ async function logAccess(
   });
 }
 
-export async function listAccessLog(actor: Actor, eventId: string, limit = 100) {
+export interface ActivityRow {
+  id: string;
+  actorName: string | null;
+  action: string;
+  fileName: string;
+  versionNo: number | null;
+  createdAt: Date;
+}
+
+/**
+ * The activity view, filtered by the same rules as the files.
+ *
+ * Without this filter the page would read out the names of sealed documents
+ * to anyone who can see the event, which would defeat the folders it exists
+ * to audit. Rows whose folder has since been deleted stay with Owner/Admin
+ * only: nobody is left who could be shown them safely.
+ */
+export async function listAccessLog(
+  actor: Actor,
+  eventId: string,
+  limit = 200,
+): Promise<ActivityRow[]> {
   assertCan(actor, "event.view");
-  return db
-    .select()
+  const visible = new Set((await listFolders(actor, eventId)).map((f) => f.id));
+  const isOwnerAdmin = actor.role === "owner" || actor.role === "admin";
+
+  const rows = await db
+    .select({
+      id: dataroomAccessLog.id,
+      actorName: profiles.name,
+      action: dataroomAccessLog.action,
+      fileName: dataroomAccessLog.fileName,
+      versionNo: dataroomAccessLog.versionNo,
+      createdAt: dataroomAccessLog.createdAt,
+      folderId: dataroomAccessLog.folderId,
+    })
     .from(dataroomAccessLog)
+    .leftJoin(profiles, eq(dataroomAccessLog.actorId, profiles.id))
     .where(eq(dataroomAccessLog.eventId, eventId))
     .orderBy(desc(dataroomAccessLog.createdAt))
     .limit(limit);
+
+  return rows
+    .filter((r) =>
+      r.folderId === null ? isOwnerAdmin : visible.has(r.folderId),
+    )
+    .map(({ folderId: _folderId, ...row }) => row);
 }
 
 // ---- files ----------------------------------------------------------------
@@ -573,6 +735,7 @@ export async function openForDownload(
 
   await logAccess(actor, {
     fileId: file.id,
+    folderId: file.folderId,
     eventId: file.eventId,
     fileName: file.name,
     versionNo: wanted,
@@ -589,6 +752,7 @@ export async function trashFile(actor: Actor, fileId: string) {
     .where(eq(dataroomFiles.id, fileId));
   await logAccess(actor, {
     fileId,
+    folderId: file.folderId,
     eventId: file.eventId,
     fileName: file.name,
     versionNo: null,
@@ -604,6 +768,7 @@ export async function restoreFile(actor: Actor, fileId: string) {
     .where(eq(dataroomFiles.id, fileId));
   await logAccess(actor, {
     fileId,
+    folderId: file.folderId,
     eventId: file.eventId,
     fileName: file.name,
     versionNo: null,

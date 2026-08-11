@@ -80,9 +80,9 @@ const EVENT_SUBPAGES = [
   { path: "handoffs", label: "Handoffs" },
   { path: "budget", label: "Budget" },
   { path: "guests", label: "Guests" },
-  // Documents was replaced by the Dataroom (EPIC-017): access levels,
-  // versioning and an access log, on the 3.6 TB disk. The old route stays
-  // until T-175 retires it.
+  // Replaces the old Documents module (EPIC-017): access levels, versioning
+  // and an access log, on the 3.6 TB disk. The `documents` table is left in
+  // place — it holds no rows, and dropping it is not this task's risk to take.
   { path: "dataroom", label: "Dataroom" },
   { path: "run-of-show", label: "Run of show" },
   { path: "tickets", label: "Tickets" },

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { sessionActor } from "@/lib/auth/session-actor";
 import {
@@ -57,6 +58,13 @@ export default async function DataroomPage({
             Documents for this event. Every open and download is recorded.
           </p>
         </div>
+        <div className="flex items-center gap-4">
+        <Link
+          href={`/events/${eventId}/dataroom/activity`}
+          className="text-xs font-medium uppercase tracking-wider text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Activity ↗
+        </Link>
         <div className="flex min-w-56 flex-col gap-1.5">
           <span className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">Storage</span>
@@ -84,6 +92,7 @@ export default async function DataroomPage({
               style={{ width: `${Math.round(usage.ratio * 100)}%` }}
             />
           </div>
+        </div>
         </div>
       </div>
 
