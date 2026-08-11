@@ -1,4 +1,5 @@
 import {
+  bigint,
   integer,
   pgTable,
   pgEnum,
@@ -37,6 +38,10 @@ export const events = pgTable("events", {
   // stored relative to UPLOADS_DIR, served auth-gated via /api/files
   coverImagePath: text("cover_image_path"),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
+  // Dataroom storage cap for this event (EPIC-017). null = use the global
+  // default in app_settings. Lowering it never deletes anything: it only
+  // refuses new uploads until usage falls back under.
+  dataroomQuotaBytes: bigint("dataroom_quota_bytes", { mode: "number" }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

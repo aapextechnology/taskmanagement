@@ -195,6 +195,37 @@ that decides whether one department's contract is visible to another.
 
 ## Automation Log
 
+- **T-171 — Schema and the access decision** (2026-08-11).
+  - `access.ts` (21 tests) — the four levels as a pure function over
+    (subject, folder chain). Tests assert the rules that are easy to get
+    wrong rather than the easy ones: an `external` user is refused at **every**
+    level even when explicitly listed as a member; a sealed folder refuses the
+    Owner and Admin until they are added by name; a division folder refuses
+    another division but admits Owner/Admin, consistent with
+    `org.viewAllDivisions`; and a folder whose `division_id` was never set
+    admits nobody rather than everybody.
+  - **The whole ancestor chain is checked, not just the folder itself.** The
+    narrow-only rule keeps the chain monotonic in theory, but a row that
+    predates the rule or arrives by import must not become a way in — a test
+    covers an `organisation` folder nested under a `sealed` one, which stays
+    closed to everyone including the Owner.
+  - `canManage` can never exceed `canView`: the Owner who created a sealed
+    folder but is not on its list controls nothing, because they cannot see
+    it. Management without sight would be a back door with extra steps.
+  - Five tables (migration 0027). Two deliberate shapes:
+    `dataroom_files.event_id` is denormalised from the folder so a quota sum
+    never needs a join, and **`dataroom_access_log` carries no foreign key to
+    the file and copies its name**, because the record of who read a contract
+    must outlive the contract. Verified in the database: the log has exactly
+    one FK, to the actor.
+  - `events.dataroom_quota_bytes` is nullable — null means "follow the global
+    default" — so raising the default later moves every event that never had
+    an override, without a data migration.
+  - Storage volume confirmed live: `/data/dataroom` writable by the container
+    user, 3.4 TB free, and `/data/uploads` still holding the WhatsApp session
+    untouched.
+  - Gates: lint ✅ typecheck ✅ 340 tests ✅ build ✅ security ✅.
+
 - **T-170 — Storage module, path safety and quota arithmetic** (2026-08-11).
   Built and proven before any schema or UI sits on top of it.
   - `quota.ts` (18 tests) — pure arithmetic for the three rules that decide
