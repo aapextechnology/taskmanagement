@@ -106,15 +106,43 @@ templates like every other message.
 
 ## Access model
 
-- A room's ordinary folders are readable by anyone who can view the event —
-  otherwise nobody will use it and it becomes Documents all over again.
-- A folder can be marked **Sealed**: an explicit member list, invisible to
-  everyone else. **A global owner/admin gets no automatic sight of a sealed
-  folder** — same rule as Pages (EPIC-016). "Restricted" that leadership can
-  read anyway is not restricted. Governance access, if ever wanted, is a
-  separate and separately logged feature.
-- Every open and download is logged with actor, file, version and timestamp,
-  in both kinds of folder.
+Four visibility levels on a **folder** (Owner, 2026-08-10). "Public" here
+always means *inside the installation* — reaching anyone outside is a
+different mechanism entirely (signed links, EPIC-018) and is never a side
+effect of this setting.
+
+| Level | Who can see it |
+| --- | --- |
+| `sealed` | only people named on the folder's list |
+| `division` | members of one named division |
+| `event` | anyone who can view the event |
+| `organisation` | every internal user |
+
+Rules:
+
+1. **The level lives on the folder; files inherit it.** Per-file levels read
+   as flexible and end as a document filed at the wrong level by someone who
+   never noticed the control.
+2. **A sub-folder may only narrow, never widen.** Without this an
+   `organisation` folder nested inside a `sealed` one leaks its contents,
+   while the person who created it believes the sealed parent protects it.
+   Widening is refused at save with the reason.
+3. **Owner/Admin see `division`, `event` and `organisation` automatically** —
+   consistent with `org.viewAllDivisions`, which already gives them every
+   division's data. **`sealed` is the only level they do not get**, which
+   makes the line easy to explain: if leadership must not see it, it goes in
+   a sealed folder, not a division one.
+4. **`external` users never reach the dataroom at all**, at any level. Guests
+   receive documents only through EPIC-018 links.
+5. A new folder defaults to **`event`** — useful immediately, not open to the
+   whole organisation, and not so strict that people route around it.
+6. Every open and download is logged with actor, file, version and timestamp,
+   at every level. There is no second path to the bytes, so the log cannot be
+   bypassed.
+
+The decision is a pure function over (actor, folder, ancestors, member list),
+unit-tested in the shape of `src/lib/pages/access.ts` — this is the module
+that decides whether one department's contract is visible to another.
 
 ## Tasks
 
@@ -127,7 +155,8 @@ templates like every other message.
   shape of `src/lib/pages/access.ts`.
 - **T-172** Event → Dataroom tab: folders, upload with progress, file list,
   version history, download through the gated stream.
-- **T-173** Sealed folders: mark, manage members, enforce invisibility.
+- **T-173** Folder visibility: the four levels, the narrow-only rule for
+  sub-folders, sealed member lists, and enforcement in every query.
 - **T-174** Activity view (who opened what, when) + the 80% WhatsApp warning.
 - **T-175** Admin → Storage: per-event used/limit, editable limits, global
   default, real free disk. Retire the Documents module from the event nav.
@@ -136,6 +165,9 @@ templates like every other message.
 
 - A sealed folder is invisible and unreachable to anyone not on its list,
   including the Owner, unless explicitly added.
+- A division folder is invisible to other divisions' staff.
+- A sub-folder cannot be saved at a wider level than its parent.
+- An `external` user reaches no part of the dataroom.
 - Every open/download is logged; the log cannot be bypassed, because there is
   no second way to reach the bytes.
 - Uploading past the quota is refused with the actual numbers, before
@@ -168,7 +200,15 @@ templates like every other message.
   data directory) and rejected it for the reasons above, after the Owner
   confirmed the team does not use Nextcloud's desktop or mobile clients.
   Owner set the default quota at 10 GB, chose hdd2, asked for the 80% warning
-  over WhatsApp, and confirmed Word/Excel need no watermark.
+  over WhatsApp, and confirmed Word/Excel need no watermark. Owner then asked
+  for department-scoped, event-scoped and organisation-wide folders alongside
+  sealed ones, which became the four-level model above; the narrow-only rule
+  for sub-folders was added because a wide folder nested in a sealed one
+  would otherwise leak while looking safe.
+  Quota limits are editable per event by Owner/Admin only — a division head
+  raising their own ceiling would turn the quota into a suggestion — and
+  lowering a limit never deletes anything: existing files stay, new uploads
+  are refused until usage falls under the new figure.
   Also found while scoping, and reported separately: this installation has
   **no backup of any kind** — no `pg_dump`, no volume backup, no cron. Not
   urgent while the data is dummy, but it must exist before the first real
