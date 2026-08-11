@@ -673,7 +673,14 @@ export async function listAccessLog(
     .filter((r) =>
       r.folderId === null ? isOwnerAdmin : visible.has(r.folderId),
     )
-    .map(({ folderId: _folderId, ...row }) => row);
+    .map((row) => ({
+      id: row.id,
+      actorName: row.actorName,
+      action: row.action,
+      fileName: row.fileName,
+      versionNo: row.versionNo,
+      createdAt: row.createdAt,
+    }));
 }
 
 // ---- files ----------------------------------------------------------------
@@ -742,6 +749,39 @@ export async function openForDownload(
     action: "download",
   });
   return { file, version };
+}
+
+// ---- share links (EPIC-018) ----------------------------------------------
+
+/** Creating a link requires the same rights as uploading: handing a document
+ *  to an outsider is a bigger act than reading it. */
+export async function createShare(
+  actor: Actor,
+  fileId: string,
+  input: {
+    expiryDays?: number;
+    passcode?: string;
+    requireEmail?: boolean;
+    allowedEmails?: string[] | null;
+    allowDownload?: boolean;
+    label?: string;
+  },
+) {
+  const file = await requireFile(actor, fileId, "upload");
+  const { createShareLink } = await import("./share-service");
+  return createShareLink(actor, file, input);
+}
+
+export async function listSharesFor(actor: Actor, fileId: string) {
+  await requireFile(actor, fileId, "view");
+  const { listShareLinks } = await import("./share-service");
+  return listShareLinks(fileId);
+}
+
+export async function revokeShare(actor: Actor, fileId: string, linkId: string) {
+  await requireFile(actor, fileId, "upload");
+  const { revokeShareLink } = await import("./share-service");
+  await revokeShareLink(actor, linkId);
 }
 
 export async function trashFile(actor: Actor, fileId: string) {

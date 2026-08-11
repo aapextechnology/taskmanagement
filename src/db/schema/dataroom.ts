@@ -3,6 +3,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -130,6 +131,49 @@ export const dataroomFileVersions = pgTable(
   ],
 );
 
+/**
+ * A link handed to someone with no account (EPIC-018).
+ *
+ * Never a public link: an expiry is required, revocation is one column, and
+ * the token is stored only as a hash so a database leak yields nothing that
+ * opens. One link opens exactly one file.
+ */
+export const dataroomShareLinks = pgTable(
+  "dataroom_share_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    fileId: uuid("file_id")
+      .notNull()
+      .references(() => dataroomFiles.id, { onDelete: "cascade" }),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    /** sha256 of the token; the plaintext exists only in the URL, once */
+    tokenHash: text("token_hash").notNull(),
+    label: text("label"),
+    /** NOT NULL on purpose — a link with no end date is the failure mode */
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    /** scrypt, via the existing hashPassword */
+    passcodeHash: text("passcode_hash"),
+    /** ask the visitor who they are before opening the file */
+    requireEmail: boolean("require_email").notNull().default(true),
+    /** when set, only these addresses may proceed */
+    allowedEmails: jsonb("allowed_emails"),
+    /** false = view in the browser, no download button */
+    allowDownload: boolean("allow_download").notNull().default(true),
+    createdBy: uuid("created_by").references(() => profiles.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("dataroom_share_links_token_idx").on(t.tokenHash),
+    index("dataroom_share_links_file_idx").on(t.fileId),
+    index("dataroom_share_links_event_idx").on(t.eventId),
+  ],
+);
+
 export const dataroomActionEnum = pgEnum("dataroom_action", [
   "view",
   "download",
@@ -149,9 +193,14 @@ export const dataroomAccessLog = pgTable(
   "dataroom_access_log",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // null for someone outside the system; viewerEmail names them instead
     actorId: uuid("actor_id").references(() => profiles.id, {
       onDelete: "set null",
     }),
+    /** the address an outside visitor gave before the file opened */
+    viewerEmail: text("viewer_email"),
+    /** which link let them in — kept after the link is revoked or deleted */
+    shareLinkId: uuid("share_link_id"),
     /** kept as a plain column, not a reference — see above */
     fileId: uuid("file_id").notNull(),
     /**

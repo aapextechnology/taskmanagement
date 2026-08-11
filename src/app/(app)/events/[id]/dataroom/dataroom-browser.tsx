@@ -7,6 +7,7 @@ import {
   Globe,
   Loader2,
   Lock,
+  Share2,
   Trash2,
   Upload,
   Users,
@@ -22,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { allowedChildLevels, type Visibility } from "@/lib/dataroom/access";
 import { cn } from "@/lib/utils";
 import { createFolderAction, trashFileAction, type DataroomActionState } from "./actions";
+import { ShareDialog } from "./share-dialog";
 
 // EPIC-017 T-172. Uploads go straight to the API as a raw body so a large
 // file is never held in memory — see the route for why multipart was avoided.
@@ -76,6 +78,7 @@ export function DataroomBrowser({
   const [progress, setProgress] = useState(0);
   const fileInput = useRef<HTMLInputElement>(null);
   const [newFolder, setNewFolder] = useState(false);
+  const [sharing, setSharing] = useState<FileView | null>(null);
 
   const parentLevel: Visibility = open?.visibility ?? "organisation";
   const levelOptions = allowedChildLevels(parentLevel).map((v) => ({
@@ -257,6 +260,15 @@ export function DataroomBrowser({
               )}
             </div>
 
+            {sharing ? (
+              <ShareDialog
+                eventId={eventId}
+                fileId={sharing.id}
+                fileName={sharing.name}
+                onClose={() => setSharing(null)}
+              />
+            ) : null}
+
             {files.length === 0 ? (
               <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
                 Nothing filed here yet.
@@ -295,6 +307,16 @@ export function DataroomBrowser({
                             >
                               <Download className="size-3.5" /> Download
                             </a>
+                            {open.canUpload ? (
+                              <button
+                                type="button"
+                                onClick={() => setSharing(file)}
+                                title="Share outside the system"
+                                className="flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                              >
+                                <Share2 className="size-3.5" /> Share
+                              </button>
+                            ) : null}
                             {open.canUpload ? (
                               <form action={trashFileAction}>
                                 <input type="hidden" name="eventId" value={eventId} />
