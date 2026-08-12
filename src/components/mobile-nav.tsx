@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { EventNavLink, NavLink, type NavItem } from "@/components/nav-link";
 import { Button } from "@/components/ui/button";
+import { isFullscreenRoute } from "@/components/app-frame";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -34,7 +35,7 @@ export function MobileNav({
   // fullscreen routes hide the main sidebar (see AppFrame) — the hamburger
   // then serves desktop too, so navigation stays one click away
   const pathname = usePathname();
-  const fullscreen = pathname.startsWith("/assistant");
+  const fullscreen = isFullscreenRoute(pathname);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>

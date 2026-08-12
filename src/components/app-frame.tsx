@@ -13,6 +13,15 @@ import { cn } from "@/lib/utils";
 // the sidebar for the same left column, and two nested trees side by side is
 // exactly what makes people lose their place.
 const FULLSCREEN_ROUTES = [/^\/assistant/, /^\/events\/[^/]+\/dataroom/];
+
+/**
+ * The ONE answer to "does this route hide the main sidebar?". MobileNav used
+ * to keep its own hardcoded copy and, exactly as such copies do, it drifted:
+ * the dataroom went fullscreen here and the burger never appeared there.
+ */
+export function isFullscreenRoute(pathname: string): boolean {
+  return FULLSCREEN_ROUTES.some((route) => route.test(pathname));
+}
 export function AppFrame({
   sidebar,
   header,
@@ -23,7 +32,7 @@ export function AppFrame({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const fullscreen = FULLSCREEN_ROUTES.some((r) => r.test(pathname));
+  const fullscreen = isFullscreenRoute(pathname);
 
   return (
     <div className="flex min-h-svh">
