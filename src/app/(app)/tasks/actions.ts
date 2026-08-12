@@ -98,6 +98,32 @@ export async function updateStatusAction(formData: FormData): Promise<void> {
   revalidatePath("/my-tasks");
 }
 
+/**
+ * Priority alone, editable in place (Owner 2026-08-12). Not routed through
+ * updateFieldsAction, which writes every field it is given — called with only
+ * a priority it would blank the title and description.
+ */
+export async function setPriorityAction(
+  _prev: TaskActionState,
+  formData: FormData,
+): Promise<TaskActionState> {
+  try {
+    const actor = await requireActor();
+    const taskId = String(formData.get("taskId"));
+    const priority = String(formData.get("priority"));
+    if (!["low", "medium", "high", "urgent"].includes(priority)) {
+      return { error: "Unknown priority." };
+    }
+    await updateTaskFields(actor, taskId, {
+      priority: priority as "low" | "medium" | "high" | "urgent",
+    });
+    revalidatePath(`/tasks/${taskId}`);
+    return {};
+  } catch (error) {
+    return friendly(error);
+  }
+}
+
 export async function updateFieldsAction(
   _prev: TaskActionState,
   formData: FormData,

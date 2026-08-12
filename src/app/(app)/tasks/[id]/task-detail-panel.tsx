@@ -37,6 +37,7 @@ import { CommentForm } from "./comment-form";
 import { DependencySection } from "./dependency-section";
 import { DescriptionEditor } from "./description-editor";
 import { EditTaskForm } from "./edit-form";
+import { PriorityInline } from "./priority-inline";
 
 const dt = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
@@ -119,7 +120,14 @@ export async function TaskDetailPanel({
         </div>
         <p className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           <StatusChip status={task.status} />
-          <PriorityIcon priority={task.priority} withLabel />
+          {canEdit ? (
+            <PriorityInline
+              taskId={task.id}
+              priority={task.priority as "low" | "medium" | "high" | "urgent"}
+            />
+          ) : (
+            <PriorityIcon priority={task.priority} withLabel />
+          )}
           {task.dueDate ? <span>due {dt.format(task.dueDate)} WIB</span> : null}
           {task.recurrence !== "none" ? <span>repeats {task.recurrence}</span> : null}
           <AvatarStack users={task.assignees} />
