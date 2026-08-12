@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { Lock } from "lucide-react";
 import { DependencyBadge } from "@/components/dependency-badge";
 import { LabelChip } from "@/components/label-chip";
 import {
@@ -11,6 +12,7 @@ import {
   STATUS_TEXT,
 } from "@/components/task-meta";
 import { NewTaskDialog } from "@/components/new-task-dialog";
+import { canRestrictTask, subjectOf } from "@/lib/tasks/visibility";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { getEvent, listEventDivisions } from "@/lib/events/service";
 import { listDivisions } from "@/lib/org/service";
@@ -151,6 +153,9 @@ export default async function TaskListPage({
         </div>
         {createOptions.length > 0 ? (
           <NewTaskDialog
+            canRestrictIn={createOptions
+              .filter((d) => canRestrictTask(subjectOf(actor), d.id))
+              .map((d) => d.id)}
             eventId={id}
             divisions={createOptions}
             defaultDivisionId={filters.divisionId}
@@ -212,6 +217,14 @@ export default async function TaskListPage({
                       <span className="min-w-0 flex-1 truncate font-medium">
                         {task.title}
                       </span>
+                      {task.restricted ? (
+                        // whoever can see this row is entitled to; the mark is
+                        // so its own division knows it is not on show
+                        <Lock
+                          className="size-3.5 shrink-0 text-muted-foreground"
+                          aria-label="Kept inside its division"
+                        />
+                      ) : null}
                       {task.labels.map((label) => (
                         <LabelChip
                           key={label.id}

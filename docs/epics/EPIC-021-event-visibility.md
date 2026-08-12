@@ -47,9 +47,28 @@ for whoever sees every event; they are org-level, not event news.
 - **A staff member's dashboard now counts only their own events.** Portfolio,
   bottleneck and overdue figures differ between a staff account and the
   Owner. That is the requested behaviour.
-- Task visibility *inside* an event is unchanged and still per-division: not
-  being assigned does not hide a task, but another division's tasks stay
-  hidden unless you are Owner/Admin or in that division too.
+- Task visibility *inside* an event **changed too** — see below.
+
+## Task visibility inside an event (Owner 2026-08-11)
+
+The default is now **open across divisions**: a shared event needs a shared
+picture, so Production can read Marketing's board on the same event. The
+exception is a **sealed task**, which a division head marks when creating it.
+
+- A sealed task is visible to its own division, to Owner/Admin, and **to the
+  people actually working on it whatever division they are in** — otherwise
+  assigning across divisions would create work its owner cannot open, which
+  reads as a bug and gets worked around.
+- **Only a head of that division (or leadership) may seal.** Staff cannot hide
+  their own work from the rest of the event; the lock is a management
+  decision, not a personal one.
+- The choice is made at creation, and the row carries a small lock so its own
+  division can tell it is not on show.
+
+Replaces the previous rule, where a member simply never saw another
+division's tasks. The Owner rejected a broader "All divisions" tab in favour
+of this, and it is the better shape: open by default with a named exception,
+rather than a second view that quietly bypasses the first.
 
 ## Automation Log
 
@@ -67,3 +86,17 @@ for whoever sees every event; they are org-level, not event news.
     seeded event, so a negative case had to be created deliberately — the
     obvious test would have passed while proving nothing.
   - Gates: lint ✅ typecheck ✅ 374 tests ✅ build ✅ security ✅.
+
+- **2026-08-11 — Cross-division tasks with a per-task lock.** Migration 0031
+  adds `tasks.restricted`. The rule is pure and unit-tested (9 cases); the
+  service applies it in ONE place, `filterVisible`, after the query rather
+  than inside it — "may see" depends on assignees and watchers, and a
+  three-way EXISTS repeated in every task query is far easier to get subtly
+  wrong than one rule applied once.
+  - `getTaskScoped` moved to the same rule. Without that, a cross-division
+    task would have appeared in the list and then refused to open.
+  - Verified with real accounts: Marketing sees both its tasks; Production
+    sees the open one and neither sees nor can open the sealed one; the Owner
+    sees both; **after being assigned, Production sees the sealed task**;
+    ordinary staff are refused when they try to seal; the marketing head is
+    allowed.

@@ -72,6 +72,7 @@ export async function createTaskAction(
         | "weekly"
         | "monthly",
       leadId: String(formData.get("leadId") ?? "") || undefined,
+      restricted: formData.get("restricted") === "on",
       assigneeIds: formData.getAll("assignees").map(String).filter(Boolean),
       labelIds: formData.getAll("labels").map(String).filter(Boolean),
       newLabel: String(formData.get("newLabelName") ?? "").trim()

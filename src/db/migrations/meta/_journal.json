@@ -218,6 +218,13 @@
       "when": 1786423054802,
       "tag": "0030_share-watermark",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1786499832022,
+      "tag": "0031_task-restricted",
+      "breakpoints": true
     }
   ]
 }
