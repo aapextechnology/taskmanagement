@@ -186,6 +186,10 @@ export const dataroomActionEnum = pgEnum("dataroom_action", [
   "upload",
   "trash",
   "restore",
+  // the share lifecycle joins the same trail (Owner 2026-08-12): who sent a
+  // document out is as much a part of "who touched this" as who opened it
+  "share_created",
+  "share_revoked",
 ]);
 
 /**
@@ -220,6 +224,8 @@ export const dataroomAccessLog = pgTable(
     fileName: text("file_name").notNull(),
     versionNo: integer("version_no"),
     action: dataroomActionEnum("action").notNull(),
+    /** human detail — the link's label, its recipients, the gate settings */
+    note: text("note"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

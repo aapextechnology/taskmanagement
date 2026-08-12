@@ -65,6 +65,7 @@ export async function createShareLink(
     id: string;
     eventId: string;
     name: string;
+    folderId?: string | null;
     mimeType?: string;
     sizeBytes?: number;
   },
@@ -110,6 +111,31 @@ export async function createShareLink(
     eventId: file.eventId,
   });
 
+  // The dataroom's own trail answers "who sent this out, and to whom" beside
+  // "who opened it" (Owner 2026-08-12). Recipients are named when a list was
+  // set; a link without one is honestly recorded as open to whoever holds it.
+  const recipients =
+    input.allowedEmails && input.allowedEmails.length > 0
+      ? `to ${input.allowedEmails.join(", ")}`
+      : "to anyone holding the link";
+  const gates = [
+    input.passcode?.trim() ? "passcode" : null,
+    (input.requireEmail ?? true) ? "email required" : null,
+    input.watermark ? "watermarked" : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  await db.insert(dataroomAccessLog).values({
+    actorId: actor.id,
+    fileId: file.id,
+    folderId: file.folderId ?? null,
+    eventId: file.eventId,
+    fileName: file.name,
+    versionNo: null,
+    action: "share_created",
+    note: `${input.label?.trim() ? `“${input.label.trim()}” ` : ""}${recipients}${gates ? ` (${gates})` : ""}, expires ${expiresAt.toISOString().slice(0, 10)}`,
+  });
+
   return { id: row.id, url: `${env.APP_URL}/share/${token}`, expiresAt };
 }
 
@@ -132,6 +158,21 @@ export async function revokeShareLink(actor: Actor, linkId: string) {
     entity: `dataroom_file:${link.fileId}`,
     detail: {},
     eventId: link.eventId,
+  });
+  const [file] = await db
+    .select({ name: dataroomFiles.name, folderId: dataroomFiles.folderId })
+    .from(dataroomFiles)
+    .where(eq(dataroomFiles.id, link.fileId))
+    .limit(1);
+  await db.insert(dataroomAccessLog).values({
+    actorId: actor.id,
+    fileId: link.fileId,
+    folderId: file?.folderId ?? null,
+    eventId: link.eventId,
+    fileName: file?.name ?? "?",
+    versionNo: null,
+    action: "share_revoked",
+    note: link.label ? `“${link.label}”` : null,
   });
 }
 
@@ -188,6 +229,8 @@ export async function listShareLinks(fileId: string): Promise<ShareLinkView[]> {
 
 export interface ResolvedShare {
   linkId: string;
+  /** the sender's label for this link, for the audit note */
+  linkLabel: string | null;
   fileId: string;
   eventId: string;
   fileName: string;
@@ -297,6 +340,7 @@ export async function resolveShare(
     ok: true,
     share: {
       linkId: link!.id,
+      linkLabel: link!.label,
       fileId: file.id,
       eventId: file.eventId,
       fileName: file.name,
@@ -326,5 +370,6 @@ export async function logShareAccess(
     fileName: share.fileName,
     versionNo: share.versionNo,
     action,
+    note: share.linkLabel ? `via “${share.linkLabel}”` : "via share link",
   });
 }

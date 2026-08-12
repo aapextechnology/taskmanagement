@@ -91,10 +91,20 @@ export async function watermarkPdf(
   const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
   const font = await pdf.embedFont(StandardFonts.Helvetica);
 
+  // Amber, not grey, and larger (Owner 2026-08-12): the first pass optimised
+  // for the document staying pretty, and the Owner correctly optimised for
+  // the mark being unmissable — a watermark nobody notices deters nobody.
+  // Amber rather than pure yellow because #ff0-style yellow disappears into
+  // white paper; amber stays legible on both white and dark pages.
+  const AMBER = rgb(0.85, 0.62, 0.05);
+
   for (const page of pdf.getPages()) {
     const { width, height } = page.getSize();
     // sized to the page so a long email still fits on A4 and on a wide slide
-    const size = Math.max(10, Math.min(width, height) / Math.max(28, text.length * 0.9));
+    const size = Math.max(
+      16,
+      Math.min(width, height) / Math.max(16, text.length * 0.55),
+    );
     const textWidth = font.widthOfTextAtSize(text, size);
 
     page.drawText(text, {
@@ -102,21 +112,19 @@ export async function watermarkPdf(
       y: height / 2 - textWidth * 0.35,
       size,
       font,
-      // low opacity: legible enough to identify a leaked copy, faint enough
-      // that the document is still readable
-      color: rgb(0.45, 0.45, 0.45),
-      opacity: 0.28,
+      color: AMBER,
+      opacity: 0.4,
       rotate: degrees(45),
     });
 
-    // a second, small mark in the footer survives a crop of the middle
+    // a second mark in the footer survives a crop of the middle
     page.drawText(text, {
       x: 24,
       y: 16,
-      size: 7,
+      size: 10,
       font,
-      color: rgb(0.4, 0.4, 0.4),
-      opacity: 0.55,
+      color: AMBER,
+      opacity: 0.85,
     });
   }
   return Buffer.from(await pdf.save());
@@ -132,15 +140,16 @@ export async function watermarkImage(
   const meta = await image.metadata();
   const width = meta.width ?? 800;
   const height = meta.height ?? 600;
-  const fontSize = Math.max(11, Math.round(width / 42));
+  const fontSize = Math.max(14, Math.round(width / 30));
 
+  // amber, same reasoning as the PDF: yellow-on-white vanishes, amber does not
   const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
     <text x="50%" y="50%" text-anchor="middle"
       transform="rotate(-30 ${width / 2} ${height / 2})"
-      font-family="sans-serif" font-size="${fontSize * 1.6}"
-      fill="#666" fill-opacity="0.28">${escapeXml(text)}</text>
-    <text x="12" y="${height - 12}" font-family="sans-serif"
-      font-size="${fontSize}" fill="#444" fill-opacity="0.6">${escapeXml(text)}</text>
+      font-family="sans-serif" font-weight="bold" font-size="${fontSize * 2}"
+      fill="#d99e0b" fill-opacity="0.45">${escapeXml(text)}</text>
+    <text x="12" y="${height - 12}" font-family="sans-serif" font-weight="bold"
+      font-size="${fontSize}" fill="#d99e0b" fill-opacity="0.85">${escapeXml(text)}</text>
   </svg>`;
 
   return image

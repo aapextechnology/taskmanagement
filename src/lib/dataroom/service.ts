@@ -635,9 +635,13 @@ async function logAccess(
 export interface ActivityRow {
   id: string;
   actorName: string | null;
+  /** the email an outside visitor gave — the "who" when actorName is null */
+  viewerEmail: string | null;
   action: string;
   fileName: string;
   versionNo: number | null;
+  /** share detail: the link's label, its recipients, its gates */
+  note: string | null;
   createdAt: Date;
 }
 
@@ -662,9 +666,11 @@ export async function listAccessLog(
     .select({
       id: dataroomAccessLog.id,
       actorName: profiles.name,
+      viewerEmail: dataroomAccessLog.viewerEmail,
       action: dataroomAccessLog.action,
       fileName: dataroomAccessLog.fileName,
       versionNo: dataroomAccessLog.versionNo,
+      note: dataroomAccessLog.note,
       createdAt: dataroomAccessLog.createdAt,
       folderId: dataroomAccessLog.folderId,
     })
@@ -681,9 +687,11 @@ export async function listAccessLog(
     .map((row) => ({
       id: row.id,
       actorName: row.actorName,
+      viewerEmail: row.viewerEmail,
       action: row.action,
       fileName: row.fileName,
       versionNo: row.versionNo,
+      note: row.note,
       createdAt: row.createdAt,
     }));
 }

@@ -13,6 +13,8 @@ const VERB: Record<string, string> = {
   view: "opened",
   trash: "moved to trash",
   restore: "restored",
+  share_created: "shared a link to",
+  share_revoked: "withdrew a link to",
 };
 
 // EPIC-017 T-174. Filtered by the same access rules as the files themselves —
@@ -66,7 +68,23 @@ export default async function DataroomActivityPage({
                   key={row.id}
                   className="border-b transition-colors last:border-0 hover:bg-accent/30"
                 >
-                  <td className="px-4 py-2.5">{row.actorName ?? "Removed user"}</td>
+                  <td className="px-4 py-2.5">
+                    {row.actorName ? (
+                      row.actorName
+                    ) : row.viewerEmail ? (
+                      // an outside visitor, named by the address they gave —
+                      // this used to render as "Removed user", which buried
+                      // exactly the answer the audit exists to give
+                      <span className="flex flex-col">
+                        <span>{row.viewerEmail}</span>
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          external
+                        </span>
+                      </span>
+                    ) : (
+                      "Shared link (anonymous)"
+                    )}
+                  </td>
                   <td className="px-4 py-2.5 text-muted-foreground">
                     {VERB[row.action] ?? row.action}
                   </td>
@@ -75,6 +93,11 @@ export default async function DataroomActivityPage({
                     {row.versionNo ? (
                       <span className="ml-1.5 text-xs text-muted-foreground">
                         v{row.versionNo}
+                      </span>
+                    ) : null}
+                    {row.note ? (
+                      <span className="block text-xs text-muted-foreground">
+                        {row.note}
                       </span>
                     ) : null}
                   </td>
