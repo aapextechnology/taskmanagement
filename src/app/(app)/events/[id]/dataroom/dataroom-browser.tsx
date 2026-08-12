@@ -151,6 +151,9 @@ export function DataroomBrowser({
 
   const fileMenu = useContextMenu<FileView>();
   const folderMenu = useContextMenu<FolderView>();
+  // right-click on the pane's background — not on a row, which claims the
+  // event first via preventDefault
+  const paneMenu = useContextMenu<true>();
 
   const goto = (folderId: string | null) =>
     router.push(
@@ -439,6 +442,12 @@ export function DataroomBrowser({
         }}
         onDragLeave={() => setDropTarget(null)}
         onDrop={(e) => open && handleDrop(e, open)}
+        onContextMenu={(e) => {
+          // rows and tiles preventDefault when they open their own menu;
+          // anything still unclaimed here is the background
+          if (e.defaultPrevented) return;
+          paneMenu.openAt(e, true);
+        }}
         className={cn(
           "flex min-h-[60svh] flex-col gap-3 rounded-lg border border-transparent p-1 transition-colors",
           dropTarget === "pane" && "border-dashed border-foreground/40 bg-accent/20",
@@ -786,14 +795,37 @@ export function DataroomBrowser({
         items={folderMenu.target ? folderItems(folderMenu.target) : []}
         onClose={folderMenu.close}
       />
-
-      <NewFolderDialog
-        eventId={eventId}
-        parent={newFolderFor ?? null}
-        divisions={divisions}
-        open={newFolderFor !== undefined}
-        onOpenChange={(v) => setNewFolderFor(v ? null : undefined)}
+      <ContextMenu
+        position={paneMenu.position}
+        items={[
+          {
+            label: open ? `New folder in “${open.name}”…` : "New folder…",
+            icon: <FolderPlus className="size-3.5" />,
+            disabled: open ? !open.canUpload : false,
+            onSelect: () => setNewFolderFor(open),
+          },
+          ...(open?.canUpload
+            ? [
+                {
+                  label: "Upload files…",
+                  icon: <Upload className="size-3.5" />,
+                  onSelect: () => fileInput.current?.click(),
+                },
+              ]
+            : []),
+        ]}
+        onClose={paneMenu.close}
       />
+
+      {newFolderFor !== undefined ? (
+        // mounted fresh on every open, so no state survives from the last use
+        <NewFolderDialog
+          eventId={eventId}
+          parent={newFolderFor}
+          divisions={divisions}
+          onClose={() => setNewFolderFor(undefined)}
+        />
+      ) : null}
 
       {renaming ? (
         <RenameDialog

@@ -1,25 +1,22 @@
 "use client";
 
 import { FolderPlus, Globe, Lock, Users, Folder } from "lucide-react";
-import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { Segmented } from "@/components/segmented";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { allowedChildLevels, type Visibility } from "@/lib/dataroom/access";
-import { createFolderAction, type DataroomActionState } from "./actions";
+import { createFolderAction } from "./actions";
 
-// New folder as a dialog rather than a panel wedged into the page (Owner
-// 2026-08-11). Creating a folder is a brief, modal decision; leaving a form
-// open in the layout made the file list jump around.
+// New folder, as a plain overlay (Owner bug report 2026-08-12). The previous
+// version drove a base-ui Dialog from useActionState plus a closing effect,
+// and could wedge open: `state.ok` was never reset, so the effect's verdict
+// depended on render order, and the portal's exit animation kept the
+// full-screen backdrop up — swallowing every click until a refresh. This one
+// follows the Rename dialog beside it: mounted fresh each time it opens,
+// closed imperatively on success. No effect, no stale state, nothing to hang.
 
 const LEVEL_META: Record<Visibility, { label: string; icon: React.ReactNode; hint: string }> = {
   sealed: { label: "Sealed", icon: <Lock className="size-3.5" />, hint: "Only people you name — not even the Owner" },
@@ -32,99 +29,124 @@ export function NewFolderDialog({
   eventId,
   parent,
   divisions,
-  open,
-  onOpenChange,
+  onClose,
 }: {
   eventId: string;
   parent: { id: string; name: string; visibility: Visibility } | null;
   divisions: Array<{ id: string; name: string }>;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
 }) {
-  const [state, formAction, pending] = useActionState<DataroomActionState, FormData>(
-    createFolderAction,
-    {},
-  );
-  const [level, setLevel] = useState<Visibility>("event");
-
-  useEffect(() => {
-    if (state.ok) onOpenChange(false);
-  }, [state.ok, onOpenChange]);
-
-  // a child may only narrow, so the wider options are simply not offered
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  // a child may only narrow, so wider options are simply not offered
   const levels = allowedChildLevels(parent?.visibility ?? "organisation");
-  const options = levels.map((v) => ({
-    value: v,
-    label: LEVEL_META[v].label,
-    icon: LEVEL_META[v].icon,
-    hint: LEVEL_META[v].hint,
-  }));
+  const [level, setLevel] = useState<Visibility>(
+    levels.includes("event") ? "event" : levels[0],
+  );
+  const [divisionId, setDivisionId] = useState(divisions[0]?.id ?? "");
+
+  const submit = () => {
+    const data = new FormData();
+    data.set("eventId", eventId);
+    data.set("parentId", parent?.id ?? "");
+    data.set("name", name);
+    data.set("visibility", level);
+    data.set("divisionId", level === "division" ? divisionId : "");
+    startTransition(async () => {
+      const result = await createFolderAction({}, data);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      onClose();
+      router.refresh();
+    });
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <form action={formAction} className="flex flex-col gap-4">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FolderPlus className="size-4" /> New folder
-            </DialogTitle>
-            <DialogDescription>
-              {parent
-                ? `Inside “${parent.name}”. It cannot be more open than its parent.`
-                : "At the top level of this event's dataroom."}
-            </DialogDescription>
-          </DialogHeader>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (name.trim()) submit();
+        }}
+        className="flex w-full max-w-md flex-col gap-4 rounded-lg border bg-card p-5 shadow-lg"
+      >
+        <div className="flex flex-col gap-1">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <FolderPlus className="size-4" /> New folder
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {parent
+              ? `Inside “${parent.name}”. It cannot be more open than its parent.`
+              : "At the top level of this event's dataroom."}
+          </p>
+        </div>
 
-          <input type="hidden" name="eventId" value={eventId} />
-          <input type="hidden" name="parentId" value={parent?.id ?? ""} />
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="nf-name" className="text-xs">
+            Name
+          </Label>
+          <Input
+            id="nf-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            autoFocus
+            placeholder="Vendor contracts"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") onClose();
+            }}
+          />
+        </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nf-name" className="text-xs">
-              Name
-            </Label>
-            <Input id="nf-name" name="name" required autoFocus placeholder="Vendor contracts" />
-          </div>
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs">Who can see it</Label>
+          <Segmented
+            name="visibility-display"
+            options={levels.map((v) => ({
+              value: v,
+              label: LEVEL_META[v].label,
+              icon: LEVEL_META[v].icon,
+              hint: LEVEL_META[v].hint,
+            }))}
+            defaultValue={level}
+            onValueChange={(v) => setLevel(v as Visibility)}
+          />
+          <span className="text-[11px] text-muted-foreground">
+            {LEVEL_META[level].hint}
+          </span>
+        </div>
 
+        {level === "division" && divisions.length > 0 ? (
           <div className="flex flex-col gap-2">
-            <Label className="text-xs">Who can see it</Label>
+            <Label className="text-xs">Which division</Label>
             <Segmented
-              name="visibility"
-              options={options}
-              defaultValue={levels.includes("event") ? "event" : levels[0]}
-              onValueChange={(v) => setLevel(v as Visibility)}
+              name="division-display"
+              options={divisions.map((d) => ({ value: d.id, label: d.name }))}
+              defaultValue={divisionId}
+              onValueChange={setDivisionId}
             />
-            <span className="text-[11px] text-muted-foreground">
-              {LEVEL_META[level]?.hint}
-            </span>
           </div>
+        ) : null}
 
-          {level === "division" && divisions.length > 0 ? (
-            <div className="flex flex-col gap-2">
-              <Label className="text-xs">Which division</Label>
-              <Segmented
-                name="divisionId"
-                options={divisions.map((d) => ({ value: d.id, label: d.name }))}
-                defaultValue={divisions[0]?.id}
-              />
-            </div>
-          ) : null}
+        {error ? (
+          <p role="alert" className="text-xs text-destructive">
+            {error}
+          </p>
+        ) : null}
 
-          {state.error ? (
-            <p role="alert" className="text-xs text-destructive">
-              {state.error}
-            </p>
-          ) : null}
-
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Creating…" : "Create folder"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" size="sm" disabled={pending || !name.trim()}>
+            {pending ? "Creating…" : "Create folder"}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }
