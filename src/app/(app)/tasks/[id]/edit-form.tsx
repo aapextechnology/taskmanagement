@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { updateFieldsAction } from "../actions";
 import { PriorityPicker } from "@/components/priority-picker";
 import { Segmented } from "@/components/segmented";
@@ -60,7 +61,11 @@ export function EditTaskForm({
     });
   };
 
-  return (
+  // Portalled to <body>: this form lives inside the task drawer, whose slide
+  // animation uses a CSS transform — and a transformed ancestor becomes the
+  // containing block for position:fixed descendants, so without the portal
+  // the modal centres on the DRAWER and is clipped at its edge.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <form
         action={submit}
@@ -132,6 +137,7 @@ export function EditTaskForm({
           </Button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }
