@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD COLUMN "tessera_event_id" text;

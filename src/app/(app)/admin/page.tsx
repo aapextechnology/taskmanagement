@@ -7,6 +7,7 @@ import { can } from "@/lib/permissions";
 import { getBranding } from "@/lib/org/branding";
 import { BrandingForm } from "./branding-form";
 import { WhatsAppGateway } from "./whatsapp-gateway";
+import { TesseraPanel } from "./tessera-panel";
 import { AdminTabs } from "./admin-tabs";
 
 export const metadata: Metadata = { title: "Admin" };
@@ -20,6 +21,8 @@ export default async function AdminPage() {
     listDivisions(),
     getBranding(),
   ]);
+  const { getTesseraStatus } = await import("@/lib/tessera/client");
+  const tessera = await getTesseraStatus(actor);
 
   return (
     <section className="flex flex-col gap-6">
@@ -54,6 +57,15 @@ export default async function AdminPage() {
       />
 
       <WhatsAppGateway />
+
+      <TesseraPanel
+        configured={tessera.configured}
+        savedAt={tessera.savedAt}
+        lastOkAt={tessera.lastOkAt}
+        lastError={tessera.lastError}
+        unreadableSample={tessera.unreadableSample}
+        daysLeft={tessera.daysLeft}
+      />
 
       <AdminTabs
         users={users.map((u) => ({

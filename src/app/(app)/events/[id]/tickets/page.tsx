@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { sessionActor } from "@/lib/auth/session-actor";
+import { TesseraMap } from "./tessera-map";
 import { getEvent } from "@/lib/events/service";
 import { can, PermissionError } from "@/lib/permissions";
 import {
@@ -30,6 +31,7 @@ export default async function TicketsPage({
 
   const snapshots = await listSnapshots(actor, id);
   const canRecord = can(actor, "tickets.record");
+  const canMapTessera = can(actor, "org.manage");
   const totalSold = snapshots.reduce((s, r) => s + r.ticketsSold, 0);
   const totalRevenue = snapshots.reduce((s, r) => s + r.revenue, 0);
   const soldPct =
@@ -82,6 +84,9 @@ export default async function TicketsPage({
         ))}
       </div>
 
+      {canMapTessera ? (
+        <TesseraMap eventId={id} mappedId={event.tesseraEventId} />
+      ) : null}
       {canRecord ? (
         <form
           action={recordAction}

@@ -38,6 +38,9 @@ export const events = pgTable("events", {
   // identity swatch in the sidebar and the grid (Owner 2026-08-12); null
   // means "use the colour derived from the id", so no event is ever grey
   color: text("color"),
+  // Tessera event this one mirrors (Owner 2026-08-12); null = no ticketing
+  // sync. Kept as text — their ids may be numeric or uuid, both seen.
+  tesseraEventId: text("tessera_event_id"),
   // stored relative to UPLOADS_DIR, served auth-gated via /api/files
   coverImagePath: text("cover_image_path"),
   archivedAt: timestamp("archived_at", { withTimezone: true }),

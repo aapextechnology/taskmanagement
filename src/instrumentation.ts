@@ -29,6 +29,16 @@ export async function register() {
       console.log(
         `[cron] due sweep + health recompute for ${n} events + ${b} bottleneck checks`,
       );
+      // Tessera sales (EPIC: ticketing) — fails soft; expiry notifies admins
+      try {
+        const { syncTesseraSales } = await import("@/lib/tessera/client");
+        const t = await syncTesseraSales();
+        if (t.synced || t.failed) {
+          console.log(`[cron] tessera: ${t.synced} synced, ${t.failed} failed${t.tokenExpired ? " (token expired)" : ""}`);
+        }
+      } catch (error) {
+        console.error("[cron] tessera sync failed:", error);
+      }
     } catch (error) {
       console.error("[cron] sweep failed:", error);
     }
