@@ -10,6 +10,7 @@ import {
 } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
 import { assertCan, type Actor } from "@/lib/permissions";
+import { canViewEvent, scopeCondition, visibleEventIds } from "./visibility";
 import { computeHealth, type HealthSignals } from "./health";
 
 // Events service (T-021/T-022/T-023). All access permission-gated here.
@@ -26,6 +27,7 @@ export const DEFAULT_PHASES = [
 
 export async function listActiveEvents(actor: Actor) {
   assertCan(actor, "event.view");
+  const scope = await visibleEventIds(actor);
   return db
     .select({
       event: events,
@@ -33,7 +35,7 @@ export async function listActiveEvents(actor: Actor) {
     })
     .from(events)
     .leftJoin(eventPhases, eq(events.currentPhaseId, eventPhases.id))
-    .where(isNull(events.archivedAt))
+    .where(and(isNull(events.archivedAt), scopeCondition(scope, events.id)))
     .orderBy(asc(events.showDate))
     .then((rows) =>
       rows.map((r) => ({ ...r.event, phaseName: r.phaseName ?? "—" })),
@@ -42,6 +44,9 @@ export async function listActiveEvents(actor: Actor) {
 
 export async function getEvent(actor: Actor, eventId: string) {
   assertCan(actor, "event.view");
+  // the direct-URL guard. Without it, scoping the lists would only hide
+  // events from people who did not already know the address.
+  if (!(await canViewEvent(actor, eventId))) return null;
   const [row] = await db
     .select({ event: events, phaseName: eventPhases.name })
     .from(events)
@@ -298,7 +303,9 @@ export async function listArchivedEvents(actor: Actor) {
     .select({ event: events, phaseName: eventPhases.name })
     .from(events)
     .leftJoin(eventPhases, eq(events.currentPhaseId, eventPhases.id))
-    .where(isNotNull(events.archivedAt))
+    .where(
+      and(isNotNull(events.archivedAt), scopeCondition(await visibleEventIds(actor), events.id)),
+    )
     .orderBy(desc(events.showDate))
     .then((rows) =>
       rows.map((r) => ({ ...r.event, phaseName: r.phaseName ?? "—" })),

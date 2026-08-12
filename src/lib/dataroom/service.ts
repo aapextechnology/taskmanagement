@@ -11,6 +11,7 @@ import {
   profiles,
 } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
+import { canViewEvent } from "@/lib/events/visibility";
 import { assertCan, PermissionError, type Actor } from "@/lib/permissions";
 import {
   canNest,
@@ -122,9 +123,13 @@ export async function listFolders(
 ): Promise<FolderView[]> {
   assertCan(actor, "event.view");
   if (!isId(eventId)) return [];
+  // an "event"-level folder is readable by anyone who can view the event —
+  // which is now a real question, not always yes. Passing `true` here would
+  // leak event folders to people who are not on the event at all.
+  const onEvent = await canViewEvent(actor, eventId);
   const { rows, members } = await loadFolders(eventId);
   const byId = new Map(rows.map((r) => [r.id, r]));
-  const subject = subjectFor(actor, true);
+  const subject = subjectFor(actor, onEvent);
 
   const out: FolderView[] = [];
   for (const row of rows) {
@@ -161,7 +166,7 @@ async function requireFolder(
   const { rows, members } = await loadFolders(folder.eventId);
   const byId = new Map(rows.map((r) => [r.id, r]));
   const access = resolveFolderAccess(
-    subjectFor(actor, true),
+    subjectFor(actor, await canViewEvent(actor, folder.eventId)),
     chainFor(folder.id, byId, members),
   );
   const ok =

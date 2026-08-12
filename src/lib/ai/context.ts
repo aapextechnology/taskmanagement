@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { scopeCondition, visibleEventIds } from "@/lib/events/visibility";
 import {
   divisions,
   eventPhases,
@@ -223,6 +224,8 @@ export async function buildAssistantContext(
   focusEventId?: string,
 ) {
   assertCan(actor, "ai.assistant");
+  // the snapshot must never describe an event the reader cannot open
+  const eventScope = await visibleEventIds(actor);
 
   const activeEvents = await db
     .select({
@@ -236,7 +239,9 @@ export async function buildAssistantContext(
       currentPhaseId: events.currentPhaseId,
     })
     .from(events)
-    .where(isNull(events.archivedAt))
+    .where(
+      and(isNull(events.archivedAt), scopeCondition(eventScope, events.id)),
+    )
     .orderBy(events.showDate);
 
   const snapshots = [];

@@ -12,6 +12,7 @@ import {
 } from "@/db/schema";
 import { portfolioRollup } from "@/lib/budgets/service";
 import { assertCan, type Actor } from "@/lib/permissions";
+import { scopeCondition, visibleEventIds } from "@/lib/events/visibility";
 import {
   summarizeTaskProgress,
   type StatusCounts,
@@ -21,11 +22,15 @@ import {
 
 export async function getPortfolio(actor: Actor) {
   assertCan(actor, "dashboard.view");
+  // the dashboard aggregates across events, so it needs the same scope as the
+  // lists — otherwise the numbers would quietly include shows the reader
+  // cannot open
+  const scope = await visibleEventIds(actor);
   const active = await db
     .select({ event: events, phaseName: eventPhases.name })
     .from(events)
     .leftJoin(eventPhases, eq(events.currentPhaseId, eventPhases.id))
-    .where(isNull(events.archivedAt))
+    .where(and(isNull(events.archivedAt), scopeCondition(scope, events.id)))
     .orderBy(events.showDate)
     .then((rows) =>
       rows.map((r) => ({ ...r.event, phaseName: r.phaseName ?? "—" })),
@@ -79,6 +84,10 @@ export async function getPortfolio(actor: Actor) {
 
 export async function getUpcomingMilestones(actor: Actor, days = 14) {
   assertCan(actor, "dashboard.view");
+  // the dashboard aggregates across events, so it needs the same scope as the
+  // lists — otherwise the numbers would quietly include shows the reader
+  // cannot open
+  const scope = await visibleEventIds(actor);
   const now = new Date();
   const until = new Date(now.getTime() + days * 86_400_000);
   return db
@@ -101,6 +110,7 @@ export async function getUpcomingMilestones(actor: Actor, days = 14) {
         lt(tasks.dueDate, until),
         inArray(tasks.priority, ["high", "urgent"]),
         isNull(events.archivedAt),
+        scopeCondition(scope, events.id),
       ),
     )
     // urgent first, then soonest due (Owner 2026-08-07: every dashboard
@@ -118,6 +128,10 @@ export async function getUpcomingMilestones(actor: Actor, days = 14) {
 // status-based "blockers" panel.
 export async function getBottlenecks(actor: Actor) {
   assertCan(actor, "dashboard.view");
+  // the dashboard aggregates across events, so it needs the same scope as the
+  // lists — otherwise the numbers would quietly include shows the reader
+  // cannot open
+  const scope = await visibleEventIds(actor);
   const { bottleneckLevel } = await import("@/lib/tasks/bottleneck-math");
 
   const waiter = alias(tasks, "waiter");
@@ -143,6 +157,7 @@ export async function getBottlenecks(actor: Actor) {
         notInArray(waiter.status, ["done", "cancelled"]),
         notInArray(tasks.status, ["done", "cancelled"]),
         isNull(events.archivedAt),
+        scopeCondition(scope, events.id),
       ),
     )
     .groupBy(
@@ -177,6 +192,10 @@ export async function getBottlenecks(actor: Actor) {
 
 export async function getBlockers(actor: Actor) {
   assertCan(actor, "dashboard.view");
+  // the dashboard aggregates across events, so it needs the same scope as the
+  // lists — otherwise the numbers would quietly include shows the reader
+  // cannot open
+  const scope = await visibleEventIds(actor);
   return db
     .selectDistinct({
       id: tasks.id,
@@ -189,12 +208,22 @@ export async function getBlockers(actor: Actor) {
     .innerJoin(taskDependencies, eq(taskDependencies.dependsOnTaskId, tasks.id))
     .innerJoin(events, eq(tasks.eventId, events.id))
     .innerJoin(divisions, eq(tasks.divisionId, divisions.id))
-    .where(and(eq(tasks.status, "blocked"), isNull(events.archivedAt)))
+    .where(
+      and(
+        eq(tasks.status, "blocked"),
+        isNull(events.archivedAt),
+        scopeCondition(scope, events.id),
+      ),
+    )
     .limit(10);
 }
 
 export async function getOverdueHotspots(actor: Actor) {
   assertCan(actor, "dashboard.view");
+  // the dashboard aggregates across events, so it needs the same scope as the
+  // lists — otherwise the numbers would quietly include shows the reader
+  // cannot open
+  const scope = await visibleEventIds(actor);
   const now = new Date();
   return db
     .select({
@@ -212,6 +241,7 @@ export async function getOverdueHotspots(actor: Actor) {
         ne(tasks.status, "done"),
         lt(tasks.dueDate, now),
         isNull(events.archivedAt),
+        scopeCondition(scope, events.id),
       ),
     )
     .groupBy(events.id, events.name, divisions.id, divisions.name)
@@ -221,6 +251,10 @@ export async function getOverdueHotspots(actor: Actor) {
 
 export async function getActivityFeed(actor: Actor, limit = 15) {
   assertCan(actor, "dashboard.view");
+  // the dashboard aggregates across events, so it needs the same scope as the
+  // lists — otherwise the numbers would quietly include shows the reader
+  // cannot open
+  const scope = await visibleEventIds(actor);
   // sign-ins are audit material, not dashboard news
   const rows = await db
     .select({
@@ -234,7 +268,19 @@ export async function getActivityFeed(actor: Actor, limit = 15) {
     .from(activityLog)
     .leftJoin(profiles, eq(activityLog.actorId, profiles.id))
     .leftJoin(events, eq(activityLog.eventId, events.id))
-    .where(ne(activityLog.action, "auth.signin"))
+    .where(
+      and(
+        ne(activityLog.action, "auth.signin"),
+        // event-bound entries follow the reader's scope; entries with no
+        // event (user created, branding changed) are org-level and stay with
+        // whoever can see every event
+        scope === "all"
+          ? undefined
+          : scope.length === 0
+            ? sql`false`
+            : inArray(activityLog.eventId, scope),
+      ),
+    )
     .orderBy(desc(activityLog.createdAt))
     .limit(limit);
 

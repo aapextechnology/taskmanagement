@@ -1,5 +1,6 @@
-import { asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { scopeCondition, visibleEventIds } from "@/lib/events/visibility";
 import { events, ticketSalesSnapshots } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
 import { toWibParts } from "@/lib/tasks/dates";
@@ -77,7 +78,7 @@ export async function portfolioSales(actor: Actor): Promise<SalesSummary[]> {
   const active = await db
     .select({ id: events.id, name: events.name, capacity: events.capacity })
     .from(events)
-    .where(isNull(events.archivedAt));
+    .where(and(isNull(events.archivedAt), scopeCondition(await visibleEventIds(actor), events.id)));
   if (active.length === 0) return [];
 
   const rows = await db
