@@ -21,7 +21,12 @@ export function MobileNav({
   productName,
 }: {
   items: NavItem[];
-  events: Array<{ id: string; name: string; health: "on_track" | "at_risk" | "critical" }>;
+  events: Array<{
+    id: string;
+    name: string;
+    health: "on_track" | "at_risk" | "critical";
+    swatch: string;
+  }>;
   orgShortName: string;
   productName: string;
 }) {
@@ -73,6 +78,7 @@ export function MobileNav({
                   href={`/events/${event.id}`}
                   name={event.name}
                   health={event.health}
+                  swatch={event.swatch}
                 />
               ))}
             </div>

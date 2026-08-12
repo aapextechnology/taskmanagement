@@ -10,6 +10,7 @@ import {
 } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
 import { assertCan, type Actor } from "@/lib/permissions";
+import { isEventColor } from "./colors";
 import { canViewEvent, scopeCondition, visibleEventIds } from "./visibility";
 import { computeHealth, type HealthSignals } from "./health";
 
@@ -233,6 +234,7 @@ export async function createEvent(
   actor: Actor,
   input: {
     name: string;
+    color?: string | null;
     artists: string;
     venue: string;
     showDate: Date;
@@ -250,6 +252,10 @@ export async function createEvent(
       showDate: input.showDate,
       capacity: input.capacity ?? null,
       coverImagePath: input.coverImagePath ?? null,
+      // an unrecognised value would render as no swatch at all, so it is
+      // dropped here rather than trusted from the form
+      color:
+        input.color && isEventColor(input.color) ? input.color : null,
     })
     .returning();
 

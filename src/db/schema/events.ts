@@ -35,6 +35,9 @@ export const events = pgTable("events", {
     { onDelete: "set null" },
   ),
   health: eventHealthEnum("health").notNull().default("on_track"),
+  // identity swatch in the sidebar and the grid (Owner 2026-08-12); null
+  // means "use the colour derived from the id", so no event is ever grey
+  color: text("color"),
   // stored relative to UPLOADS_DIR, served auth-gated via /api/files
   coverImagePath: text("cover_image_path"),
   archivedAt: timestamp("archived_at", { withTimezone: true }),

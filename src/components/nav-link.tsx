@@ -94,10 +94,13 @@ export function EventNavLink({
   href,
   name,
   health,
+  swatch,
 }: {
   href: string;
   name: string;
   health: "on_track" | "at_risk" | "critical";
+  /** identity colour class from lib/events/colors */
+  swatch: string;
 }) {
   const pathname = usePathname();
   const active = pathname === href || pathname.startsWith(`${href}/`);
@@ -120,16 +123,25 @@ export function EventNavLink({
           href={href}
           className="flex min-w-0 flex-1 items-center gap-2 truncate px-2.5 py-1.5 text-[13px]"
         >
+          {/* identity, not status: this is how you find the event you want */}
           <span
             aria-hidden
-            className={cn(
-              "size-1.5 shrink-0 rounded-full",
-              health === "on_track" && "bg-status-done",
-              health === "at_risk" && "bg-status-in-progress",
-              health === "critical" && "bg-status-blocked",
-            )}
+            className={cn("size-2.5 shrink-0 rounded-[4px]", swatch)}
           />
           <span className="truncate">{name}</span>
+          {/* Health speaks only when there is something to say. A green dot
+              beside every healthy event is decoration, and decoration next to
+              a warning is what makes the warning invisible. */}
+          {health !== "on_track" ? (
+            <span
+              title={health === "critical" ? "Critical" : "At risk"}
+              className={cn(
+                "size-1.5 shrink-0 rounded-full",
+                health === "at_risk" && "bg-status-in-progress",
+                health === "critical" && "bg-status-blocked",
+              )}
+            />
+          ) : null}
         </Link>
         <button
           type="button"

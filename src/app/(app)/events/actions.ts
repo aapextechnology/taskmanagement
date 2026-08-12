@@ -50,6 +50,7 @@ export async function createEventAction(
 
     const capacityRaw = String(formData.get("capacity") ?? "");
     const event = await createEvent(actor, {
+      color: String(formData.get("color") ?? "") || null,
       name: String(formData.get("name") ?? ""),
       artists: String(formData.get("artists") ?? ""),
       venue: String(formData.get("venue") ?? ""),

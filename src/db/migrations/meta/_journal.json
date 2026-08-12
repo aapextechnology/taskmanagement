@@ -232,6 +232,13 @@
       "when": 1786507301548,
       "tag": "0032_profile-avatar",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1786522346043,
+      "tag": "0033_event-color",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { auth, signOut } from "@/lib/auth";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { listActiveEvents } from "@/lib/events/service";
+import { eventColorClass } from "@/lib/events/colors";
 import { getBranding } from "@/lib/org/branding";
 import { can } from "@/lib/permissions";
 
@@ -81,6 +82,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
           id: e.id,
           name: e.name,
           health: e.health,
+          swatch: eventColorClass(e.id, e.color),
         }))
       : [];
 
@@ -106,6 +108,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
                   href={`/events/${event.id}`}
                   name={event.name}
                   health={event.health}
+                  swatch={event.swatch}
                 />
               ))}
             </div>

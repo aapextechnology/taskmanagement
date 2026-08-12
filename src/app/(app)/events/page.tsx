@@ -9,6 +9,7 @@ import { CalendarRange } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { listActiveEvents, listArchivedEvents } from "@/lib/events/service";
 import { can } from "@/lib/permissions";
+import { eventColorClass } from "@/lib/events/colors";
 import { cn } from "@/lib/utils";
 import { archiveEventAction } from "./actions";
 
@@ -129,8 +130,15 @@ export default async function EventsPage({
               </div>
               <div className="flex flex-col gap-3 p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <h2 className="font-semibold uppercase leading-tight tracking-tight">
-                    {event.name}
+                  <h2 className="flex min-w-0 items-center gap-2 font-semibold uppercase leading-tight tracking-tight">
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "size-2.5 shrink-0 rounded-[4px]",
+                        eventColorClass(event.id, event.color),
+                      )}
+                    />
+                    <span className="truncate">{event.name}</span>
                   </h2>
                   <HealthBadge health={event.health} />
                 </div>

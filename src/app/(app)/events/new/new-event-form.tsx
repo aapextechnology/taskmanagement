@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { EventColorPicker } from "@/components/event-color-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createEventAction, type EventActionState } from "../actions";
@@ -59,6 +60,10 @@ export function NewEventForm({
       <div className="flex flex-col gap-2">
         <Label htmlFor="ev-name">Event name</Label>
         <Input id="ev-name" name="name" required placeholder="YE Live in Jakarta" />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label>Colour</Label>
+        <EventColorPicker />
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="ev-artists">Artists</Label>
