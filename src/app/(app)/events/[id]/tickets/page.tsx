@@ -21,17 +21,53 @@ export const metadata: Metadata = { title: "Ticket sales" };
 // T-093: daily manual ticket sales — entry for Ticketing, curve for all.
 export default async function TicketsPage({
   params,
-}: PageProps<"/events/[id]/tickets">) {
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const actor = await sessionActor();
   if (!actor) redirect("/login");
 
   const { id } = await params;
+  const sp = await searchParams;
   const event = await getEvent(actor, id);
   if (!event) notFound();
 
   const snapshots = await listSnapshots(actor, id);
   const canRecord = can(actor, "tickets.record");
   const canMapTessera = can(actor, "org.manage");
+  const tab = sp.tab === "connect" ? "connect" : "manual";
+
+  // The Connect tab talks to an unofficial, rate-limited API — so it fetches
+  // ONLY when open, never as a side effect of glancing at the sales curve.
+  const connect: {
+    kpis: { sold: number | null; revenue: number | null } | null;
+    participants: Awaited<ReturnType<typeof import("@/lib/tessera/client").listTesseraParticipants>>;
+    error: string | null;
+    status: Awaited<ReturnType<typeof import("@/lib/tessera/client").getTesseraStatus>> | null;
+  } = { kpis: null, participants: [], error: null, status: null };
+  if (tab === "connect" && canRecord) {
+    const { listTesseraEvents, listTesseraParticipants, getTesseraStatus } =
+      await import("@/lib/tessera/client");
+    connect.status = canMapTessera ? await getTesseraStatus(actor) : null;
+    if (event.tesseraEventId && canMapTessera) {
+      try {
+        const rows = await listTesseraEvents(actor);
+        const mine = rows.find((r) => r.id === event.tesseraEventId);
+        if (mine) connect.kpis = { sold: mine.ticketsSold, revenue: mine.revenue };
+      } catch (error) {
+        connect.error = error instanceof Error ? error.message : "Tessera unreachable.";
+      }
+    }
+    if (event.tesseraEventId && !connect.error) {
+      try {
+        connect.participants = await listTesseraParticipants(actor, event.tesseraEventId, 50);
+      } catch (error) {
+        connect.error = error instanceof Error ? error.message : "Tessera unreachable.";
+      }
+    }
+  }
   const totalSold = snapshots.reduce((s, r) => s + r.ticketsSold, 0);
   const totalRevenue = snapshots.reduce((s, r) => s + r.revenue, 0);
   const soldPct =
@@ -56,10 +92,32 @@ export default async function TicketsPage({
 
   return (
     <section className="flex flex-col gap-8">
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">
           Ticket sales
         </h1>
+        {/* Manual | Connect — the source of truth stays ONE table either way;
+            Connect only automates what the form does by hand */}
+        <div className="flex w-fit rounded-md border p-0.5 text-sm">
+          <a
+            href={`/events/${id}/tickets`}
+            className={cn(
+              "rounded px-3 py-1 transition-colors",
+              tab === "manual" ? "bg-accent font-medium" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Manual
+          </a>
+          <a
+            href={`/events/${id}/tickets?tab=connect`}
+            className={cn(
+              "rounded px-3 py-1 transition-colors",
+              tab === "connect" ? "bg-accent font-medium" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Connect (Tessera)
+          </a>
+        </div>
       </div>
 
       {/* totals */}
@@ -84,10 +142,99 @@ export default async function TicketsPage({
         ))}
       </div>
 
-      {canMapTessera ? (
-        <TesseraMap eventId={id} mappedId={event.tesseraEventId} />
+      {tab === "connect" ? (
+        <div className="flex flex-col gap-4">
+          {!canRecord ? (
+            <p className="rounded-md border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+              Connecting ticketing needs the tickets.record capability.
+            </p>
+          ) : (
+            <>
+              {canMapTessera ? (
+                <TesseraMap eventId={id} mappedId={event.tesseraEventId} />
+              ) : null}
+              {connect.status && !connect.status.configured ? (
+                <p className="rounded-md border border-dashed px-4 py-4 text-sm text-muted-foreground">
+                  No Tessera token is connected yet. Paste one in{" "}
+                  <a href="/admin" className="underline underline-offset-4">Admin → Tessera ticketing</a>{" "}
+                  — one token serves the whole organisation, so it lives there
+                  rather than on each event.
+                </p>
+              ) : null}
+              {connect.error ? (
+                <p className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                  {connect.error}
+                </p>
+              ) : null}
+              {event.tesseraEventId && connect.kpis ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1 rounded-md border bg-card p-4">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                      Tessera · tickets sold
+                    </span>
+                    <span className="text-lg font-semibold tabular-nums">
+                      {connect.kpis.sold?.toLocaleString("en") ?? "—"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1 rounded-md border bg-card p-4">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                      Tessera · revenue
+                    </span>
+                    <span className="text-lg font-semibold tabular-nums">
+                      {connect.kpis.revenue !== null ? formatIDR(connect.kpis.revenue) : "—"}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+              {event.tesseraEventId ? (
+                connect.participants.length > 0 ? (
+                  <div className="flex flex-col gap-2">
+                    <h2 className="text-sm font-semibold">Transactions (from Tessera)</h2>
+                    <div className="overflow-x-auto rounded-md border bg-card">
+                      <table className="w-full min-w-[640px] text-sm">
+                        <thead>
+                          <tr className="border-b text-left text-xs uppercase tracking-wider text-muted-foreground">
+                            <th className="px-3 py-2.5 font-medium">Order</th>
+                            <th className="px-3 py-2.5 font-medium">Name</th>
+                            <th className="px-3 py-2.5 font-medium">Email</th>
+                            <th className="px-3 py-2.5 font-medium">Category</th>
+                            <th className="px-3 py-2.5 font-medium">Purchased</th>
+                            <th className="px-3 py-2.5 text-right font-medium">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {connect.participants.map((row, i) => (
+                            <tr key={`${row.orderNo ?? i}`} className="border-b last:border-0">
+                              <td className="px-3 py-2 font-mono text-xs">{row.orderNo ?? "—"}</td>
+                              <td className="px-3 py-2">{row.name ?? "—"}</td>
+                              <td className="px-3 py-2 text-xs text-muted-foreground">{row.email ?? "—"}</td>
+                              <td className="px-3 py-2 text-xs">{row.category ?? "—"}</td>
+                              <td className="px-3 py-2 text-xs text-muted-foreground">{row.purchasedAt ?? "—"}</td>
+                              <td className="px-3 py-2 text-right tabular-nums">
+                                {row.amount !== null ? formatIDR(row.amount) : "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : !connect.error ? (
+                  <p className="rounded-md border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+                    No transactions readable yet.
+                  </p>
+                ) : null
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Link a Tessera event above to see its transactions here.
+                </p>
+              )}
+            </>
+          )}
+        </div>
       ) : null}
-      {canRecord ? (
+
+      {tab === "manual" && canRecord ? (
         <form
           action={recordAction}
           className="flex flex-wrap items-end gap-3 rounded-md border bg-card p-4"

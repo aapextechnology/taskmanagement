@@ -116,3 +116,62 @@ export function extractKpis(payload: unknown): TesseraKpis | null {
   }
   return null;
 }
+
+export interface TesseraParticipant {
+  orderNo: string | null;
+  name: string | null;
+  email: string | null;
+  category: string | null;
+  purchasedAt: string | null;
+  amount: number | null;
+}
+
+function firstStr(obj: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const v = obj[key];
+    if (typeof v === "string" && v.trim()) return v.trim();
+    if (typeof v === "number") return String(v);
+  }
+  return null;
+}
+
+/**
+ * One buyer/attendee row from the participants endpoint. Same philosophy as
+ * the rest of the file: read under the names such dashboards use, drop what
+ * cannot be read, invent nothing — these rows carry real people's emails and
+ * a fabricated column would be worse than a blank one.
+ */
+export function extractParticipants(payload: unknown): TesseraParticipant[] {
+  return unwrapList(payload).flatMap((raw) => {
+    if (!raw || typeof raw !== "object") return [];
+    const row = raw as Record<string, unknown>;
+    // some shapes nest the person under participant/customer/user
+    const person =
+      (["participant", "customer", "user", "attendee"]
+        .map((k) => row[k])
+        .find((v) => v && typeof v === "object") as Record<string, unknown>) ?? row;
+
+    // Tessera's real shape (seen 2026-08-12) is snake_case:
+    // order_id, ticket_buyer_email, ticket_buyer_name, ticket_category,
+    // purchased_at, ticket_price/revenue as numeric strings. The camelCase
+    // names stay as fallbacks in case other endpoints differ.
+    const name = firstStr(person, [
+      "ticket_buyer_name", "name", "fullName", "participantName", "customerName", "firstName",
+    ]);
+    const email = firstStr(person, [
+      "ticket_buyer_email", "email", "customerEmail", "participantEmail",
+    ]);
+    if (!name && !email) return []; // a row naming nobody is unreadable
+
+    return [
+      {
+        orderNo: firstStr(row, ["order_id", "orderNumber", "orderNo", "orderId", "code", "reference", "id"]),
+        name,
+        email,
+        category: firstStr(row, ["ticket_category", "category", "ticketType", "ticketName", "type"]),
+        purchasedAt: firstStr(row, ["purchased_at", "purchaseDate", "purchasedAt", "createdAt", "orderDate"]),
+        amount: firstNum(row, ["revenue", "ticket_price", "totalSpent", "total", "amount", "totalPrice", "price"]),
+      },
+    ];
+  });
+}

@@ -164,6 +164,30 @@ export async function listTesseraEvents(actor: Actor): Promise<TesseraEventRow[]
   }
 }
 
+/** Buyer rows for one Tessera event — the Connect tab's transactions table.
+ *  Gated on tickets.record: these rows carry real buyers' emails, a step
+ *  more sensitive than the aggregate numbers the page already shows. */
+export async function listTesseraParticipants(
+  actor: Actor,
+  tesseraEventId: string,
+  limit = 50,
+) {
+  assertCan(actor, "tickets.record");
+  const { extractParticipants } = await import("./extract");
+  const payload = await request(
+    `/v2/eo/events/${encodeURIComponent(tesseraEventId)}/tickets/participants?limit=${limit}`,
+  );
+  const rows = extractParticipants(payload);
+  if (rows.length === 0) {
+    // empty sales are possible; an unreadable shape is likelier — keep the
+    // sample so the panel can show what actually came back
+    await markFailed(new Error("No participants could be read from the response."), payload);
+  } else {
+    await markOk();
+  }
+  return rows;
+}
+
 // ---- the sync -------------------------------------------------------------
 
 export interface SyncResult {
