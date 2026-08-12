@@ -47,8 +47,13 @@ export async function GET(
   );
   if (!stored) {
     // the index knows a file the disk does not — say so honestly
+    // Worded for whoever is reading it — the first version said "ask an
+    // admin", which is a dead end when the reader IS the admin.
     return NextResponse.json(
-      { error: "This file is missing from storage. Ask an admin to check." },
+      {
+        error:
+          "The entry for this file exists, but its contents are missing from storage. It may have been removed on the server, or restored from a backup that predates it.",
+      },
       { status: 410 },
     );
   }
