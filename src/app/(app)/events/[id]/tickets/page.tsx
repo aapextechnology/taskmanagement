@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { TesseraMap } from "./tessera-map";
+import { apiHealth } from "@/lib/tessera/health";
 import { getEvent } from "@/lib/events/service";
 import { can, PermissionError } from "@/lib/permissions";
 import {
@@ -160,6 +161,40 @@ export default async function TicketsPage({
             <>
               {canMapTessera ? (
                 <TesseraMap eventId={id} mappedId={event.tesseraEventId} />
+              ) : null}
+              {connect.status ? (
+                (() => {
+                  const h = apiHealth(connect.status);
+                  const tone =
+                    h.state === "live"
+                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                      : h.state === "expiring"
+                        ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                        : h.state === "off"
+                          ? "border-border bg-muted/40 text-muted-foreground"
+                          : "border-destructive/40 bg-destructive/10 text-destructive";
+                  const dot =
+                    h.state === "live"
+                      ? "bg-emerald-500"
+                      : h.state === "expiring"
+                        ? "bg-amber-500"
+                        : h.state === "off"
+                          ? "bg-muted-foreground/50"
+                          : "bg-destructive";
+                  return (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${tone}`}
+                      >
+                        <span className={`size-1.5 rounded-full ${dot}`} aria-hidden />
+                        {h.label}
+                      </span>
+                      {h.detail ? (
+                        <span className="text-xs text-muted-foreground">{h.detail}</span>
+                      ) : null}
+                    </div>
+                  );
+                })()
               ) : null}
               {connect.status && !connect.status.configured ? (
                 <p className="rounded-md border border-dashed px-4 py-4 text-sm text-muted-foreground">

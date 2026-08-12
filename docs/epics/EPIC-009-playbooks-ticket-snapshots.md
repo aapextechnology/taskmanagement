@@ -74,3 +74,10 @@ manual ticket-sales snapshots feeding the executive dashboard.
   - Tickets: `/events/[id]/tickets` — totals (sold/%cap/revenue), daily bar chart, gated entry form (WIB day key). Dashboard "Ticket sales" widget with last-14-day mini bars via `portfolioSales`. 7 demo days seeded for Neon Horizon (4,875 sold). Guard verified: production staff denied `tickets.record`.
   - Gates: lint ✅ (removed unused import) · typecheck ✅ · tests 148 ✅ · build ✅ · deployed to DEV, live pages 200 (owner cookie).
 
+- 2026-08-13 — Tessera API health badge on the Tickets Connect tab: pure verdict
+  `apiHealth()` in `src/lib/tessera/health.ts` over the STORED status (hourly sync +
+  admin tests keep it ≤1h fresh) — rendering never spends a call on the unofficial
+  API. Countdown beats last-call outcome: a token past its ~5-day life is `expired`
+  even if the final sync succeeded; stored 401 → `expired` with re-paste pointer;
+  other errors surface verbatim; token-but-never-tested is `error`, never `live`.
+  7 unit tests; verified live (state `live`, ~5 days left).

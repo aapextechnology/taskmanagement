@@ -52,6 +52,8 @@ export interface FolderView {
   divisionId: string | null;
   canUpload: boolean;
   canManage: boolean;
+  /** newest change of any file in the subtree; null when nothing lives here */
+  updatedAt: string | null;
 }
 
 interface FileView {
@@ -621,6 +623,15 @@ export function DataroomBrowser({
                 <span className="w-full truncate text-center text-xs font-medium">
                   {folder.name}
                 </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {folder.updatedAt
+                    ? new Date(folder.updatedAt).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        timeZone: "Asia/Jakarta",
+                      })
+                    : "\u00a0"}
+                </span>
               </button>
             ))}
             {files.map((file) => (
@@ -707,7 +718,16 @@ export function DataroomBrowser({
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-xs text-muted-foreground">—</td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground">—</td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {folder.updatedAt
+                        ? new Date(folder.updatedAt).toLocaleDateString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            timeZone: "Asia/Jakarta",
+                          })
+                        : "—"}
+                    </td>
                     <td className="px-2 py-2.5">
                       <button
                         type="button"

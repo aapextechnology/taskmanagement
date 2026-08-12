@@ -436,3 +436,9 @@ that decides whether one department's contract is visible to another.
   **no backup of any kind** — no `pg_dump`, no volume backup, no cron. Not
   urgent while the data is dummy, but it must exist before the first real
   contract is stored.
+- 2026-08-13 — Folder rows show an Updated date = newest `updatedAt` of any live
+  (non-trashed) file in the folder's SUBTREE, rolled up child→parent in
+  `listFolders` (one grouped query per event, no N+1). The roll-up only bubbles
+  through folders the actor can SEE: a sealed subfolder's activity must not tick
+  the parent's date for someone the seal excludes — that timestamp would leak that
+  work is happening behind the lock. Shown in list view and under the tile name.

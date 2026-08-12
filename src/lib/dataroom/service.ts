@@ -113,6 +113,12 @@ export interface FolderView {
   divisionId: string | null;
   canUpload: boolean;
   canManage: boolean;
+  /**
+   * When something inside last changed — the newest updatedAt of any live
+   * file in the folder's SUBTREE (Owner 2026-08-13, "berdasarkan perubahan
+   * terakhir file yang diubah atau ditambahkan"). Null for an empty branch.
+   */
+  updatedAt: string | null;
 }
 
 /** Folders the actor may see. The filter lives here so no caller can forget
@@ -131,10 +137,24 @@ export async function listFolders(
   const byId = new Map(rows.map((r) => [r.id, r]));
   const subject = subjectFor(actor, onEvent);
 
+  // one grouped query for the whole event, then a child→parent roll-up so a
+  // folder's stamp reflects its deepest subtree, not just its direct files
+  const stamps = await db
+    .select({
+      folderId: dataroomFiles.folderId,
+      last: sql<string>`max(${dataroomFiles.updatedAt})`,
+    })
+    .from(dataroomFiles)
+    .where(and(eq(dataroomFiles.eventId, eventId), isNull(dataroomFiles.trashedAt)))
+    .groupBy(dataroomFiles.folderId);
+  const own = new Map(stamps.map((s) => [s.folderId, new Date(s.last).getTime()]));
+
   const out: FolderView[] = [];
+  const visible = new Set<string>();
   for (const row of rows) {
     const access = resolveFolderAccess(subject, chainFor(row.id, byId, members));
     if (!access.canView) continue;
+    visible.add(row.id);
     out.push({
       id: row.id,
       name: row.name,
@@ -143,7 +163,27 @@ export async function listFolders(
       divisionId: row.divisionId,
       canUpload: access.canUpload,
       canManage: access.canManage,
+      updatedAt: null, // filled by the roll-up below
     });
+  }
+
+  // Bubble each stamp up the ancestor chain — but only through folders this
+  // actor can SEE. A sealed subfolder's activity must not tick the parent's
+  // date for someone the seal excludes; that timestamp would leak that work
+  // is happening behind the lock.
+  const best = new Map<string, number>();
+  for (const [folderId, at] of own) {
+    if (!visible.has(folderId)) continue;
+    let cursor: string | null = folderId;
+    while (cursor && visible.has(cursor)) {
+      const prior = best.get(cursor);
+      if (prior === undefined || at > prior) best.set(cursor, at);
+      cursor = byId.get(cursor)?.parentId ?? null;
+    }
+  }
+  for (const view of out) {
+    const at = best.get(view.id);
+    if (at !== undefined) view.updatedAt = new Date(at).toISOString();
   }
   return out;
 }
