@@ -9,6 +9,7 @@ import {
   listSharesFor,
   deleteFolder,
   moveFile,
+  moveFolder,
   removeFolderMember,
   renameFile,
   renameFolder,
@@ -178,6 +179,12 @@ export async function fileMenuAction(
       await renameFolder(actor, String(formData.get("folderId")), String(formData.get("name")));
     } else if (verb === "move-file") {
       await moveFile(actor, String(formData.get("fileId")), String(formData.get("folderId")));
+    } else if (verb === "move-folder") {
+      await moveFolder(
+        actor,
+        String(formData.get("folderId")),
+        String(formData.get("parentId") ?? "") || null,
+      );
     } else if (verb === "delete-folder") {
       await deleteFolder(actor, String(formData.get("folderId")));
     } else if (verb === "trash-file") {

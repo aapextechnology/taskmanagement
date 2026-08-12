@@ -29,10 +29,11 @@ export default async function DataroomPage({
 
   const { id: eventId } = await params;
   const sp = await searchParams;
+  const view = sp.view === "grid" ? ("grid" as const) : ("list" as const);
   const folders = await listFolders(actor, eventId);
-  const openId =
-    (typeof sp.f === "string" ? sp.f : undefined) ??
-    folders.find((f) => !f.parentId)?.id;
+  // No fallback to the first folder: landing on the room shows the top
+  // level, the way Drive opens at "My Drive" rather than inside a folder.
+  const openId = typeof sp.f === "string" ? sp.f : undefined;
 
   const open = folders.find((f) => f.id === openId) ?? null;
   const [files, usage, divisions, people] = await Promise.all([
@@ -107,6 +108,7 @@ export default async function DataroomPage({
           updatedAt: f.updatedAt.toISOString(),
         }))}
         divisions={divisions.map((d) => ({ id: d.id, name: d.name }))}
+        view={view}
       />
 
       {members && open ? (

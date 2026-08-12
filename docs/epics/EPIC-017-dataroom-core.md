@@ -195,6 +195,27 @@ that decides whether one department's contract is visible to another.
 
 ## Automation Log
 
+- **T-177 — Drive-shaped second pass** (2026-08-12). Owner wanted the room to
+  feel like Drive/Dropbox: nested folders by drag-and-drop, an
+  expand/collapse tree, and a list/tile view switch.
+  - `moveFolder` carries the three refusals that would otherwise corrupt the
+    tree, each verified live: dropping a folder into its own descendant
+    ("inside itself"), moving to another event's dataroom, and landing under
+    a more-closed parent — the narrow-only rule from creation, applied to
+    moves, since an `organisation` folder under a `sealed` one would look
+    protected while its own level says open. Dropping onto the "Folders"
+    strip returns a folder to the top level.
+  - The content pane now behaves like Drive's: breadcrumbs, sub-folders
+    listed beside files, and landing on the room shows the top level rather
+    than auto-opening the first folder.
+  - The view toggle (list/tiles) rides the URL, so reload and a shared link
+    keep it, and no client storage is involved.
+  - **Tiles use type icons, never content previews — deliberately.** Every
+    byte read in the dataroom lands in the access log; a grid of fifty images
+    would write fifty phantom "view" entries on every page load and the log
+    would lie. Recognition comes from extension icons instead.
+  - Gates: lint ✅ typecheck ✅ 374 tests ✅ build ✅ security ✅.
+
 - **T-176 — Rebuilt as a file manager** (2026-08-11). Owner asked for
   something that behaves like Drive or Dropbox rather than a form.
   - **Right-click is not enough, so it is never the only way.** The gesture

@@ -800,6 +800,65 @@ export async function renameFolder(actor: Actor, folderId: string, name: string)
  * download and re-upload it anyway. So it is allowed, and it is logged with
  * both visibility levels named.
  */
+/**
+ * Re-parents a folder — the drop half of dragging a folder onto another.
+ * `newParentId` null puts it back at the top level.
+ *
+ * Three refusals, each of which would otherwise corrupt the tree:
+ *   1. A folder cannot move into itself or its own descendant — that detaches
+ *      the whole subtree into an unreachable cycle.
+ *   2. It cannot move to another event's dataroom.
+ *   3. It cannot land under a parent more closed than itself (narrow-only,
+ *      same rule as creation) — an "event" folder under a "sealed" one would
+ *      look protected by its parent while its own level says open.
+ */
+export async function moveFolder(
+  actor: Actor,
+  folderId: string,
+  newParentId: string | null,
+) {
+  const { folder } = await requireFolder(actor, folderId, "manage");
+  if (folder.parentId === newParentId) return;
+  if (newParentId === folder.id) throw new Error("A folder cannot contain itself.");
+
+  if (newParentId) {
+    const { folder: parent } = await requireFolder(actor, newParentId, "upload");
+    if (parent.eventId !== folder.eventId) {
+      throw new Error("A folder cannot move to another event's dataroom.");
+    }
+    // cycle guard: walk up from the target — if we meet the folder being
+    // moved, the drop would place it inside its own subtree
+    const { rows } = await loadFolders(folder.eventId);
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    let cursor: string | null = parent.id;
+    const seen = new Set<string>();
+    while (cursor && !seen.has(cursor)) {
+      if (cursor === folder.id) {
+        throw new Error("That would put the folder inside itself.");
+      }
+      seen.add(cursor);
+      cursor = byId.get(cursor)?.parentId ?? null;
+    }
+    if (!canNest(parent.visibility, folder.visibility)) {
+      throw new Error(
+        `“${folder.name}” (${folder.visibility}) cannot sit inside “${parent.name}” (${parent.visibility}) — a folder may only narrow.`,
+      );
+    }
+  }
+
+  await db
+    .update(dataroomFolders)
+    .set({ parentId: newParentId, updatedAt: new Date() })
+    .where(eq(dataroomFolders.id, folderId));
+  await logActivity({
+    actorId: actor.id,
+    action: "dataroom.folder_moved",
+    entity: `dataroom_folder:${folderId}`,
+    detail: { name: folder.name, toParent: newParentId },
+    eventId: folder.eventId,
+  });
+}
+
 export async function moveFile(
   actor: Actor,
   fileId: string,
