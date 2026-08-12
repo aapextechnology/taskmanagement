@@ -49,6 +49,34 @@ instead of a page navigation. Keep the RVC monochrome chrome; color becomes func
 
 ## Automation Log
 
+- **Design refresh — the token layer** (2026-08-12). The Owner said the app
+  read as monotonous and stiff *after* the earlier overhaul. That is the
+  useful signal: the previous pass worked inside the design rules, so it
+  could add clarity but not character. The rules themselves were the cause.
+  - **Every neutral was `chroma 0`** — not "greyish" but literally
+    colourless, which is why every surface read as a default rather than a
+    choice. Background, card, muted, accent and border now carry 0.003–0.007
+    chroma at hue 75. Below conscious notice, above feeling. Verified in the
+    compiled stylesheet: `--background: #fffdfb`, `--card: #f8f6f3`.
+  - **One typeface did body and headings**, so nothing on a page had a voice.
+    Bricolage Grotesque now serves h1–h3 only — editorial rather than
+    corporate, which suits a concert promoter — while Geist keeps body text,
+    where it is the better reader. Applied from one base rule, so no
+    component needed a class.
+  - **`--radius` 0.375 → 0.625rem.** Tight corners plus hairline borders plus
+    flat fills is the exact recipe for "stiff"; the comment in the file even
+    said "architectural, not bubbly". Still architectural, no longer sharp.
+  - A 6px/180ms entrance on the content well, keyed on the route so it
+    replays on client-side navigation — `<main>` survives a transition, so
+    without the key it would only ever run on a full page load. Removed
+    entirely under `prefers-reduced-motion`, not merely shortened.
+  - **Not done, deliberately:** no accent colour. The Owner chose the
+    reversible token-level pass first, and the app's own rule — "colour comes
+    from event posters, never from the UI chrome" — deserves a separate
+    decision rather than being quietly broken here.
+  - Gates: lint ✅ typecheck ✅ 374 tests ✅ build ✅ security ✅.
+
+
 - 2026-08-07 **T-114 batch: persistent event context + phase data integrity
   + dependency badge coverage** (Owner follow-up after spotting a workflow
   phase question on `/events/[id]/list`).

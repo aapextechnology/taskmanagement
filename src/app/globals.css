@@ -32,7 +32,7 @@
   --color-surface-jet: var(--surface-jet);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-display), var(--font-geist-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -72,10 +72,14 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  /* Warm neutrals (design refresh 2026-08-12). These were chroma 0 — not
+     "greyish" but literally colourless, which is what made every surface read
+     as a default rather than a choice. A whisper of warmth (0.003–0.006 at
+     hue 75) is below conscious notice and above feeling. */
+  --background: oklch(0.995 0.003 75);
   --foreground: oklch(0.145 0 0);
   /* cards are never stark white — soft grey keeps surfaces distinct */
-  --card: oklch(0.972 0 0);
+  --card: oklch(0.974 0.005 75);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
@@ -83,12 +87,12 @@
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
+  --muted: oklch(0.968 0.006 75);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  --accent: oklch(0.966 0.007 75);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
+  --border: oklch(0.918 0.006 75);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
@@ -96,8 +100,10 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  /* tight radius — surfaces are flat and architectural, not bubbly */
-  --radius: 0.375rem;
+  /* Loosened from 0.375rem (2026-08-12): tight corners plus hairline borders
+     plus flat fills is exactly the recipe for "stiff". Still architectural,
+     just no longer sharp-edged. */
+  --radius: 0.625rem;
   /* elevation (design overhaul 2026-08-07): cards float above the page with
      a soft two-layer shadow instead of relying on borders alone */
   --shadow-elev: 0 1px 2px oklch(0 0 0 / 7%), 0 4px 14px oklch(0 0 0 / 5%);
@@ -127,9 +133,9 @@
 
 .dark {
   /* near-black backstage floor; cards lift one step, never glow */
-  --background: oklch(0.125 0 0);
+  --background: oklch(0.135 0.004 75);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.19 0 0);
+  --card: oklch(0.202 0.006 75);
   --shadow-elev: 0 1px 2px oklch(0 0 0 / 55%), 0 6px 18px oklch(0 0 0 / 35%);
   --shadow-elev-hover: 0 2px 4px oklch(0 0 0 / 60%), 0 12px 28px oklch(0 0 0 / 45%);
   --card-foreground: oklch(0.985 0 0);
@@ -139,7 +145,7 @@
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
+  --muted: oklch(0.272 0.007 75);
   --muted-foreground: oklch(0.708 0 0);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
@@ -183,6 +189,15 @@
   html {
     @apply font-sans;
   }
+  /* The display face reaches every page from here, so no component needs a
+     class for it. Slightly tighter tracking: Bricolage sets wide by default
+     and headings sat loose next to Geist body text. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.018em;
+  }
 }
 
 @layer components {
@@ -201,5 +216,34 @@
   .elev-hover:hover {
     box-shadow: var(--shadow-elev-hover);
     transform: translateY(-1px);
+  }
+
+  /* Entrance for page sections (2026-08-12). Small on purpose: 6px and
+     180ms reads as "the page settled", while anything larger becomes a
+     thing the user waits through on every navigation. */
+  .rise-in {
+    animation: rise-in 180ms ease-out both;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Motion is decoration; for anyone who has asked the OS to stop it, it goes
+   away entirely rather than being merely shortened. */
+@media (prefers-reduced-motion: reduce) {
+  .rise-in {
+    animation: none;
+  }
+  .elev-hover:hover {
+    transform: none;
   }
 }

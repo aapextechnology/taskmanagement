@@ -36,7 +36,12 @@ export function AppFrame({
             fullscreen ? "mx-auto max-w-none" : "mx-auto max-w-[1400px]",
           )}
         >
-          {children}
+          {/* keyed on the route so the entrance replays on navigation: <main>
+              itself survives a client-side transition, so without this the
+              animation would only ever run on a full page load */}
+          <div key={pathname} className="rise-in">
+            {children}
+          </div>
         </main>
       </div>
     </div>
