@@ -65,16 +65,31 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
   return (
     <section className="flex flex-col gap-10">
       <div className="flex flex-col gap-6 border-b pb-10 md:flex-row md:items-start md:gap-10">
-        <div className="w-full max-w-[240px] shrink-0 overflow-hidden rounded-md border bg-muted">
+        {/* Spotify-style artwork (Owner 2026-08-13): centred on mobile, a
+            deep shadow, and an ambient glow that is simply the poster itself
+            blurred behind — the artwork's own colours, no extraction needed,
+            which is exactly the "colour comes from posters" rule made real.
+            The glow sits outside the card, so the old overflow-hidden wrapper
+            had to go; rounding and border moved onto the image. */}
+        <div className="relative mx-auto w-60 shrink-0 sm:w-64 md:mx-0 md:w-[240px]">
           {event.coverImagePath ? (
-            // eslint-disable-next-line @next/next/no-img-element -- auth-gated route
-            <img
-              src={`/api/files/${event.coverImagePath}`}
-              alt={`${event.name} poster`}
-              className="aspect-[3/4] w-full object-cover"
-            />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element -- auth-gated route */}
+              <img
+                src={`/api/files/${event.coverImagePath}`}
+                alt=""
+                aria-hidden
+                className="absolute inset-0 -z-10 aspect-[3/4] w-full scale-110 rounded-md object-cover opacity-50 blur-2xl saturate-150"
+              />
+              {/* eslint-disable-next-line @next/next/no-img-element -- auth-gated route */}
+              <img
+                src={`/api/files/${event.coverImagePath}`}
+                alt={`${event.name} poster`}
+                className="relative aspect-[3/4] w-full rounded-md border object-cover shadow-2xl"
+              />
+            </>
           ) : (
-            <div className="flex aspect-[3/4] items-center justify-center text-5xl font-semibold uppercase text-muted-foreground/40">
+            <div className="flex aspect-[3/4] items-center justify-center rounded-md border bg-muted text-5xl font-semibold uppercase text-muted-foreground/40 shadow-2xl">
               {event.name.slice(0, 2)}
             </div>
           )}
