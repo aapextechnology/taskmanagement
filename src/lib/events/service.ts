@@ -1,10 +1,12 @@
-import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   divisions,
   eventDivisions,
   eventPhases,
   events,
+  profiles,
+  taskAssignees,
   taskDependencies,
   tasks,
 } from "@/db/schema";
@@ -316,6 +318,34 @@ export async function listArchivedEvents(actor: Actor) {
     .then((rows) =>
       rows.map((r) => ({ ...r.event, phaseName: r.phaseName ?? "—" })),
     );
+}
+
+/**
+ * People with work on this event — leads and assignees, deduplicated.
+ *
+ * Answers "who is on this show?" at a glance in the header. Membership of a
+ * participating division is deliberately NOT enough: a division of twelve
+ * would fill the strip with people who have never touched the event.
+ */
+export async function listEventPeople(actor: Actor, eventId: string) {
+  assertCan(actor, "event.view");
+  if (!(await canViewEvent(actor, eventId))) return [];
+
+  const rows = await db
+    .selectDistinct({
+      id: profiles.id,
+      name: profiles.name,
+      avatarPath: profiles.avatarPath,
+    })
+    .from(tasks)
+    .leftJoin(taskAssignees, eq(taskAssignees.taskId, tasks.id))
+    .innerJoin(
+      profiles,
+      or(eq(profiles.id, tasks.leadId), eq(profiles.id, taskAssignees.userId)),
+    )
+    .where(eq(tasks.eventId, eventId))
+    .orderBy(asc(profiles.name));
+  return rows;
 }
 
 export async function setArchived(

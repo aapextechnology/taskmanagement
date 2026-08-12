@@ -73,7 +73,7 @@ export function NavLink({ item }: { item: NavItem }) {
 
 // event sub-pages, in workspace order (Owner request 2026-08-07: the event
 // entry in the sidebar expands into these — tabs left the event page)
-const EVENT_SUBPAGES = [
+export const EVENT_SUBPAGES = [
   { path: "board", label: "Board" },
   { path: "list", label: "List" },
   { path: "pages", label: "Pages" },

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { sessionActor } from "@/lib/auth/session-actor";
-import { getEvent } from "@/lib/events/service";
+import { eventColorClass } from "@/lib/events/colors";
+import { getEvent, listEventPeople } from "@/lib/events/service";
 import { EventContextBar } from "./event-context-bar";
 
 // Shared shell for every /events/[id]/* route (Owner 2026-08-07): renders
@@ -22,6 +23,7 @@ export default async function EventLayout({
   // defensive: a bar that fails to resolve must never take the real page
   // down with it — the page's own getEvent() call still gates access
   const event = await getEvent(actor, id).catch(() => null);
+  const people = event ? await listEventPeople(actor, id).catch(() => []) : [];
 
   return (
     <>
@@ -32,6 +34,8 @@ export default async function EventLayout({
           phaseName={event.phaseName}
           health={event.health}
           showDate={event.showDate.toISOString()}
+          swatch={eventColorClass(id, event.color)}
+          people={people}
         />
       ) : null}
       {children}

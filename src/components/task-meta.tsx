@@ -172,7 +172,7 @@ export function AvatarStack({
   max = 3,
   className,
 }: {
-  users: Array<{ id: string; name: string }>;
+  users: Array<{ id: string; name: string; avatarPath?: string | null }>;
   max?: number;
   className?: string;
 }) {
@@ -180,7 +180,12 @@ export function AvatarStack({
   return (
     <span className={cn("flex -space-x-1.5", className)}>
       {users.slice(0, max).map((user) => (
-        <UserAvatar key={user.id} name={user.name} className="ring-2 ring-card" />
+        <UserAvatar
+          key={user.id}
+          name={user.name}
+          src={user.avatarPath}
+          className="size-5 text-[9px] ring-2 ring-card"
+        />
       ))}
       {users.length > max ? (
         <span className="inline-flex size-5 items-center justify-center rounded-full border bg-muted text-[9px] text-muted-foreground ring-2 ring-card">
