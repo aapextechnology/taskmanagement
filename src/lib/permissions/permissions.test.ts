@@ -42,13 +42,21 @@ describe("org & events", () => {
     }
   });
 
-  it("heads and staff cannot manage org or events", () => {
+  it("heads and staff cannot manage the org; archiving stays above heads", () => {
     for (const actor of [headProduction, staffProduction, external]) {
       expect(can(actor, "org.manage")).toBe(false);
-      expect(can(actor, "event.create")).toBe(false);
       expect(can(actor, "event.archive")).toBe(false);
       expect(can(actor, "audit.view")).toBe(false);
     }
+  });
+
+  it("a division head may open a new event; staff and externals may not", () => {
+    // Owner 2026-08-12: leads carry the global role "member" with a head
+    // membership — creating shows is their job, so the gate follows the
+    // membership, not the global role
+    expect(can(headProduction, "event.create")).toBe(true);
+    expect(can(staffProduction, "event.create")).toBe(false);
+    expect(can(external, "event.create")).toBe(false);
   });
 
   it("phase advance + division roster: owner/admin only", () => {

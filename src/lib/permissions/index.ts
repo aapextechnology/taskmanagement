@@ -131,7 +131,6 @@ export function can(
   switch (capability) {
     // ---- org & events -------------------------------------------------
     case "org.manage":
-    case "event.create":
     case "event.archive":
     case "event.updatePhase":
     case "event.manageDivisions":
@@ -139,6 +138,14 @@ export function can(
     case "audit.view":
     case "org.viewAllDivisions":
       return isOwnerOrAdmin;
+
+    case "event.create":
+      // Owner 2026-08-12: a division HEAD may open a new event, not only
+      // owner/admin — a "member" global role with a head membership is how
+      // this org models its leads. Archiving and phase control stay above.
+      return (
+        isOwnerOrAdmin || actor.memberships.some((m) => m.role === "head")
+      );
 
     case "event.view":
       // every internal user navigates events; externals see only their

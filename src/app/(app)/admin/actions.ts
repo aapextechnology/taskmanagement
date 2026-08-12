@@ -8,6 +8,9 @@ import {
   removeMembership,
   setUserActive,
   setUserContact,
+  createDivision,
+  renameDivision,
+  deleteDivision,
 } from "@/lib/org/service";
 import { getActor } from "@/lib/permissions/actor";
 import { PermissionError } from "@/lib/permissions";
@@ -155,5 +158,52 @@ export async function updateBrandingAction(
             ? error.message
             : "Failed to save branding.",
     };
+  }
+}
+
+export async function createDivisionAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const actor = await requireActor();
+    await createDivision(actor, String(formData.get("name") ?? ""));
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (error) {
+    return asError(error);
+  }
+}
+
+export async function renameDivisionAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const actor = await requireActor();
+    await renameDivision(
+      actor,
+      String(formData.get("divisionId")),
+      String(formData.get("name") ?? ""),
+    );
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (error) {
+    return asError(error);
+  }
+}
+
+export async function deleteDivisionAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const actor = await requireActor();
+    await deleteDivision(actor, String(formData.get("divisionId")));
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (error) {
+    // the guard's message carries the counts; show it as-is
+    return asError(error);
   }
 }

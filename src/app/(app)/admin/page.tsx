@@ -8,6 +8,7 @@ import { getBranding } from "@/lib/org/branding";
 import { BrandingForm } from "./branding-form";
 import { WhatsAppGateway } from "./whatsapp-gateway";
 import { TesseraPanel } from "./tessera-panel";
+import { DivisionsCard } from "./divisions-card";
 import { AdminTabs } from "./admin-tabs";
 
 export const metadata: Metadata = { title: "Admin" };
@@ -21,6 +22,25 @@ export default async function AdminPage() {
     listDivisions(),
     getBranding(),
   ]);
+  const divisionStats = await (async () => {
+    const { db } = await import("@/db");
+    const { divisionMembers, tasks } = await import("@/db/schema");
+    const { eq, sql } = await import("drizzle-orm");
+    const members = await db
+      .select({ divisionId: divisionMembers.divisionId, count: sql<number>`count(*)::int` })
+      .from(divisionMembers)
+      .groupBy(divisionMembers.divisionId);
+    const taskRows = await db
+      .select({ divisionId: tasks.divisionId, count: sql<number>`count(*)::int` })
+      .from(tasks)
+      .groupBy(tasks.divisionId);
+    void eq;
+    return {
+      members: new Map(members.map((m) => [m.divisionId, m.count])),
+      tasks: new Map(taskRows.map((t) => [t.divisionId, t.count])),
+    };
+  })();
+
   const { getTesseraStatus } = await import("@/lib/tessera/client");
   const tessera = await getTesseraStatus(actor);
 
@@ -65,6 +85,15 @@ export default async function AdminPage() {
         lastError={tessera.lastError}
         unreadableSample={tessera.unreadableSample}
         daysLeft={tessera.daysLeft}
+      />
+
+      <DivisionsCard
+        divisions={divisions.map((d) => ({
+          id: d.id,
+          name: d.name,
+          memberCount: divisionStats.members.get(d.id) ?? 0,
+          taskCount: divisionStats.tasks.get(d.id) ?? 0,
+        }))}
       />
 
       <AdminTabs

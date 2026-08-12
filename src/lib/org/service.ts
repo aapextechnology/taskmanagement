@@ -1,6 +1,6 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { divisionMembers, divisions, profiles } from "@/db/schema";
+import { divisionMembers, divisions, profiles, tasks } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
 import { hashPassword } from "@/lib/auth/password";
 import { assertCan, type Actor, type DivisionRole } from "@/lib/permissions";
@@ -30,6 +30,96 @@ export async function listUsersWithMemberships() {
     ...u,
     memberships: byUser.get(u.id) ?? [],
   }));
+}
+
+// ---- division master data (Owner 2026-08-12) ------------------------------
+
+/** Stable slug from a display name: "Media & Press" → "media-press". */
+export function divisionSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/&/g, " ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+export async function createDivision(actor: Actor, name: string) {
+  assertCan(actor, "org.manage");
+  const clean = name.trim();
+  if (clean.length < 2) throw new Error("A division needs a name.");
+  const id = divisionSlug(clean);
+  if (!id) throw new Error("That name has no usable characters.");
+  const [existing] = await db
+    .select({ id: divisions.id })
+    .from(divisions)
+    .where(eq(divisions.id, id))
+    .limit(1);
+  if (existing) throw new Error(`A division with the slug “${id}” already exists.`);
+
+  await db.insert(divisions).values({ id, name: clean });
+  await logActivity({
+    actorId: actor.id,
+    action: "division.create",
+    entity: `division:${id}`,
+    detail: { name: clean },
+  });
+  return { id };
+}
+
+/** Display name only. The slug is an identifier woven through tasks, folders
+ *  and permissions — renaming it would be a data migration, not an edit. */
+export async function renameDivision(actor: Actor, id: string, name: string) {
+  assertCan(actor, "org.manage");
+  const clean = name.trim();
+  if (clean.length < 2) throw new Error("A division needs a name.");
+  await db.update(divisions).set({ name: clean }).where(eq(divisions.id, id));
+  await logActivity({
+    actorId: actor.id,
+    action: "division.rename",
+    entity: `division:${id}`,
+    detail: { name: clean },
+  });
+}
+
+/**
+ * Refuses while anything still points at the division, with the numbers —
+ * the database would refuse anyway via FK, but "23503 foreign key violation"
+ * tells an admin nothing they can act on.
+ */
+export async function deleteDivision(actor: Actor, id: string) {
+  assertCan(actor, "org.manage");
+  const [{ taskCount }] = await db
+    .select({ taskCount: sql<number>`count(*)::int` })
+    .from(tasks)
+    .where(eq(tasks.divisionId, id));
+  const [{ memberCount }] = await db
+    .select({ memberCount: sql<number>`count(*)::int` })
+    .from(divisionMembers)
+    .where(eq(divisionMembers.divisionId, id));
+  const blockers = [
+    taskCount > 0 ? `${taskCount} task(s)` : null,
+    memberCount > 0 ? `${memberCount} member(s)` : null,
+  ].filter(Boolean);
+  if (blockers.length > 0) {
+    throw new Error(
+      `“${id}” still has ${blockers.join(" and ")}. Move or remove them first.`,
+    );
+  }
+  try {
+    await db.delete(divisions).where(eq(divisions.id, id));
+  } catch {
+    // budgets, documents, templates or handoffs still reference it — rarer,
+    // so counted lazily rather than on every delete attempt
+    throw new Error(
+      `“${id}” is still referenced by budgets, documents or history and cannot be deleted.`,
+    );
+  }
+  await logActivity({
+    actorId: actor.id,
+    action: "division.delete",
+    entity: `division:${id}`,
+  });
 }
 
 export async function createUser(
