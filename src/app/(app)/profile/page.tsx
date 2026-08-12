@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { divisionMembers, divisions, profiles } from "@/db/schema";
-import { UserAvatar } from "@/components/task-meta";
+import { AvatarUploader } from "./avatar-uploader";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { ProfileForm } from "./profile-form";
 
@@ -21,6 +21,7 @@ export default async function ProfilePage() {
       name: profiles.name,
       email: profiles.email,
       role: profiles.role,
+      avatarPath: profiles.avatarPath,
       passwordHash: profiles.passwordHash,
     })
     .from(profiles)
@@ -37,7 +38,7 @@ export default async function ProfilePage() {
   return (
     <section className="flex flex-col gap-8">
       <div className="flex items-center gap-4">
-        <UserAvatar name={me.name} className="size-14 text-lg" />
+        <AvatarUploader name={me.name} avatarPath={me.avatarPath} />
         <div className="flex flex-col gap-0.5">
           <h1 className="text-3xl font-semibold tracking-tight">{me.name}</h1>
           <p className="text-sm text-muted-foreground">

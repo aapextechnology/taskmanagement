@@ -50,7 +50,7 @@ export async function saveFileUpload(
 // path persisted on the record (served via /api/files/<relative-path>).
 export async function saveImageUpload(
   file: File,
-  subdir: "posters" | "comments" | "pages",
+  subdir: "posters" | "comments" | "pages" | "avatars",
 ): Promise<string> {
   const ext = path.extname(file.name).toLowerCase();
   if (!IMAGE_EXTENSIONS.has(ext)) {

@@ -23,6 +23,21 @@ export async function AppShell({ children }: { children: ReactNode }) {
 
   const branding = await getBranding();
 
+  // the session carries id+role only; the avatar lives on the profile row
+  const avatarPath = actor
+    ? await (async () => {
+        const { db } = await import("@/db");
+        const { profiles } = await import("@/db/schema");
+        const { eq } = await import("drizzle-orm");
+        const [row] = await db
+          .select({ avatarPath: profiles.avatarPath })
+          .from(profiles)
+          .where(eq(profiles.id, actor.id))
+          .limit(1);
+        return row?.avatarPath ?? null;
+      })()
+    : null;
+
   const timelineCounts = actor
     ? await (async () => {
         const { getUnreadCounts } = await import("@/lib/timeline/service");
@@ -104,7 +119,11 @@ export async function AppShell({ children }: { children: ReactNode }) {
               className="flex min-w-0 flex-1 items-center gap-2 rounded-md p-1 -m-1 transition-colors hover:bg-accent/40"
               title="Your profile"
             >
-            <UserAvatar name={session.user.name ?? "?"} className="size-7 text-[10px]" />
+            <UserAvatar
+              name={session.user.name ?? "?"}
+              src={avatarPath}
+              className="size-7 text-[10px]"
+            />
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="truncate text-xs font-medium">
                 {session.user.name}

@@ -34,6 +34,9 @@ export const profiles = pgTable("profiles", {
   role: globalRoleEnum("role").notNull().default("member"),
   // E.164, used by the WhatsApp channel (T-064); optional
   phone: text("phone"),
+  // profile photo, relative to UPLOADS_DIR under avatars/ (Owner 2026-08-12);
+  // null falls back to initials everywhere
+  avatarPath: text("avatar_path"),
   // channel preferences (T-062/T-064): email defaults on, WhatsApp opt-in
   emailNotifications: boolean("email_notifications").notNull().default(true),
   whatsappNotifications: boolean("whatsapp_notifications")

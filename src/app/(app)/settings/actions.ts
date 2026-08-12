@@ -4,8 +4,12 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { profiles } from "@/db/schema";
+import { rm } from "node:fs/promises";
+import path from "node:path";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
+import { env } from "@/lib/env";
+import { saveImageUpload } from "@/lib/uploads";
 
 // Self-service notification preferences (T-100). A user can only ever
 // mutate their OWN row — the id comes from the session, never the form.
@@ -95,5 +99,69 @@ export async function changeMyPasswordAction(
     .update(profiles)
     .set({ passwordHash: hashPassword(next), updatedAt: new Date() })
     .where(eq(profiles.id, actor.id));
+  return { ok: true };
+}
+
+/** Deletes an old avatar file, refusing anything outside the uploads root.
+ *  The path comes from the user's own row, but a guard costs one line. */
+async function removeAvatarFile(relative: string) {
+  const root = path.resolve(env.UPLOADS_DIR);
+  const absolute = path.resolve(root, relative);
+  if (!absolute.startsWith(root + path.sep)) return;
+  await rm(absolute, { force: true }).catch(() => {});
+}
+
+export async function uploadMyAvatarAction(
+  _prev: ProfileActionState,
+  formData: FormData,
+): Promise<ProfileActionState> {
+  const actor = await sessionActor();
+  if (!actor) return { error: "Not signed in." };
+  const file = formData.get("avatar");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choose an image first." };
+  }
+
+  let stored: string;
+  try {
+    // jpg/png/webp, 5 MB cap — enforced inside saveImageUpload
+    stored = await saveImageUpload(file, "avatars");
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Could not save the image.",
+    };
+  }
+
+  const [me] = await db
+    .select({ avatarPath: profiles.avatarPath })
+    .from(profiles)
+    .where(eq(profiles.id, actor.id))
+    .limit(1);
+  await db
+    .update(profiles)
+    .set({ avatarPath: stored, updatedAt: new Date() })
+    .where(eq(profiles.id, actor.id));
+  // the old file goes only AFTER the row points at the new one, so a failed
+  // write can never leave the profile pointing at nothing
+  if (me?.avatarPath) await removeAvatarFile(me.avatarPath);
+
+  revalidatePath("/profile");
+  return { ok: true };
+}
+
+export async function removeMyAvatarAction(): Promise<ProfileActionState> {
+  const actor = await sessionActor();
+  if (!actor) return { error: "Not signed in." };
+  const [me] = await db
+    .select({ avatarPath: profiles.avatarPath })
+    .from(profiles)
+    .where(eq(profiles.id, actor.id))
+    .limit(1);
+  await db
+    .update(profiles)
+    .set({ avatarPath: null, updatedAt: new Date() })
+    .where(eq(profiles.id, actor.id));
+  if (me?.avatarPath) await removeAvatarFile(me.avatarPath);
+  revalidatePath("/profile");
   return { ok: true };
 }

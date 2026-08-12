@@ -121,10 +121,26 @@ function avatarTint(name: string): string {
 export function UserAvatar({
   name,
   className,
+  src,
 }: {
   name: string;
   className?: string;
+  /** avatar path relative to the uploads root; initials when absent */
+  src?: string | null;
 }) {
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- auth-gated route, next/image can't optimize it
+      <img
+        src={`/api/files/${src}`}
+        alt={name}
+        className={cn(
+          "inline-flex shrink-0 rounded-full object-cover",
+          className,
+        )}
+      />
+    );
+  }
   const initials = name
     .split(" ")
     .map((part) => part[0])
