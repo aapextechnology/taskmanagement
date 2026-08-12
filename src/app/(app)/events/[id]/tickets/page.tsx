@@ -37,7 +37,7 @@ export default async function TicketsPage({
   const snapshots = await listSnapshots(actor, id);
   const canRecord = can(actor, "tickets.record");
   const canMapTessera = can(actor, "org.manage");
-  const tab = sp.tab === "connect" ? "connect" : "manual";
+  const tab = sp.tab === "manual" ? "manual" : "connect";
 
   // The Connect tab talks to an unofficial, rate-limited API — so it fetches
   // ONLY when open, never as a side effect of glancing at the sales curve.
@@ -68,12 +68,9 @@ export default async function TicketsPage({
       }
     }
   }
-  const totalSold = snapshots.reduce((s, r) => s + r.ticketsSold, 0);
-  const totalRevenue = snapshots.reduce((s, r) => s + r.revenue, 0);
-  const soldPct =
-    event.capacity && event.capacity > 0
-      ? Math.round((totalSold / event.capacity) * 100)
-      : null;
+  // the aggregate cards are gone (Owner 2026-08-12): the headline numbers
+  // come from Tessera on the Connect tab, and two competing totals on one
+  // page is how people stop trusting either
   const maxDay = Math.max(1, ...snapshots.map((s) => s.ticketsSold));
 
   async function recordAction(formData: FormData) {
@@ -103,43 +100,21 @@ export default async function TicketsPage({
             href={`/events/${id}/tickets`}
             className={cn(
               "rounded px-3 py-1 transition-colors",
-              tab === "manual" ? "bg-accent font-medium" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Manual
-          </a>
-          <a
-            href={`/events/${id}/tickets?tab=connect`}
-            className={cn(
-              "rounded px-3 py-1 transition-colors",
               tab === "connect" ? "bg-accent font-medium" : "text-muted-foreground hover:text-foreground",
             )}
           >
             Connect (Tessera)
           </a>
+          <a
+            href={`/events/${id}/tickets?tab=manual`}
+            className={cn(
+              "rounded px-3 py-1 transition-colors",
+              tab === "manual" ? "bg-accent font-medium" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Manual
+          </a>
         </div>
-      </div>
-
-      {/* totals */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {[
-          {
-            label: "Total sold",
-            value:
-              soldPct !== null
-                ? `${totalSold.toLocaleString("en")} (${soldPct}%)`
-                : totalSold.toLocaleString("en"),
-          },
-          { label: "Capacity", value: event.capacity?.toLocaleString("en") ?? "—" },
-          { label: "Revenue", value: formatIDR(totalRevenue) },
-        ].map((cell) => (
-          <div key={cell.label} className="flex flex-col gap-1 rounded-md border bg-card p-4">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              {cell.label}
-            </span>
-            <span className="text-lg font-semibold tabular-nums">{cell.value}</span>
-          </div>
-        ))}
       </div>
 
       {tab === "connect" ? (
@@ -164,6 +139,19 @@ export default async function TicketsPage({
               {connect.error ? (
                 <p className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
                   {connect.error}
+                </p>
+              ) : null}
+              {connect.status?.lastOkAt ? (
+                <p className="text-xs text-muted-foreground">
+                  Last sync with Tessera:{" "}
+                  {new Date(connect.status.lastOkAt).toLocaleString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: "Asia/Jakarta",
+                  })}{" "}
+                  WIB — refreshed hourly, or from Admin → Sync now.
                 </p>
               ) : null}
               {event.tesseraEventId && connect.kpis ? (
@@ -287,8 +275,8 @@ export default async function TicketsPage({
         </form>
       ) : null}
 
-      {/* daily curve */}
-      {snapshots.length === 0 ? (
+      {/* daily curve — manual view of the same snapshot table */}
+      {tab !== "manual" ? null : snapshots.length === 0 ? (
         <p className="rounded-md border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
           No sales recorded yet.
         </p>
