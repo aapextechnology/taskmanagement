@@ -14,6 +14,8 @@ import {
 import { NewTaskDialog } from "@/components/new-task-dialog";
 import { canRestrictTask, subjectOf } from "@/lib/tasks/visibility";
 import { StatusDropGroup, TaskDragRow } from "./list-dnd";
+import { GridView } from "./grid-view";
+import { ListViewToggle } from "@/components/list-view-toggle";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { getEvent, listEventDivisions } from "@/lib/events/service";
 import { listDivisions } from "@/lib/org/service";
@@ -59,6 +61,7 @@ export default async function TaskListPage({
   const str = (key: string) =>
     typeof sp[key] === "string" && sp[key] ? (sp[key] as string) : undefined;
 
+  const view = str("view") === "grid" ? "grid" : "list";
   const sort = (str("sort") as SortKey) ?? "due";
   const dir = str("dir") === "desc" ? "desc" : "asc";
   const filters: ListFilters = {
@@ -152,7 +155,11 @@ export default async function TaskListPage({
             Task list
           </h1>
         </div>
-        {createOptions.length > 0 ? (
+        <div className="flex items-center gap-2">
+          {/* outside the create gate: someone who may only read still
+              chooses how they read */}
+          <ListViewToggle basePath={`/events/${id}/list`} active={view} />
+          {createOptions.length > 0 ? (
           <NewTaskDialog
             canRestrictIn={createOptions
               .filter((d) => canRestrictTask(subjectOf(actor), d.id))
@@ -162,7 +169,8 @@ export default async function TaskListPage({
             defaultDivisionId={filters.divisionId}
             labels={labels}
           />
-        ) : null}
+          ) : null}
+        </div>
       </div>
 
       {/* Plane-style compact toolbar: filters & display behind popovers */}
@@ -191,7 +199,26 @@ export default async function TaskListPage({
         deleteAction={deleteFilterAction}
       />
 
-      {/* status groups, Plane-style */}
+      {view === "grid" ? (
+        <GridView
+          tasks={sorted.map((task) => ({
+            id: task.id,
+            title: task.title,
+            status: task.status,
+            priority: task.priority,
+            dueDate: task.dueDate ? task.dueDate.toISOString() : null,
+            divisionId: task.divisionId,
+            leadId: task.leadId,
+            assignees: task.assignees,
+            canEdit: can(actor, "task.edit", { divisionId: task.divisionId }),
+          }))}
+          divisionName={Object.fromEntries(divisionName)}
+          people={Object.fromEntries(
+            createOptions.map((d) => [d.id, d.members]),
+          )}
+        />
+      ) : (
+      /* status groups, Plane-style */
       <div className="flex flex-col gap-5">
         {groups.map(({ status, items }) => (
           <StatusDropGroup key={status} status={status}>
@@ -252,6 +279,7 @@ export default async function TaskListPage({
           </StatusDropGroup>
         ))}
       </div>
+      )}
     </section>
   );
 }

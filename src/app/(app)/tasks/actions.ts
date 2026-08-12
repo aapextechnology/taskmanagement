@@ -146,6 +146,66 @@ export async function setPriorityAction(
   }
 }
 
+/**
+ * One narrow action per cell for the grid (Owner 2026-08-12). Deliberately
+ * NOT routed through updateFieldsAction, which writes every field it is
+ * given: called with a single cell's value it would blank the rest of the
+ * task. Each returns its error instead of throwing, so a refused edit
+ * becomes a toast in the cell rather than a dead click.
+ */
+export async function setDueDateAction(
+  _prev: TaskActionState,
+  formData: FormData,
+): Promise<TaskActionState> {
+  try {
+    const actor = await requireActor();
+    const taskId = String(formData.get("taskId"));
+    const raw = String(formData.get("dueDate") ?? "").trim();
+    await updateTaskFields(actor, taskId, {
+      dueDate: raw ? new Date(raw) : null,
+    });
+    revalidatePath(`/tasks/${taskId}`);
+    return {};
+  } catch (error) {
+    return friendly(error);
+  }
+}
+
+export async function setTitleAction(
+  _prev: TaskActionState,
+  formData: FormData,
+): Promise<TaskActionState> {
+  try {
+    const actor = await requireActor();
+    const taskId = String(formData.get("taskId"));
+    const title = String(formData.get("title") ?? "").trim();
+    if (!title) return { error: "A task needs a title." };
+    await updateTaskFields(actor, taskId, { title });
+    revalidatePath(`/tasks/${taskId}`);
+    return {};
+  } catch (error) {
+    return friendly(error);
+  }
+}
+
+/** Grid variant: the drawer's setLeadAction throws on refusal, which is
+ *  right for a form submit and wrong for a cell — this one reports. */
+export async function setLeadCellAction(
+  _prev: TaskActionState,
+  formData: FormData,
+): Promise<TaskActionState> {
+  try {
+    const actor = await requireActor();
+    const taskId = String(formData.get("taskId"));
+    const userId = String(formData.get("userId") ?? "").trim();
+    await setTaskLead(actor, taskId, userId || null);
+    revalidatePath(`/tasks/${taskId}`);
+    return {};
+  } catch (error) {
+    return friendly(error);
+  }
+}
+
 export async function updateFieldsAction(
   _prev: TaskActionState,
   formData: FormData,
