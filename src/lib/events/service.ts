@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   divisions,
@@ -281,6 +281,28 @@ export async function createEvent(
     eventId: event.id,
   });
   return event;
+}
+
+/**
+ * Archived events, newest show first.
+ *
+ * Every other list in the app filters `archivedAt IS NULL` — sidebar,
+ * dashboard, search, tickets, budgets, the AI snapshot — so without this an
+ * archived event is not merely hidden but unreachable, and `setArchived(…,
+ * false)` can never be called because nothing can show you the event to
+ * un-archive it.
+ */
+export async function listArchivedEvents(actor: Actor) {
+  assertCan(actor, "event.view");
+  return db
+    .select({ event: events, phaseName: eventPhases.name })
+    .from(events)
+    .leftJoin(eventPhases, eq(events.currentPhaseId, eventPhases.id))
+    .where(isNotNull(events.archivedAt))
+    .orderBy(desc(events.showDate))
+    .then((rows) =>
+      rows.map((r) => ({ ...r.event, phaseName: r.phaseName ?? "—" })),
+    );
 }
 
 export async function setArchived(

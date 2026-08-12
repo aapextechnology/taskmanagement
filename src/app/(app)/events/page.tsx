@@ -7,18 +7,34 @@ import { buttonVariants } from "@/components/ui/button";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { CalendarRange } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
-import { listActiveEvents } from "@/lib/events/service";
+import { listActiveEvents, listArchivedEvents } from "@/lib/events/service";
 import { can } from "@/lib/permissions";
+import { cn } from "@/lib/utils";
+import { archiveEventAction } from "./actions";
 
 export const metadata: Metadata = { title: "Events" };
 
 // T-024: gallery grid of active events, gallery style — poster carries the color.
-export default async function EventsPage() {
+//
+// The archived tab is not decoration (Owner 2026-08-11): every other list in
+// the app hides archived events, so before this existed an archived show was
+// unreachable and could never be brought back.
+export default async function EventsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const actor = await sessionActor();
   if (!actor || !can(actor, "event.view")) redirect("/login");
 
-  const events = await listActiveEvents(actor);
+  const sp = await searchParams;
+  const showArchived = sp.view === "archived";
+  const [events, archivedCount] = await Promise.all([
+    showArchived ? listArchivedEvents(actor) : listActiveEvents(actor),
+    listArchivedEvents(actor).then((rows) => rows.length),
+  ]);
   const canCreate = can(actor, "event.create");
+  const canArchive = can(actor, "event.archive");
 
   return (
     <section className="flex flex-col gap-8">
@@ -28,20 +44,55 @@ export default async function EventsPage() {
             Events
           </h1>
           <p className="text-sm text-muted-foreground">
-            Every active show — open one to reach its board, budget, and crew.
+            {showArchived
+              ? "Put away, and hidden from every other list until brought back."
+              : "Every active show — open one to reach its board, budget, and crew."}
           </p>
         </div>
-        {canCreate ? (
-          <Link href="/events/new" className={buttonVariants()}>
-            New event ↗
-          </Link>
-        ) : null}
+        <div className="flex items-center gap-3">
+          {/* a filter rather than a sidebar entry: an archived event is still
+              an event, and this is opened a few times a year */}
+          <div className="flex rounded-md border p-0.5 text-xs">
+            <Link
+              href="/events"
+              className={cn(
+                "rounded px-2.5 py-1 transition-colors",
+                showArchived
+                  ? "text-muted-foreground hover:text-foreground"
+                  : "bg-accent font-medium",
+              )}
+            >
+              Active
+            </Link>
+            <Link
+              href="/events?view=archived"
+              className={cn(
+                "flex items-center gap-1.5 rounded px-2.5 py-1 transition-colors",
+                showArchived
+                  ? "bg-accent font-medium"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Archived
+              {archivedCount > 0 ? (
+                <span className="rounded-full bg-muted-foreground/20 px-1.5 text-[10px]">
+                  {archivedCount}
+                </span>
+              ) : null}
+            </Link>
+          </div>
+          {canCreate && !showArchived ? (
+            <Link href="/events/new" className={buttonVariants()}>
+              New event ↗
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       {events.length === 0 ? (
         <EmptyState
           icon={CalendarRange}
-          title="No active events"
+          title={showArchived ? "Nothing archived" : "No active events"}
           hint="Create the first show — its board, budget, and crew spaces come with it."
           action={
             canCreate ? (
@@ -54,10 +105,13 @@ export default async function EventsPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {events.map((event) => (
+            <div key={event.id} className="flex flex-col gap-2">
             <Link
-              key={event.id}
               href={`/events/${event.id}`}
-              className="group flex flex-col overflow-hidden rounded-md border elev elev-hover hover:border-foreground/40"
+              className={cn(
+                "group flex flex-col overflow-hidden rounded-md border elev elev-hover hover:border-foreground/40",
+                showArchived && "opacity-70 hover:opacity-100",
+              )}
             >
               <div className="relative aspect-[3/2] w-full overflow-hidden bg-muted">
                 {event.coverImagePath ? (
@@ -83,12 +137,33 @@ export default async function EventsPage() {
                 <p className="text-xs text-muted-foreground">
                   {event.venue} · {event.phaseName}
                 </p>
-                <Countdown
-                  target={event.showDate.toISOString()}
-                  className="text-xs"
-                />
+                {showArchived ? (
+                  <span className="w-fit rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Archived
+                  </span>
+                ) : (
+                  <Countdown
+                    target={event.showDate.toISOString()}
+                    className="text-xs"
+                  />
+                )}
               </div>
             </Link>
+            {showArchived && canArchive ? (
+              // outside the card: a button nested in an anchor is invalid and
+              // would swallow the click
+              <form action={archiveEventAction}>
+                <input type="hidden" name="eventId" value={event.id} />
+                <input type="hidden" name="archived" value="false" />
+                <button
+                  type="submit"
+                  className="w-full rounded-md border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+                >
+                  Bring back to active
+                </button>
+              </form>
+            ) : null}
+            </div>
           ))}
         </div>
       )}
