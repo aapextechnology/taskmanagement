@@ -6,7 +6,6 @@ import { profiles } from "@/db/schema";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { can } from "@/lib/permissions";
 import { PreferencesForm } from "./preferences-form";
-import { ProfileForm } from "./profile-form";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -38,13 +37,10 @@ export default async function SettingsPage() {
           Settings
         </h1>
         <p className="text-sm text-muted-foreground">
-          Your profile, notifications and digests.
+          Notifications and digests — your name and password live in your{" "}
+          <a href="/profile" className="underline underline-offset-4">profile</a>.
         </p>
       </div>
-      <ProfileForm
-        initial={{ name: me.name, email: me.email }}
-        hasPassword={me.passwordHash !== null}
-      />
       <PreferencesForm
         initial={{
           emailNotifications: me.emailNotifications,

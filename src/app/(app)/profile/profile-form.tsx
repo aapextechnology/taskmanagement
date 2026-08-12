@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import {
   changeMyPasswordAction,
   updateMyProfileAction,
-} from "./actions";
+} from "@/app/(app)/settings/actions";
 
 // Self-service profile (Owner 2026-08-12): name and password. The email is
 // shown but not editable — it is the login identity; see the action for why.

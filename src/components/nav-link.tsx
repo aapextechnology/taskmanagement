@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CircleUserRound,
   Calendar,
   CalendarRange,
   ChevronRight,
@@ -28,6 +29,7 @@ const ICONS: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
   admin: Settings,
   settings: SlidersHorizontal,
+  profile: CircleUserRound,
   assistant: Sparkles,
   pages: FileText,
 };

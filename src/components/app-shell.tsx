@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { CommandPalette } from "@/components/command-palette";
@@ -97,6 +98,12 @@ export async function AppShell({ children }: { children: ReactNode }) {
         </div>
         {session?.user ? (
           <div className="flex items-center gap-2 border-t p-3">
+            {/* the block itself opens the profile; Out stays its own button */}
+            <Link
+              href="/profile"
+              className="flex min-w-0 flex-1 items-center gap-2 rounded-md p-1 -m-1 transition-colors hover:bg-accent/40"
+              title="Your profile"
+            >
             <UserAvatar name={session.user.name ?? "?"} className="size-7 text-[10px]" />
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="truncate text-xs font-medium">
@@ -106,6 +113,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
                 {session.user.role}
               </span>
             </div>
+            </Link>
             <form
               action={async () => {
                 "use server";
@@ -130,7 +138,11 @@ export async function AppShell({ children }: { children: ReactNode }) {
     <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur sm:px-6 print:hidden">
       <div className="flex items-center gap-2">
         <MobileNav
-          items={items}
+          // mobile has no sidebar user block, so Profile rides the menu there
+          items={[
+            ...items,
+            { href: "/profile", label: "Profile", icon: "profile" as const },
+          ]}
           events={events}
           orgShortName={branding.orgShortName}
           productName={branding.productName}
