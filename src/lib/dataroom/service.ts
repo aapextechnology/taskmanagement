@@ -619,6 +619,7 @@ async function logAccess(
     fileName: string;
     versionNo: number | null;
     action: "view" | "download" | "upload" | "trash" | "restore";
+    note?: string;
   },
 ) {
   await db.insert(dataroomAccessLog).values({
@@ -629,7 +630,86 @@ async function logAccess(
     fileName: entry.fileName,
     versionNo: entry.versionNo,
     action: entry.action,
+    note: entry.note ?? null,
   });
+}
+
+// ---- assistant access (Owner 2026-08-12) ----------------------------------
+
+/**
+ * Files the ASKER may see, for the assistant's context. The filter is the
+ * same requireFolder/canSeeTask-style chain as the browsing UI — the
+ * assistant must never become the side door past a sealed folder.
+ */
+export async function listFilesForAssistant(
+  actor: Actor,
+  eventId: string,
+  cap = 100,
+): Promise<
+  Array<{ fileId: string; name: string; folderName: string; sizeHint: number }>
+> {
+  const folders = await listFolders(actor, eventId); // already access-filtered
+  const out: Array<{ fileId: string; name: string; folderName: string; sizeHint: number }> = [];
+  for (const folder of folders) {
+    if (out.length >= cap) break;
+    const files = await db
+      .select()
+      .from(dataroomFiles)
+      .where(and(eq(dataroomFiles.folderId, folder.id), isNull(dataroomFiles.trashedAt)))
+      .orderBy(asc(dataroomFiles.name));
+    for (const file of files) {
+      if (out.length >= cap) break;
+      out.push({
+        fileId: file.id,
+        name: file.name,
+        folderName: folder.name,
+        sizeHint: 0,
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Opens a file for the assistant to read on the asker's behalf.
+ *
+ * The permission check is the asker's own (rule 1), and the read lands in
+ * the access log attributed to the asker with the channel named (rule 2) —
+ * an unlogged read here would make "who has seen this contract" a lie.
+ */
+export async function openForAssistant(actor: Actor, fileId: string) {
+  const file = await requireFile(actor, fileId, "view");
+  const [version] = await db
+    .select()
+    .from(dataroomFileVersions)
+    .where(
+      and(
+        eq(dataroomFileVersions.fileId, file.id),
+        eq(dataroomFileVersions.versionNo, file.currentVersion),
+      ),
+    )
+    .limit(1);
+  if (!version) return null;
+  const { statVersion } = await import("./storage");
+  const stored = await statVersion(file.eventId, file.id, version.versionNo);
+  if (!stored) return null;
+
+  await logAccess(actor, {
+    fileId: file.id,
+    folderId: file.folderId,
+    eventId: file.eventId,
+    fileName: file.name,
+    versionNo: version.versionNo,
+    action: "view",
+    note: "via AI Assistant",
+  });
+
+  return {
+    fileName: file.name,
+    mimeType: version.mimeType,
+    absolutePath: stored.absolutePath,
+    sizeBytes: stored.sizeBytes,
+  };
 }
 
 export interface ActivityRow {

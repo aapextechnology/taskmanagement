@@ -22,6 +22,11 @@ import {
   type ContentPart,
 } from "@/lib/ai/openai";
 import { saveFileUpload } from "@/lib/uploads";
+import { matchRequestedFiles } from "@/lib/ai/dataroom-match";
+import {
+  listFilesForAssistant,
+  openForAssistant,
+} from "@/lib/dataroom/service";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { can } from "@/lib/permissions";
 
@@ -41,6 +46,8 @@ When asked whether an event will run smoothly (or for any risk assessment):
 2. Then the reasons, ranked by severity, grounded in the snapshot: time pressure (daysToShow vs open/overdue work and remaining phases), dependency pressure (bottlenecks list — tasks many others wait on), workload concentration (workloadTop — one person carrying too many open tasks), unresolved external waits (permits, vendors), budget burn (committed+paid vs planned), ticket pace (sold vs capacity given daysToShow), and auto-escalated urgent tasks.
 3. Recommend the 2–3 highest-leverage actions, each tied to a reason.
 4. When useful, benchmark against typical industry practice for comparable concerts (e.g. permits secured 60–90 days out, ticket on-sale 6–12 weeks before show, production advance locked by show-week). Present these as general industry heuristics from your own knowledge — NEVER invent specific named events, figures, or sources.
+
+Dataroom: the snapshot lists the document files the CURRENT USER may see, per event. When the user names one of those files, its content arrives alongside this prompt as an attached file. If they ask about a document that was not provided, ask them to name the file exactly as listed — do not guess at contents. Files the user cannot see are not listed and must never be speculated about.
 
 Style: answer in the user's language. Be direct and concrete — name tasks, people, and numbers from the snapshot. Use short paragraphs and lists, no filler. If the snapshot lacks the data to answer, say exactly what is missing instead of guessing.`;
 }
@@ -154,6 +161,57 @@ export async function POST(request: Request) {
     eventId ?? conversation.eventId ?? undefined,
   );
 
+  // Dataroom for the assistant (Owner 2026-08-12). Listing and reading both
+  // run as the ASKER: the same folder rules as the browsing UI, so a sealed
+  // folder is as sealed in chat as it is on screen — and every read lands in
+  // the dataroom access log attributed to the asker, "via AI Assistant".
+  const dataroomIndex: Array<{
+    fileId: string;
+    name: string;
+    folderName: string;
+    eventName: string;
+  }> = [];
+  try {
+    const focus = eventId ?? conversation.eventId ?? null;
+    const scopeEvents = focus
+      ? context.events.filter((e) => e.id === focus)
+      : context.events.slice(0, 8);
+    for (const ev of scopeEvents) {
+      const files = await listFilesForAssistant(actor, ev.id, 60);
+      for (const f of files) {
+        dataroomIndex.push({
+          fileId: f.fileId,
+          name: f.name,
+          folderName: f.folderName,
+          eventName: ev.name,
+        });
+      }
+      if (dataroomIndex.length >= 150) break;
+    }
+  } catch (error) {
+    // the dataroom must never take the chat down with it
+    console.error("[ai] dataroom listing failed:", error);
+  }
+
+  let assistantCharBudget = charBudget;
+  const requested = matchRequestedFiles(question, dataroomIndex);
+  for (const hit of requested) {
+    try {
+      const opened = await openForAssistant(actor, hit.fileId);
+      if (!opened) continue;
+      const { readFile } = await import("node:fs/promises");
+      const bytes = await readFile(opened.absolutePath);
+      const extracted = await extractAttachment(
+        { name: opened.fileName, type: opened.mimeType, bytes },
+        assistantCharBudget,
+      );
+      assistantCharBudget -= extracted.chars;
+      extractedFiles.push(extracted);
+    } catch (error) {
+      console.error(`[ai] dataroom read failed for ${hit.name}:`, error);
+    }
+  }
+
   const attachmentPrompt = buildAttachmentPrompt(extractedFiles);
   const images = extractedFiles.filter(
     (f) => f.kind === "image" && f.dataUrl && !f.error,
@@ -181,7 +239,16 @@ export async function POST(request: Request) {
     },
     {
       role: "system",
-      content: `Data snapshot (permission-scoped to this user):\n${JSON.stringify(context)}`,
+      content: `Data snapshot (permission-scoped to this user):\n${JSON.stringify(
+        {
+          ...context,
+          dataroomFiles: dataroomIndex.map((f) => ({
+            event: f.eventName,
+            folder: f.folderName,
+            name: f.name,
+          })),
+        },
+      )}`,
     },
     ...(attachmentPrompt
       ? [{ role: "system" as const, content: attachmentPrompt }]
