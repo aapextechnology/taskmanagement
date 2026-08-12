@@ -90,6 +90,28 @@ export async function createTaskAction(
   redirect(`/tasks/${taskId}`);
 }
 
+/**
+ * Status via drag-and-drop on the list page (Owner 2026-08-12). Returns the
+ * error instead of throwing, so a refused drop — a sealed task, a division
+ * the actor cannot edit — surfaces as a toast rather than a dead gesture.
+ */
+export async function setStatusAction(
+  _prev: TaskActionState,
+  formData: FormData,
+): Promise<TaskActionState> {
+  try {
+    const actor = await requireActor();
+    const taskId = String(formData.get("taskId"));
+    const status = String(formData.get("status"));
+    await updateStatus(actor, taskId, status as TaskStatus);
+    revalidatePath(`/tasks/${taskId}`);
+    revalidatePath("/my-tasks");
+    return {};
+  } catch (error) {
+    return friendly(error);
+  }
+}
+
 export async function updateStatusAction(formData: FormData): Promise<void> {
   const actor = await requireActor();
   const taskId = String(formData.get("taskId"));

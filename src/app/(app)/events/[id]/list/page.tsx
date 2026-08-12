@@ -13,6 +13,7 @@ import {
 } from "@/components/task-meta";
 import { NewTaskDialog } from "@/components/new-task-dialog";
 import { canRestrictTask, subjectOf } from "@/lib/tasks/visibility";
+import { StatusDropGroup, TaskDragRow } from "./list-dnd";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { getEvent, listEventDivisions } from "@/lib/events/service";
 import { listDivisions } from "@/lib/org/service";
@@ -193,7 +194,7 @@ export default async function TaskListPage({
       {/* status groups, Plane-style */}
       <div className="flex flex-col gap-5">
         {groups.map(({ status, items }) => (
-          <div key={status} className="flex flex-col gap-2">
+          <StatusDropGroup key={status} status={status}>
             <div className="flex items-center gap-2.5 px-1">
               <StatusDot status={status} className="size-2.5" />
               <h2 className="text-sm font-semibold">{STATUS_TEXT[status]}</h2>
@@ -208,7 +209,7 @@ export default async function TaskListPage({
             ) : (
               <ul className="flex flex-col divide-y rounded-md border bg-card elev">
                 {items.map((task) => (
-                  <li key={task.id}>
+                  <TaskDragRow key={task.id} taskId={task.id}>
                     <Link
                       href={`/tasks/${task.id}`}
                       className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-accent/50"
@@ -244,11 +245,11 @@ export default async function TaskListPage({
                         {task.dueDate ? dt.format(task.dueDate) : "—"}
                       </span>
                     </Link>
-                  </li>
+                  </TaskDragRow>
                 ))}
               </ul>
             )}
-          </div>
+          </StatusDropGroup>
         ))}
       </div>
     </section>
