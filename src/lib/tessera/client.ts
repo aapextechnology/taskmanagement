@@ -1,6 +1,11 @@
 import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { appSettings, events, ticketSalesSnapshots } from "@/db/schema";
+import {
+  appSettings,
+  events,
+  tesseraTransactions,
+  ticketSalesSnapshots,
+} from "@/db/schema";
 import { logActivity } from "@/lib/activity";
 import { assertCan, type Actor } from "@/lib/permissions";
 import { wibDayKey } from "@/lib/tickets/service";
@@ -266,6 +271,54 @@ export async function syncTesseraSales(): Promise<SyncResult> {
           target: [ticketSalesSnapshots.eventId, ticketSalesSnapshots.day],
           set: values,
         });
+      // transactions, stored AS IS (Owner 2026-08-13): the typed columns feed
+      // the table on the Connect tab, `raw` keeps everything Tessera sent —
+      // and because the page reads THIS store, it stays useful after the
+      // token dies instead of going blank
+      try {
+        const { extractParticipants } = await import("./extract");
+        const txRows = extractParticipants(
+          await request(
+            `/v2/eo/events/${encodeURIComponent(event.tesseraEventId!)}/tickets/participants?limit=200`,
+          ),
+        );
+        for (const tx of txRows) {
+          if (!tx.tesseraId) continue; // no stable key — cannot upsert honestly
+          const txValues = {
+            eventId: event.id,
+            tesseraId: tx.tesseraId,
+            orderId: tx.orderNo,
+            buyerEmail: tx.email,
+            buyerName: tx.name,
+            category: tx.category,
+            status: tx.status,
+            promoCode: tx.promoCode,
+            currency: tx.currency,
+            purchasedAt: tx.purchasedAt ? new Date(tx.purchasedAt) : null,
+            ticketPrice: tx.ticketPrice,
+            grossSales: tx.grossSales,
+            totalFees: tx.totalFees,
+            netSales: tx.netSales,
+            discountAmount: tx.discountAmount,
+            refundedAmount: tx.refundedAmount,
+            vat: tx.vat,
+            raw: tx.raw as never,
+            syncedAt: new Date(),
+          };
+          await db
+            .insert(tesseraTransactions)
+            .values(txValues)
+            .onConflictDoUpdate({
+              target: [tesseraTransactions.eventId, tesseraTransactions.tesseraId],
+              set: txValues,
+            });
+        }
+      } catch (error) {
+        // transaction detail is enrichment; its failure must not undo the
+        // aggregate sync that already landed
+        if (error instanceof TesseraAuthError) throw error;
+        console.error("[tessera] transactions sync failed:", error);
+      }
       synced += 1;
     } catch (error) {
       if (error instanceof TesseraAuthError) {

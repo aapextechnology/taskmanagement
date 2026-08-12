@@ -118,12 +118,37 @@ export function extractKpis(payload: unknown): TesseraKpis | null {
 }
 
 export interface TesseraParticipant {
+  /** Tessera's own row id — the stable upsert key */
+  tesseraId: string | null;
   orderNo: string | null;
   name: string | null;
   email: string | null;
   category: string | null;
+  status: string | null;
+  promoCode: string | null;
+  currency: string | null;
   purchasedAt: string | null;
   amount: number | null;
+  /** money as the strings Tessera sends — "30071.43" must not meet a float */
+  ticketPrice: string | null;
+  grossSales: string | null;
+  totalFees: string | null;
+  netSales: string | null;
+  discountAmount: string | null;
+  refundedAmount: string | null;
+  vat: string | null;
+  /** the row exactly as it arrived, for the as-is store */
+  raw: unknown;
+}
+
+/** A money field kept as its string; validated, never converted. */
+function moneyStr(obj: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const v = obj[key];
+    if (typeof v === "string" && /^-?\d+(\.\d+)?$/.test(v.trim())) return v.trim();
+    if (typeof v === "number" && Number.isFinite(v)) return String(v);
+  }
+  return null;
 }
 
 function firstStr(obj: Record<string, unknown>, keys: string[]): string | null {
@@ -165,12 +190,24 @@ export function extractParticipants(payload: unknown): TesseraParticipant[] {
 
     return [
       {
+        tesseraId: firstStr(row, ["id", "_id", "uuid"]),
         orderNo: firstStr(row, ["order_id", "orderNumber", "orderNo", "orderId", "code", "reference", "id"]),
         name,
         email,
         category: firstStr(row, ["ticket_category", "category", "ticketType", "ticketName", "type"]),
+        status: firstStr(row, ["status", "state"]),
+        promoCode: firstStr(row, ["promo_code", "promoCode", "coupon"]),
+        currency: firstStr(row, ["currency"]),
         purchasedAt: firstStr(row, ["purchased_at", "purchaseDate", "purchasedAt", "createdAt", "orderDate"]),
         amount: firstNum(row, ["revenue", "ticket_price", "totalSpent", "total", "amount", "totalPrice", "price"]),
+        ticketPrice: moneyStr(row, ["ticket_price", "price"]),
+        grossSales: moneyStr(row, ["gross_sales", "grossSales"]),
+        totalFees: moneyStr(row, ["total_fees", "totalFees", "fees"]),
+        netSales: moneyStr(row, ["net_sales", "netSales"]),
+        discountAmount: moneyStr(row, ["discount_amount", "discountAmount"]),
+        refundedAmount: moneyStr(row, ["refunded_amount", "refundedAmount"]),
+        vat: moneyStr(row, ["vat", "tax"]),
+        raw,
       },
     ];
   });

@@ -253,6 +253,13 @@
       "when": 1786541859689,
       "tag": "0035_tessera-event-id",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1786551278582,
+      "tag": "0036_tessera-transactions",
+      "breakpoints": true
     }
   ]
 }

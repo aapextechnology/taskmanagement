@@ -39,33 +39,66 @@ export default async function TicketsPage({
   const canMapTessera = can(actor, "org.manage");
   const tab = sp.tab === "manual" ? "manual" : "connect";
 
-  // The Connect tab talks to an unofficial, rate-limited API — so it fetches
-  // ONLY when open, never as a side effect of glancing at the sales curve.
+  // The Connect tab reads the DATABASE, not Tessera (Owner 2026-08-13):
+  // sync stores every transaction as-is, so rendering this page costs zero
+  // calls to their unofficial API — and when the five-day token dies, the
+  // tab shows the last-synced truth with its timestamp instead of a blank.
   const connect: {
     kpis: { sold: number | null; revenue: number | null } | null;
-    participants: Awaited<ReturnType<typeof import("@/lib/tessera/client").listTesseraParticipants>>;
+    transactions: Array<{
+      id: string;
+      orderId: string | null;
+      buyerEmail: string | null;
+      category: string | null;
+      status: string | null;
+      promoCode: string | null;
+      purchasedAt: Date | null;
+      ticketPrice: string | null;
+      totalFees: string | null;
+      netSales: string | null;
+    }>;
+    sums: { gross: number; fees: number; net: number; refunded: number } | null;
     error: string | null;
     status: Awaited<ReturnType<typeof import("@/lib/tessera/client").getTesseraStatus>> | null;
-  } = { kpis: null, participants: [], error: null, status: null };
+  } = { kpis: null, transactions: [], sums: null, error: null, status: null };
   if (tab === "connect" && canRecord) {
-    const { listTesseraEvents, listTesseraParticipants, getTesseraStatus } =
-      await import("@/lib/tessera/client");
+    const { getTesseraStatus } = await import("@/lib/tessera/client");
     connect.status = canMapTessera ? await getTesseraStatus(actor) : null;
-    if (event.tesseraEventId && canMapTessera) {
-      try {
-        const rows = await listTesseraEvents(actor);
-        const mine = rows.find((r) => r.id === event.tesseraEventId);
-        if (mine) connect.kpis = { sold: mine.ticketsSold, revenue: mine.revenue };
-      } catch (error) {
-        connect.error = error instanceof Error ? error.message : "Tessera unreachable.";
-      }
-    }
-    if (event.tesseraEventId && !connect.error) {
-      try {
-        connect.participants = await listTesseraParticipants(actor, event.tesseraEventId, 50);
-      } catch (error) {
-        connect.error = error instanceof Error ? error.message : "Tessera unreachable.";
-      }
+    if (event.tesseraEventId) {
+      const { db } = await import("@/db");
+      const { tesseraTransactions } = await import("@/db/schema");
+      const { desc, eq: eqOp, sql } = await import("drizzle-orm");
+      const latest = snapshots.at(-1);
+      connect.kpis = latest
+        ? { sold: latest.ticketsSold, revenue: latest.revenue }
+        : null;
+      connect.transactions = await db
+        .select({
+          id: tesseraTransactions.id,
+          orderId: tesseraTransactions.orderId,
+          buyerEmail: tesseraTransactions.buyerEmail,
+          category: tesseraTransactions.category,
+          status: tesseraTransactions.status,
+          promoCode: tesseraTransactions.promoCode,
+          purchasedAt: tesseraTransactions.purchasedAt,
+          ticketPrice: tesseraTransactions.ticketPrice,
+          totalFees: tesseraTransactions.totalFees,
+          netSales: tesseraTransactions.netSales,
+        })
+        .from(tesseraTransactions)
+        .where(eqOp(tesseraTransactions.eventId, id))
+        .orderBy(desc(tesseraTransactions.purchasedAt))
+        .limit(200);
+      const [sums] = await db
+        .select({
+          gross: sql<number>`coalesce(sum(gross_sales), 0)::float`,
+          fees: sql<number>`coalesce(sum(total_fees), 0)::float`,
+          net: sql<number>`coalesce(sum(net_sales), 0)::float`,
+          refunded: sql<number>`coalesce(sum(refunded_amount), 0)::float`,
+        })
+        .from(tesseraTransactions)
+        .where(eqOp(tesseraTransactions.eventId, id));
+      connect.sums = sums ?? null;
     }
   }
   // the aggregate cards are gone (Owner 2026-08-12): the headline numbers
@@ -155,51 +188,75 @@ export default async function TicketsPage({
                 </p>
               ) : null}
               {event.tesseraEventId && connect.kpis ? (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1 rounded-md border bg-card p-4">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                      Tessera · tickets sold
-                    </span>
-                    <span className="text-lg font-semibold tabular-nums">
-                      {connect.kpis.sold?.toLocaleString("en") ?? "—"}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-1 rounded-md border bg-card p-4">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                      Tessera · revenue
-                    </span>
-                    <span className="text-lg font-semibold tabular-nums">
-                      {connect.kpis.revenue !== null ? formatIDR(connect.kpis.revenue) : "—"}
-                    </span>
-                  </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                  {[
+                    { label: "Tickets sold", value: connect.kpis.sold?.toLocaleString("en") ?? "—" },
+                    { label: "Revenue", value: connect.kpis.revenue !== null ? formatIDR(connect.kpis.revenue) : "—" },
+                    { label: "Gross sales", value: connect.sums ? formatIDR(Math.round(connect.sums.gross)) : "—" },
+                    { label: "Fees", value: connect.sums ? formatIDR(Math.round(connect.sums.fees)) : "—" },
+                    { label: "Net sales", value: connect.sums ? formatIDR(Math.round(connect.sums.net)) : "—" },
+                    { label: "Refunded", value: connect.sums ? formatIDR(Math.round(connect.sums.refunded)) : "—" },
+                  ].map((cell) => (
+                    <div key={cell.label} className="flex flex-col gap-1 rounded-md border bg-card p-4">
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                        {cell.label}
+                      </span>
+                      <span className="text-base font-semibold tabular-nums">{cell.value}</span>
+                    </div>
+                  ))}
                 </div>
               ) : null}
               {event.tesseraEventId ? (
-                connect.participants.length > 0 ? (
+                connect.transactions.length > 0 ? (
                   <div className="flex flex-col gap-2">
-                    <h2 className="text-sm font-semibold">Transactions (from Tessera)</h2>
+                    <h2 className="text-sm font-semibold">
+                      Transactions{" "}
+                      <span className="font-normal text-muted-foreground">
+                        — stored from Tessera, {connect.transactions.length} row(s)
+                      </span>
+                    </h2>
                     <div className="overflow-x-auto rounded-md border bg-card">
-                      <table className="w-full min-w-[640px] text-sm">
+                      <table className="w-full min-w-[860px] text-sm">
                         <thead>
                           <tr className="border-b text-left text-xs uppercase tracking-wider text-muted-foreground">
                             <th className="px-3 py-2.5 font-medium">Order</th>
-                            <th className="px-3 py-2.5 font-medium">Name</th>
                             <th className="px-3 py-2.5 font-medium">Email</th>
                             <th className="px-3 py-2.5 font-medium">Category</th>
-                            <th className="px-3 py-2.5 font-medium">Purchased</th>
-                            <th className="px-3 py-2.5 text-right font-medium">Amount</th>
+                            <th className="px-3 py-2.5 font-medium">Status</th>
+                            <th className="px-3 py-2.5 font-medium">Promo</th>
+                            <th className="px-3 py-2.5 font-medium">Purchased (WIB)</th>
+                            <th className="px-3 py-2.5 text-right font-medium">Price</th>
+                            <th className="px-3 py-2.5 text-right font-medium">Fees</th>
+                            <th className="px-3 py-2.5 text-right font-medium">Net</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {connect.participants.map((row, i) => (
-                            <tr key={`${row.orderNo ?? i}`} className="border-b last:border-0">
-                              <td className="px-3 py-2 font-mono text-xs">{row.orderNo ?? "—"}</td>
-                              <td className="px-3 py-2">{row.name ?? "—"}</td>
-                              <td className="px-3 py-2 text-xs text-muted-foreground">{row.email ?? "—"}</td>
+                          {connect.transactions.map((row) => (
+                            <tr key={row.id} className="border-b last:border-0">
+                              <td className="px-3 py-2 font-mono text-xs">{row.orderId ?? "—"}</td>
+                              <td className="px-3 py-2 text-xs text-muted-foreground">{row.buyerEmail ?? "—"}</td>
                               <td className="px-3 py-2 text-xs">{row.category ?? "—"}</td>
-                              <td className="px-3 py-2 text-xs text-muted-foreground">{row.purchasedAt ?? "—"}</td>
+                              <td className="px-3 py-2 text-xs">{row.status ?? "—"}</td>
+                              <td className="px-3 py-2 text-xs text-muted-foreground">{row.promoCode ?? "—"}</td>
+                              <td className="px-3 py-2 text-xs text-muted-foreground">
+                                {row.purchasedAt
+                                  ? row.purchasedAt.toLocaleString("en-GB", {
+                                      day: "numeric",
+                                      month: "short",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      timeZone: "Asia/Jakarta",
+                                    })
+                                  : "—"}
+                              </td>
                               <td className="px-3 py-2 text-right tabular-nums">
-                                {row.amount !== null ? formatIDR(row.amount) : "—"}
+                                {row.ticketPrice ? formatIDR(Math.round(Number(row.ticketPrice))) : "—"}
+                              </td>
+                              <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                                {row.totalFees ? formatIDR(Math.round(Number(row.totalFees))) : "—"}
+                              </td>
+                              <td className="px-3 py-2 text-right tabular-nums">
+                                {row.netSales ? formatIDR(Math.round(Number(row.netSales))) : "—"}
                               </td>
                             </tr>
                           ))}
@@ -209,7 +266,8 @@ export default async function TicketsPage({
                   </div>
                 ) : !connect.error ? (
                   <p className="rounded-md border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-                    No transactions readable yet.
+                    No transactions stored yet — run Admin → Sync now, or wait
+                    for the hourly sync.
                   </p>
                 ) : null
               ) : (
