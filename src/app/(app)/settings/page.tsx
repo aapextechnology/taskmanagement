@@ -6,6 +6,7 @@ import { profiles } from "@/db/schema";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { can } from "@/lib/permissions";
 import { PreferencesForm } from "./preferences-form";
+import { ProfileForm } from "./profile-form";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -16,6 +17,9 @@ export default async function SettingsPage() {
 
   const [me] = await db
     .select({
+      name: profiles.name,
+      email: profiles.email,
+      passwordHash: profiles.passwordHash,
       emailNotifications: profiles.emailNotifications,
       whatsappNotifications: profiles.whatsappNotifications,
       dailyDigest: profiles.dailyDigest,
@@ -34,9 +38,13 @@ export default async function SettingsPage() {
           Settings
         </h1>
         <p className="text-sm text-muted-foreground">
-          Notifications and digests — all channels are yours to switch.
+          Your profile, notifications and digests.
         </p>
       </div>
+      <ProfileForm
+        initial={{ name: me.name, email: me.email }}
+        hasPassword={me.passwordHash !== null}
+      />
       <PreferencesForm
         initial={{
           emailNotifications: me.emailNotifications,
