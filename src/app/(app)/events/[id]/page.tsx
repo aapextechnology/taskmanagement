@@ -4,12 +4,13 @@ import { notFound, redirect } from "next/navigation";
 import { Countdown } from "@/components/countdown";
 import { HealthBadge } from "@/components/health-badge";
 import { PhaseSteps } from "@/components/phase-steps";
-import { StatusDot } from "@/components/task-meta";
+import { StatusDot, UserAvatar } from "@/components/task-meta";
 import { FileDown } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { sessionActor } from "@/lib/auth/session-actor";
 import {
   getEvent,
+  getEventPeople,
   listEventDivisions,
   listPhases,
 } from "@/lib/events/service";
@@ -43,13 +44,15 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
   const canManage = can(actor, "event.updatePhase");
   const canManageDivisions = can(actor, "event.manageDivisions");
   const canManageWorkflow = can(actor, "event.manageWorkflow");
-  const [activeDivisions, allDivisions, phases, templates, eventTasks] =
+  const canEdit = can(actor, "event.edit");
+  const [activeDivisions, allDivisions, phases, templates, eventTasks, crew] =
     await Promise.all([
       listEventDivisions(actor, event.id),
       canManageDivisions ? listDivisions() : [],
       listPhases(actor, event.id),
       can(actor, "event.create") ? listTemplates() : [],
       listEventTasks(actor, event.id),
+      getEventPeople(actor, event.id),
     ]);
 
   // task summary (Owner 2026-08-07) — same progress rule as dashboard + PDF
@@ -110,6 +113,40 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
           <p className="text-sm text-muted-foreground">
             {dateFormat.format(event.showDate)} WIB
           </p>
+          {crew.pic || crew.members.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              {crew.pic ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    PIC
+                  </span>
+                  <UserAvatar
+                    name={crew.pic.name}
+                    src={crew.pic.avatarPath}
+                    className="size-5 text-[9px]"
+                  />
+                  <span className="font-medium">{crew.pic.name}</span>
+                </span>
+              ) : null}
+              {crew.members.length > 0 ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Members
+                  </span>
+                  <span className="flex -space-x-1.5">
+                    {crew.members.map((m) => (
+                      <UserAvatar
+                        key={m.id}
+                        name={m.name}
+                        src={m.avatarPath}
+                        className="size-5 border border-background text-[9px]"
+                      />
+                    ))}
+                  </span>
+                </span>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="flex flex-col gap-2 py-4">
             <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
@@ -124,7 +161,17 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
           <PhaseSteps
             phases={phases.map((p) => ({ id: p.id, name: p.name }))}
             currentId={event.currentPhaseId}
+            jump={
+              canManage
+                ? { eventId: event.id, action: setCurrentPhaseAction }
+                : undefined
+            }
           />
+          {canManage ? (
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+              Click any phase to move there — back or forward
+            </p>
+          ) : null}
 
           {canManage ? (
             <div className="flex flex-wrap gap-3 pt-4">
@@ -137,6 +184,12 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
                   </Button>
                 </form>
               ) : null}
+              <Link
+                href={`/events/${event.id}/edit`}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                Edit event
+              </Link>
               <form action={archiveEventAction}>
                 <input type="hidden" name="eventId" value={event.id} />
                 <input type="hidden" name="archived" value="true" />
@@ -144,6 +197,16 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
                   Archive
                 </Button>
               </form>
+            </div>
+          ) : null}
+          {canEdit && !canManage ? (
+            <div className="pt-4">
+              <Link
+                href={`/events/${event.id}/edit`}
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                Edit event
+              </Link>
             </div>
           ) : null}
         </div>

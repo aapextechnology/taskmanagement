@@ -3,6 +3,7 @@ import { db } from "@/db";
 import {
   divisions,
   eventDivisions,
+  eventPeople,
   eventPhases,
   events,
   profiles,
@@ -11,7 +12,7 @@ import {
   tasks,
 } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
-import { assertCan, type Actor } from "@/lib/permissions";
+import { assertCan, PermissionError, type Actor } from "@/lib/permissions";
 import { isEventColor } from "./colors";
 import { canViewEvent, scopeCondition, visibleEventIds } from "./visibility";
 import { computeHealth, type HealthSignals } from "./health";
@@ -242,6 +243,8 @@ export async function createEvent(
     showDate: Date;
     capacity?: number;
     coverImagePath?: string;
+    picId?: string | null;
+    memberIds?: string[];
   },
 ) {
   assertCan(actor, "event.create");
@@ -270,6 +273,9 @@ export async function createEvent(
       .onConflictDoNothing();
   }
 
+  // event-level crew, picked before the event exists (Owner 2026-08-13)
+  await writeEventPeople(event.id, input.picId ?? null, input.memberIds ?? []);
+
   // default workflow — fully editable per event afterwards
   const phases = await db
     .insert(eventPhases)
@@ -294,6 +300,120 @@ export async function createEvent(
     eventId: event.id,
   });
   return event;
+}
+
+/** One PIC + members, deduped; the PIC wins when listed in both. */
+async function writeEventPeople(
+  eventId: string,
+  picId: string | null,
+  memberIds: string[],
+) {
+  await db.delete(eventPeople).where(eq(eventPeople.eventId, eventId));
+  const rows: Array<{ eventId: string; userId: string; role: string }> = [];
+  if (picId) rows.push({ eventId, userId: picId, role: "pic" });
+  for (const userId of memberIds) {
+    if (userId && userId !== picId) rows.push({ eventId, userId, role: "member" });
+  }
+  if (rows.length > 0) {
+    await db.insert(eventPeople).values(rows).onConflictDoNothing();
+  }
+}
+
+export async function getEventPeople(actor: Actor, eventId: string) {
+  assertCan(actor, "event.view");
+  if (!(await canViewEvent(actor, eventId))) {
+    return { pic: null as null | { id: string; name: string; avatarPath: string | null }, members: [] as Array<{ id: string; name: string; avatarPath: string | null }> };
+  }
+  const rows = await db
+    .select({
+      id: profiles.id,
+      name: profiles.name,
+      avatarPath: profiles.avatarPath,
+      role: eventPeople.role,
+    })
+    .from(eventPeople)
+    .innerJoin(profiles, eq(profiles.id, eventPeople.userId))
+    .where(eq(eventPeople.eventId, eventId))
+    .orderBy(asc(profiles.name));
+  return {
+    pic: rows.find((r) => r.role === "pic") ?? null,
+    members: rows.filter((r) => r.role !== "pic"),
+  };
+}
+
+export async function setEventPeople(
+  actor: Actor,
+  eventId: string,
+  input: { picId: string | null; memberIds: string[] },
+) {
+  assertCan(actor, "event.edit");
+  if (!(await canViewEvent(actor, eventId))) {
+    throw new PermissionError("event.edit");
+  }
+  await writeEventPeople(eventId, input.picId, input.memberIds);
+  await logActivity({
+    actorId: actor.id,
+    action: "event.update",
+    entity: `event:${eventId}`,
+    detail: { picId: input.picId ?? "(none)", members: input.memberIds.length },
+    eventId,
+  });
+}
+
+/** Active internal users, for the PIC/member pickers. */
+export async function listAssignablePeople(actor: Actor) {
+  assertCan(actor, "event.view");
+  return db
+    .select({ id: profiles.id, name: profiles.name })
+    .from(profiles)
+    .where(and(eq(profiles.isActive, true), ne(profiles.role, "external")))
+    .orderBy(asc(profiles.name));
+}
+
+export async function updateEvent(
+  actor: Actor,
+  eventId: string,
+  input: {
+    name: string;
+    artists: string;
+    venue: string;
+    showDate: Date;
+    capacity?: number | null;
+    color?: string | null;
+    /** undefined = keep the current poster */
+    coverImagePath?: string;
+  },
+) {
+  assertCan(actor, "event.edit");
+  // the capability says "heads may edit events"; visibility says WHICH ones —
+  // a head cannot edit a show their division is not even allowed to see
+  if (!(await canViewEvent(actor, eventId))) {
+    throw new PermissionError("event.edit");
+  }
+  const name = input.name.trim();
+  if (!name) throw new Error("An event needs a name.");
+  await db
+    .update(events)
+    .set({
+      name,
+      artists: input.artists.trim(),
+      venue: input.venue.trim(),
+      showDate: input.showDate,
+      capacity: input.capacity ?? null,
+      color: input.color && isEventColor(input.color) ? input.color : null,
+      ...(input.coverImagePath !== undefined
+        ? { coverImagePath: input.coverImagePath }
+        : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(events.id, eventId));
+  await logActivity({
+    actorId: actor.id,
+    action: "event.update",
+    entity: `event:${eventId}`,
+    detail: { name, showDate: input.showDate.toISOString() },
+    eventId,
+  });
 }
 
 /**
@@ -345,6 +465,21 @@ export async function listEventPeople(actor: Actor, eventId: string) {
     )
     .where(eq(tasks.eventId, eventId))
     .orderBy(asc(profiles.name));
+  // event-level crew belongs in the strip too — a PIC with no task yet is
+  // still on the show (Owner 2026-08-13)
+  const crew = await db
+    .select({
+      id: profiles.id,
+      name: profiles.name,
+      avatarPath: profiles.avatarPath,
+    })
+    .from(eventPeople)
+    .innerJoin(profiles, eq(profiles.id, eventPeople.userId))
+    .where(eq(eventPeople.eventId, eventId));
+  const seen = new Set(rows.map((r) => r.id));
+  for (const person of crew) {
+    if (!seen.has(person.id)) rows.push(person);
+  }
   return rows;
 }
 

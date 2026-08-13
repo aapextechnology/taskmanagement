@@ -1,6 +1,6 @@
 import { eq, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { eventDivisions } from "@/db/schema/events";
+import { eventDivisions, eventPeople } from "@/db/schema/events";
 import { taskAssignees, taskWatchers, tasks } from "@/db/schema/tasks";
 import type { Actor } from "@/lib/permissions";
 import { seesAllEvents, seesNoEvents, type EventScope } from "./visibility-rules";
@@ -42,6 +42,14 @@ export async function visibleEventIds(actor: Actor): Promise<EventScope> {
       .where(inArray(eventDivisions.divisionId, divisionIds));
     for (const r of rows) ids.add(r.eventId);
   }
+
+  // event-level crew (Owner 2026-08-13): being the event's PIC or member is
+  // a visibility grant on its own, before any task exists
+  const asCrew = await db
+    .select({ eventId: eventPeople.eventId })
+    .from(eventPeople)
+    .where(eq(eventPeople.userId, actor.id));
+  for (const r of asCrew) ids.add(r.eventId);
 
   const throughTasks = await db
     .selectDistinct({ eventId: tasks.eventId })

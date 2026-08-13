@@ -59,6 +59,14 @@ describe("org & events", () => {
     expect(can(external, "event.create")).toBe(false);
   });
 
+  it("editing an event follows the same line as creating one (Owner 2026-08-13)", () => {
+    for (const actor of [owner, admin, headProduction]) {
+      expect(can(actor, "event.edit")).toBe(true);
+    }
+    expect(can(staffProduction, "event.edit")).toBe(false);
+    expect(can(external, "event.edit")).toBe(false);
+  });
+
   it("phase advance + division roster: owner/admin only", () => {
     for (const cap of [
       "event.updatePhase",

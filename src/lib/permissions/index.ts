@@ -34,6 +34,7 @@ export type Capability =
   | "org.viewCrossDivisionSummary" // Head-level summary of other divisions
   | "event.view" // browse events & open a workspace (any internal user)
   | "event.create"
+  | "event.edit"
   | "event.archive"
   | "event.updatePhase" // advance the lifecycle phase
   | "event.manageDivisions" // which divisions participate in an event
@@ -140,9 +141,13 @@ export function can(
       return isOwnerOrAdmin;
 
     case "event.create":
+    case "event.edit":
       // Owner 2026-08-12: a division HEAD may open a new event, not only
       // owner/admin — a "member" global role with a head membership is how
-      // this org models its leads. Archiving and phase control stay above.
+      // this org models its leads. Editing joined it (Owner 2026-08-13);
+      // archiving and phase control stay above. For edit, the service also
+      // requires the head to actually SEE the event — the capability alone
+      // is not a skeleton key over invisible events.
       return (
         isOwnerOrAdmin || actor.memberships.some((m) => m.role === "head")
       );

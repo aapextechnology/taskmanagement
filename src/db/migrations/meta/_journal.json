@@ -260,6 +260,13 @@
       "when": 1786551278582,
       "tag": "0036_tessera-transactions",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1786606404234,
+      "tag": "0037_event-people",
+      "breakpoints": true
     }
   ]
 }

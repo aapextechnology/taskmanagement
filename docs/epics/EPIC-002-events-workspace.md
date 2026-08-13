@@ -71,3 +71,19 @@ day, and auto-computed health status — the container all division work lives i
 ## Dependencies
 
 - EPIC-001 (T-010 schema base, T-012 permission module). Budget-burn input of T-023 arrives with EPIC-005 — until then health uses task signals only (note this in code).
+- 2026-08-13 — Edit event + event-level crew + free phase jumps (Owner):
+  - New capability `event.edit` = owner/admin or any division head (same line as
+    `event.create`); the service ALSO requires `canViewEvent`, so the capability
+    is not a skeleton key over invisible events. Matrix test extended.
+  - `updateEvent` edits name/artists/venue/showDate/capacity/color/poster; an
+    empty poster upload keeps the current one. Page `/events/[id]/edit`.
+  - `event_people` table (migration 0037): PIC + members at EVENT level, picked
+    on the create form and editable after. Being on the list grants event
+    visibility by itself (visibleEventIds reads it) and joins the avatar strip.
+  - PhaseSteps gained `jump`: every phase is now a button that moves the event
+    THERE — backward included. The service never had a forward-only rule; only
+    the UI did (single "Advance" button).
+  - datetime-local inputs now parse AS WIB (`parseWibInput`/`wibInputValue`,
+    tested across 17:00Z). The old `new Date(raw)` read the picker in the
+    container's UTC, shifting show times +7h — Moodymann's stored 04:00 WIB
+    show time is likely this bug's artifact; Owner can correct it via Edit.

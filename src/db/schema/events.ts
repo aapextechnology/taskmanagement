@@ -10,7 +10,7 @@ import {
   uuid,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
-import { divisions } from "./org";
+import { divisions, profiles } from "./org";
 
 // Events (T-020): one concert = one workspace. The lifecycle workflow is
 // PER-EVENT data (Owner request 2026-08-06): each event owns an ordered list
@@ -87,4 +87,23 @@ export const eventDivisions = pgTable(
       .references(() => divisions.id, { onDelete: "cascade" }),
   },
   (table) => [primaryKey({ columns: [table.eventId, table.divisionId] })],
+);
+
+// Event-level crew (Owner 2026-08-13): a PIC and members assigned to the
+// EVENT itself, not to tasks — picked while creating the event, editable
+// after. Being on this list is also a visibility grant: an event member
+// sees the event even before any task is handed to them.
+export const eventPeople = pgTable(
+  "event_people",
+  {
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    /** "pic" (one per event by convention, not constraint) or "member" */
+    role: text("role").notNull().default("member"),
+  },
+  (table) => [primaryKey({ columns: [table.eventId, table.userId] })],
 );
