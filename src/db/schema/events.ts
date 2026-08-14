@@ -1,4 +1,5 @@
 import {
+  bigint,
   integer,
   pgTable,
   pgEnum,
@@ -9,7 +10,7 @@ import {
   uuid,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
-import { divisions } from "./org";
+import { divisions, profiles } from "./org";
 
 // Events (T-020): one concert = one workspace. The lifecycle workflow is
 // PER-EVENT data (Owner request 2026-08-06): each event owns an ordered list
@@ -34,9 +35,19 @@ export const events = pgTable("events", {
     { onDelete: "set null" },
   ),
   health: eventHealthEnum("health").notNull().default("on_track"),
+  // identity swatch in the sidebar and the grid (Owner 2026-08-12); null
+  // means "use the colour derived from the id", so no event is ever grey
+  color: text("color"),
+  // Tessera event this one mirrors (Owner 2026-08-12); null = no ticketing
+  // sync. Kept as text — their ids may be numeric or uuid, both seen.
+  tesseraEventId: text("tessera_event_id"),
   // stored relative to UPLOADS_DIR, served auth-gated via /api/files
   coverImagePath: text("cover_image_path"),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
+  // Dataroom storage cap for this event (EPIC-017). null = use the global
+  // default in app_settings. Lowering it never deletes anything: it only
+  // refuses new uploads until usage falls back under.
+  dataroomQuotaBytes: bigint("dataroom_quota_bytes", { mode: "number" }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -76,4 +87,23 @@ export const eventDivisions = pgTable(
       .references(() => divisions.id, { onDelete: "cascade" }),
   },
   (table) => [primaryKey({ columns: [table.eventId, table.divisionId] })],
+);
+
+// Event-level crew (Owner 2026-08-13): a PIC and members assigned to the
+// EVENT itself, not to tasks — picked while creating the event, editable
+// after. Being on this list is also a visibility grant: an event member
+// sees the event even before any task is handed to them.
+export const eventPeople = pgTable(
+  "event_people",
+  {
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    /** "pic" (one per event by convention, not constraint) or "member" */
+    role: text("role").notNull().default("member"),
+  },
+  (table) => [primaryKey({ columns: [table.eventId, table.userId] })],
 );

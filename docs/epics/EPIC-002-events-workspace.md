@@ -42,7 +42,7 @@ day, and auto-computed health status — the container all division work lives i
 
 ### Portfolio page
 
-- [x] **T-024** `/events`: gallery grid of active events (poster, countdown, phase, health badge) per the Acme design language.
+- [x] **T-024** `/events`: gallery grid of active events (poster, countdown, phase, health badge) per the RVC design language.
 
 ## Acceptance Criteria
 
@@ -65,9 +65,25 @@ day, and auto-computed health status — the container all division work lives i
 
 ## Automation Log
 
-- 2026-08-06 **T-020..T-024 done — EPIC COMPLETE → ready-for-qa** — `events` + `event_divisions` schema (phase/health enums); events service (create seeds all 11 divisions; phase advance owner/admin; archive; every mutation audited); permission module extended with `event.view` (internal) + `event.updatePhase` (owner/admin) — reviewed change, +2 test blocks (50 total green). Health: pure `computeHealth` per PRD App. B with 9 tests; recompute on mutation + hourly node-cron via `src/instrumentation.ts`; task/budget signals structurally zero until EPIC-003/005 wire in. Poster upload (5 MB, jpg/png/webp) to `UPLOADS_DIR/posters`, served ONLY via auth-gated `/api/files/[...path]` with traversal guard. UI: `/events` gallery, `/events/new` form, `/events/[id]` workspace (big countdown, phase steps, advance/archive). Seeded demo event "YE Live in Jakarta" (fixed uuid, idempotent). Verified live on your-domain.example as owner: list/workspace/new all 200, countdown + controls render, unauth → login. **Human QA notes:** create an event with a poster in the browser (multipart upload not covered by curl); check both themes on the workspace page; task-driven health changes become testable in EPIC-003.
+- 2026-08-06 **T-020..T-024 done — EPIC COMPLETE → ready-for-qa** — `events` + `event_divisions` schema (phase/health enums); events service (create seeds all 11 divisions; phase advance owner/admin; archive; every mutation audited); permission module extended with `event.view` (internal) + `event.updatePhase` (owner/admin) — reviewed change, +2 test blocks (50 total green). Health: pure `computeHealth` per PRD App. B with 9 tests; recompute on mutation + hourly node-cron via `src/instrumentation.ts`; task/budget signals structurally zero until EPIC-003/005 wire in. Poster upload (5 MB, jpg/png/webp) to `UPLOADS_DIR/posters`, served ONLY via auth-gated `/api/files/[...path]` with traversal guard. UI: `/events` gallery, `/events/new` form, `/events/[id]` workspace (big countdown, phase steps, advance/archive). Seeded demo event "YE Live in Jakarta" (fixed uuid, idempotent). Verified live on rvc.reddie.id as owner: list/workspace/new all 200, countdown + controls render, unauth → login. **Human QA notes:** create an event with a poster in the browser (multipart upload not covered by curl); check both themes on the workspace page; task-driven health changes become testable in EPIC-003.
 - 2026-08-06 Epic created by `/agentic-init` from PLAN §6.1 — pending kickoff.
 
 ## Dependencies
 
 - EPIC-001 (T-010 schema base, T-012 permission module). Budget-burn input of T-023 arrives with EPIC-005 — until then health uses task signals only (note this in code).
+- 2026-08-13 — Edit event + event-level crew + free phase jumps (Owner):
+  - New capability `event.edit` = owner/admin or any division head (same line as
+    `event.create`); the service ALSO requires `canViewEvent`, so the capability
+    is not a skeleton key over invisible events. Matrix test extended.
+  - `updateEvent` edits name/artists/venue/showDate/capacity/color/poster; an
+    empty poster upload keeps the current one. Page `/events/[id]/edit`.
+  - `event_people` table (migration 0037): PIC + members at EVENT level, picked
+    on the create form and editable after. Being on the list grants event
+    visibility by itself (visibleEventIds reads it) and joins the avatar strip.
+  - PhaseSteps gained `jump`: every phase is now a button that moves the event
+    THERE — backward included. The service never had a forward-only rule; only
+    the UI did (single "Advance" button).
+  - datetime-local inputs now parse AS WIB (`parseWibInput`/`wibInputValue`,
+    tested across 17:00Z). The old `new Date(raw)` read the picker in the
+    container's UTC, shifting show times +7h — Moodymann's stored 04:00 WIB
+    show time is likely this bug's artifact; Owner can correct it via Edit.

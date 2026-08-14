@@ -1,20 +1,20 @@
-# Backstage — Task management for an international-scale concert promoter
+# RVC Backstage — Task management for an international-scale concert promoter
 
 > **Status:** DRAFT — requirements only. Implementation decomposition lives in `docs/epics/` + `docs/product/ENGINEERING-TASKS.md`.
-> **Version:** 0.1 · **Author:** maintainer@example.com · **Synthesized from:** `docs/PLAN.en.md` / `docs/PLAN.id.md` (2026-08)
+> **Version:** 0.1 · **Author:** ilham@wit.id · **Synthesized from:** `docs/PLAN.en.md` / `docs/PLAN.id.md` (2026-08)
 
 ---
 
 ## Problem
 
-Acme Productions (Acme) runs international-scale concerts with 11 divisions (Talent, Production, Ops, Security, Hospitality, Marketing, Ticketing, Sponsorship, Finance, Legal, HR) plus external vendors, artist management, venues, and sponsors. Today, work coordination lives in WhatsApp threads and spreadsheets: cross-division requests get lost, external submissions (quotes, riders, manifests) arrive by email with no review trail, and the Owner has no single view of portfolio health, budget burn, or the approvals waiting on them.
+Raw Vision Collective (RVC) runs international-scale concerts with 11 divisions (Talent, Production, Ops, Security, Hospitality, Marketing, Ticketing, Sponsorship, Finance, Legal, HR) plus external vendors, artist management, venues, and sponsors. Today, work coordination lives in WhatsApp threads and spreadsheets: cross-division requests get lost, external submissions (quotes, riders, manifests) arrive by email with no review trail, and the Owner has no single view of portfolio health, budget burn, or the approvals waiting on them.
 
 The cost of leaving this unsolved: missed permit lead times, double-booked crews, untracked spending against event budgets, and show-week firefighting that depends on individual memory instead of a system.
 
 ## Evidence
 
 - The organizational structure, division responsibilities, and approval chains are documented first-hand in `docs/PLAN.en.md` §3–§6.
-- The organisation’s public site defines a design language the tool should match for internal adoption.
+- The RVC public site (rawvision.demo-wit.id) defines a strong design language the tool must match for internal adoption.
 - **Gap:** exact approval thresholds, notification channel needs, and ticketing-API availability — `Assumption — needs validation via Owner interview` (PRD Open Questions).
 
 ## Users
@@ -28,7 +28,7 @@ The cost of leaving this unsolved: missed permit lead times, double-booked crews
 
 ## Hypothesis
 
-We believe a **division-scoped, event-centric task workspace with first-class cross-division handoffs, an approval engine, and a scoped guest portal** will **replace WhatsApp/spreadsheet coordination with auditable, owned work** for **Acme's divisions and their external collaborators**.
+We believe a **division-scoped, event-centric task workspace with first-class cross-division handoffs, an approval engine, and a scoped guest portal** will **replace WhatsApp/spreadsheet coordination with auditable, owned work** for **RVC's divisions and their external collaborators**.
 
 We'll know we're right when **staff adopt My Tasks as their daily landing page**, and **every expense over threshold flows through the in-app approval chain** within one event cycle.
 
@@ -45,7 +45,7 @@ We'll know we're right when **staff adopt My Tasks as their daily landing page**
 
 ## Scope
 
-**MVP (target)** — Phase 1: auth + org structure + central permission module, events workspace with Acme monochrome theme and countdown, tasks (list + kanban + My Tasks), comments/@mentions, attachments, cross-division handoffs, in-app (SSE) notifications. This is **EPIC-000 → EPIC-003**.
+**MVP (target)** — Phase 1: auth + org structure + central permission module, events workspace with RVC monochrome theme and countdown, tasks (list + kanban + My Tasks), comments/@mentions, attachments, cross-division handoffs, in-app (SSE) notifications. This is **EPIC-000 → EPIC-003**.
 
 **Post-MVP (planned)**:
 
@@ -61,7 +61,7 @@ We'll know we're right when **staff adopt My Tasks as their daily landing page**
 
 - **Ticketing platform API integration** — Owner confirmed manual daily snapshots suffice for MVP (2026-08-06).
 - **Telegram notifications** — out; **WhatsApp is IN scope** (Owner decision 2026-08-06, T-064 in EPIC-006).
-- **Multi-brand / multi-organization support** — single org (Acme) for v1; schema must not preclude it later (Owner decision 2026-08-06).
+- **Multi-brand / multi-organization support** — single org (RVC) for v1; schema must not preclude it later (Owner decision 2026-08-06).
 - **Native mobile apps** — responsive web + PWA polish instead.
 
 ## Delivery Milestones
@@ -87,7 +87,7 @@ Answered by the Owner on **2026-08-06**:
 - [x] **Currency** — **IDR is the default.** Threshold *numbers* still use the proposed defaults (A = Rp 10.000.000, B = Rp 100.000.000) until the Owner supplies final figures — they are org-settings values, changeable without code.
 - [x] **Notification channels** — **email + WhatsApp.** WhatsApp is now in scope as a first-class channel (added as T-064 in EPIC-006); Telegram stays out.
 - [x] **Ticketing** — **manual daily snapshots are sufficient for MVP.** No platform API integration in v1 (EPIC-009 stays manual-entry).
-- [x] **Multi-brand** — **single org (Acme) for now, but multi-brand must remain possible.** Schema decisions must not preclude adding an `organizations` scope later: no global uniques that would collide across brands beyond user email, org-wide config lives in `app_settings` (per-org table split is a clean migration), and the permission module keeps org resolution in one place.
+- [x] **Multi-brand** — **single org (RVC) for now, but multi-brand must remain possible.** Schema decisions must not preclude adding an `organizations` scope later: no global uniques that would collide across brands beyond user email, org-wide config lives in `app_settings` (per-org table split is a clean migration), and the permission module keeps org resolution in one place.
 
 Remaining open: final approval threshold figures (Owner) and the WhatsApp provider choice (Business Cloud API vs gateway) — both config-level, neither blocks a build.
 
@@ -155,7 +155,7 @@ Visibility (enforced ONLY via src/lib/permissions):
 ## Appendix C — Tech Stack (locked decisions)
 
 - **Repo:** single-app
-- **Frontend/Backend:** Next.js (App Router, TypeScript) + Tailwind + shadcn/ui restyled to Acme monochrome
+- **Frontend/Backend:** Next.js (App Router, TypeScript) + Tailwind + shadcn/ui restyled to RVC monochrome
 - **Database:** PostgreSQL (local, self-hosted) + Drizzle ORM + migrations
 - **Auth:** Auth.js (NextAuth v5) — credentials for staff, magic link for external guests
 - **Authorization:** central permission module in the service layer (`src/lib/permissions`) — protected path

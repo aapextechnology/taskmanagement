@@ -1,9 +1,10 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { divisionMembers, divisions, profiles } from "@/db/schema";
+import { divisionMembers, divisions, profiles, tasks } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
 import { hashPassword } from "@/lib/auth/password";
 import { assertCan, type Actor, type DivisionRole } from "@/lib/permissions";
+import { normalizeMsisdn } from "@/lib/whatsapp/normalize";
 
 // Org administration service (T-013). Every function takes the acting user
 // and enforces capability + audit logging here — UI layers never touch the
@@ -31,6 +32,96 @@ export async function listUsersWithMemberships() {
   }));
 }
 
+// ---- division master data (Owner 2026-08-12) ------------------------------
+
+/** Stable slug from a display name: "Media & Press" → "media-press". */
+export function divisionSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/&/g, " ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+export async function createDivision(actor: Actor, name: string) {
+  assertCan(actor, "org.manage");
+  const clean = name.trim();
+  if (clean.length < 2) throw new Error("A division needs a name.");
+  const id = divisionSlug(clean);
+  if (!id) throw new Error("That name has no usable characters.");
+  const [existing] = await db
+    .select({ id: divisions.id })
+    .from(divisions)
+    .where(eq(divisions.id, id))
+    .limit(1);
+  if (existing) throw new Error(`A division with the slug “${id}” already exists.`);
+
+  await db.insert(divisions).values({ id, name: clean });
+  await logActivity({
+    actorId: actor.id,
+    action: "division.create",
+    entity: `division:${id}`,
+    detail: { name: clean },
+  });
+  return { id };
+}
+
+/** Display name only. The slug is an identifier woven through tasks, folders
+ *  and permissions — renaming it would be a data migration, not an edit. */
+export async function renameDivision(actor: Actor, id: string, name: string) {
+  assertCan(actor, "org.manage");
+  const clean = name.trim();
+  if (clean.length < 2) throw new Error("A division needs a name.");
+  await db.update(divisions).set({ name: clean }).where(eq(divisions.id, id));
+  await logActivity({
+    actorId: actor.id,
+    action: "division.rename",
+    entity: `division:${id}`,
+    detail: { name: clean },
+  });
+}
+
+/**
+ * Refuses while anything still points at the division, with the numbers —
+ * the database would refuse anyway via FK, but "23503 foreign key violation"
+ * tells an admin nothing they can act on.
+ */
+export async function deleteDivision(actor: Actor, id: string) {
+  assertCan(actor, "org.manage");
+  const [{ taskCount }] = await db
+    .select({ taskCount: sql<number>`count(*)::int` })
+    .from(tasks)
+    .where(eq(tasks.divisionId, id));
+  const [{ memberCount }] = await db
+    .select({ memberCount: sql<number>`count(*)::int` })
+    .from(divisionMembers)
+    .where(eq(divisionMembers.divisionId, id));
+  const blockers = [
+    taskCount > 0 ? `${taskCount} task(s)` : null,
+    memberCount > 0 ? `${memberCount} member(s)` : null,
+  ].filter(Boolean);
+  if (blockers.length > 0) {
+    throw new Error(
+      `“${id}” still has ${blockers.join(" and ")}. Move or remove them first.`,
+    );
+  }
+  try {
+    await db.delete(divisions).where(eq(divisions.id, id));
+  } catch {
+    // budgets, documents, templates or handoffs still reference it — rarer,
+    // so counted lazily rather than on every delete attempt
+    throw new Error(
+      `“${id}” is still referenced by budgets, documents or history and cannot be deleted.`,
+    );
+  }
+  await logActivity({
+    actorId: actor.id,
+    action: "division.delete",
+    entity: `division:${id}`,
+  });
+}
+
 export async function createUser(
   actor: Actor,
   input: {
@@ -38,16 +129,26 @@ export async function createUser(
     name: string;
     role: "owner" | "admin" | "member" | "external";
     password?: string;
+    /** raw as typed; normalised to an msisdn before it is stored */
+    phone?: string;
   },
 ) {
   assertCan(actor, "org.manage");
   const email = input.email.toLowerCase().trim();
+  const phone = input.phone?.trim() ? normalizeMsisdn(input.phone) : null;
+  if (input.phone?.trim() && !phone) {
+    throw new Error("That phone number doesn't look valid.");
+  }
   const [user] = await db
     .insert(profiles)
     .values({
       email,
       name: input.name.trim(),
       role: input.role,
+      phone,
+      // a number is only worth storing if it will be used — setting one in
+      // Admin turns the channel on, otherwise nothing would ever send
+      whatsappNotifications: Boolean(phone),
       passwordHash:
         input.role !== "external" && input.password
           ? hashPassword(input.password)
@@ -61,6 +162,44 @@ export async function createUser(
     detail: { email, role: input.role },
   });
   return user;
+}
+
+/**
+ * Admin-side contact details (EPIC-016 follow-up). Until this existed a
+ * number could only be set by each person in their own Settings, so the
+ * WhatsApp gateway had no recipients at all.
+ *
+ * Clearing the number also switches the channel off: keeping the flag on
+ * with nowhere to send is a silent no-op that looks like it works.
+ */
+export async function setUserContact(
+  actor: Actor,
+  userId: string,
+  input: { phone: string; whatsappNotifications: boolean },
+) {
+  assertCan(actor, "org.manage");
+  const raw = input.phone.trim();
+  const phone = raw ? normalizeMsisdn(raw) : null;
+  if (raw && !phone) {
+    throw new Error(
+      "That phone number doesn't look valid. Use 08…, 62… or +62… .",
+    );
+  }
+  await db
+    .update(profiles)
+    .set({
+      phone,
+      whatsappNotifications: phone ? input.whatsappNotifications : false,
+      updatedAt: new Date(),
+    })
+    .where(eq(profiles.id, userId));
+  await logActivity({
+    actorId: actor.id,
+    action: "user.contact_update",
+    entity: `profile:${userId}`,
+    // the number itself stays out of the audit detail
+    detail: { hasPhone: Boolean(phone), whatsapp: Boolean(phone) && input.whatsappNotifications },
+  });
 }
 
 export async function setUserActive(

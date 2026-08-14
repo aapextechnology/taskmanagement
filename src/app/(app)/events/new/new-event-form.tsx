@@ -2,14 +2,18 @@
 
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { EventColorPicker } from "@/components/event-color-picker";
+import { EventPeoplePicker } from "@/components/event-people-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createEventAction, type EventActionState } from "../actions";
 
 export function NewEventForm({
   templates = [],
+  people = [],
 }: {
   templates?: Array<{ id: string; name: string; itemCount: number }>;
+  people?: Array<{ id: string; name: string }>;
 }) {
   const [templateId, setTemplateId] = useState("");
   const [state, formAction, pending] = useActionState<EventActionState, FormData>(
@@ -61,6 +65,10 @@ export function NewEventForm({
         <Input id="ev-name" name="name" required placeholder="YE Live in Jakarta" />
       </div>
       <div className="flex flex-col gap-2">
+        <Label>Colour</Label>
+        <EventColorPicker />
+      </div>
+      <div className="flex flex-col gap-2">
         <Label htmlFor="ev-artists">Artists</Label>
         <Input id="ev-artists" name="artists" placeholder="YE · Special Guests" />
       </div>
@@ -82,6 +90,7 @@ export function NewEventForm({
         <Label htmlFor="ev-poster">Poster (jpg/png/webp, max 5 MB)</Label>
         <Input id="ev-poster" name="poster" type="file" accept="image/jpeg,image/png,image/webp" />
       </div>
+      {people.length > 0 ? <EventPeoplePicker people={people} /> : null}
       {state.error ? (
         <p role="alert" className="text-sm text-destructive">
           {state.error}

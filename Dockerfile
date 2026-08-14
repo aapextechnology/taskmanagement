@@ -1,4 +1,4 @@
-# Backstage — production-style image for the Docker compose stack.
+# RVC Backstage — production-style image for the DEV compose stack.
 FROM node:24-alpine AS base
 RUN corepack enable pnpm
 WORKDIR /app

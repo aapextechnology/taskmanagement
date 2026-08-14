@@ -6,6 +6,7 @@ import { createTaskAction, type TaskActionState } from "@/app/(app)/tasks/action
 import { AssigneePicker, LeadSelect } from "@/components/assignee-picker";
 import { LabelPicker } from "@/components/label-picker";
 import { PriorityPicker } from "@/components/priority-picker";
+import { Switch } from "@/components/ui/switch";
 import { Segmented } from "@/components/segmented";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,11 +32,14 @@ export function NewTaskDialog({
   divisions,
   defaultDivisionId,
   labels,
+  /** divisions this person may seal a task in — head of them, or leadership */
+  canRestrictIn = [],
 }: {
   eventId: string;
   divisions: DivisionWithMembers[];
   defaultDivisionId?: string;
   labels: Array<{ id: string; name: string; color: string }>;
+  canRestrictIn?: string[];
 }) {
   const [open, setOpen] = useState(false);
   const [divisionId, setDivisionId] = useState(
@@ -168,6 +172,20 @@ export function NewTaskDialog({
               <LabelPicker labels={labels} />
             </div>
           </div>
+
+          {canRestrictIn.includes(division.id) ? (
+            <label className="flex items-start gap-2.5 border-t px-6 py-3 text-xs">
+              <Switch name="restricted" className="mt-0.5" />
+              <span className="flex flex-col gap-0.5">
+                <span className="font-medium">Keep inside {division.name}</span>
+                <span className="text-muted-foreground">
+                  Tasks are visible to every division on this event by default.
+                  Lock this one and only {division.name}, the people working on
+                  it, and Owner/Admin will see it.
+                </span>
+              </span>
+            </label>
+          ) : null}
 
           {state.error ? (
             <p role="alert" className="px-6 pb-2 text-sm text-destructive">

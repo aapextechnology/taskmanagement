@@ -1,15 +1,20 @@
-import { and, asc, eq, inArray, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   divisions,
   eventDivisions,
+  eventPeople,
   eventPhases,
   events,
+  profiles,
+  taskAssignees,
   taskDependencies,
   tasks,
 } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
-import { assertCan, type Actor } from "@/lib/permissions";
+import { assertCan, PermissionError, type Actor } from "@/lib/permissions";
+import { isEventColor } from "./colors";
+import { canViewEvent, scopeCondition, visibleEventIds } from "./visibility";
 import { computeHealth, type HealthSignals } from "./health";
 
 // Events service (T-021/T-022/T-023). All access permission-gated here.
@@ -26,6 +31,7 @@ export const DEFAULT_PHASES = [
 
 export async function listActiveEvents(actor: Actor) {
   assertCan(actor, "event.view");
+  const scope = await visibleEventIds(actor);
   return db
     .select({
       event: events,
@@ -33,7 +39,7 @@ export async function listActiveEvents(actor: Actor) {
     })
     .from(events)
     .leftJoin(eventPhases, eq(events.currentPhaseId, eventPhases.id))
-    .where(isNull(events.archivedAt))
+    .where(and(isNull(events.archivedAt), scopeCondition(scope, events.id)))
     .orderBy(asc(events.showDate))
     .then((rows) =>
       rows.map((r) => ({ ...r.event, phaseName: r.phaseName ?? "—" })),
@@ -42,6 +48,9 @@ export async function listActiveEvents(actor: Actor) {
 
 export async function getEvent(actor: Actor, eventId: string) {
   assertCan(actor, "event.view");
+  // the direct-URL guard. Without it, scoping the lists would only hide
+  // events from people who did not already know the address.
+  if (!(await canViewEvent(actor, eventId))) return null;
   const [row] = await db
     .select({ event: events, phaseName: eventPhases.name })
     .from(events)
@@ -228,11 +237,14 @@ export async function createEvent(
   actor: Actor,
   input: {
     name: string;
+    color?: string | null;
     artists: string;
     venue: string;
     showDate: Date;
     capacity?: number;
     coverImagePath?: string;
+    picId?: string | null;
+    memberIds?: string[];
   },
 ) {
   assertCan(actor, "event.create");
@@ -245,6 +257,10 @@ export async function createEvent(
       showDate: input.showDate,
       capacity: input.capacity ?? null,
       coverImagePath: input.coverImagePath ?? null,
+      // an unrecognised value would render as no swatch at all, so it is
+      // dropped here rather than trusted from the form
+      color:
+        input.color && isEventColor(input.color) ? input.color : null,
     })
     .returning();
 
@@ -256,6 +272,9 @@ export async function createEvent(
       .values(allDivisions.map((d) => ({ eventId: event.id, divisionId: d.id })))
       .onConflictDoNothing();
   }
+
+  // event-level crew, picked before the event exists (Owner 2026-08-13)
+  await writeEventPeople(event.id, input.picId ?? null, input.memberIds ?? []);
 
   // default workflow — fully editable per event afterwards
   const phases = await db
@@ -281,6 +300,187 @@ export async function createEvent(
     eventId: event.id,
   });
   return event;
+}
+
+/** One PIC + members, deduped; the PIC wins when listed in both. */
+async function writeEventPeople(
+  eventId: string,
+  picId: string | null,
+  memberIds: string[],
+) {
+  await db.delete(eventPeople).where(eq(eventPeople.eventId, eventId));
+  const rows: Array<{ eventId: string; userId: string; role: string }> = [];
+  if (picId) rows.push({ eventId, userId: picId, role: "pic" });
+  for (const userId of memberIds) {
+    if (userId && userId !== picId) rows.push({ eventId, userId, role: "member" });
+  }
+  if (rows.length > 0) {
+    await db.insert(eventPeople).values(rows).onConflictDoNothing();
+  }
+}
+
+export async function getEventPeople(actor: Actor, eventId: string) {
+  assertCan(actor, "event.view");
+  if (!(await canViewEvent(actor, eventId))) {
+    return { pic: null as null | { id: string; name: string; avatarPath: string | null }, members: [] as Array<{ id: string; name: string; avatarPath: string | null }> };
+  }
+  const rows = await db
+    .select({
+      id: profiles.id,
+      name: profiles.name,
+      avatarPath: profiles.avatarPath,
+      role: eventPeople.role,
+    })
+    .from(eventPeople)
+    .innerJoin(profiles, eq(profiles.id, eventPeople.userId))
+    .where(eq(eventPeople.eventId, eventId))
+    .orderBy(asc(profiles.name));
+  return {
+    pic: rows.find((r) => r.role === "pic") ?? null,
+    members: rows.filter((r) => r.role !== "pic"),
+  };
+}
+
+export async function setEventPeople(
+  actor: Actor,
+  eventId: string,
+  input: { picId: string | null; memberIds: string[] },
+) {
+  assertCan(actor, "event.edit");
+  if (!(await canViewEvent(actor, eventId))) {
+    throw new PermissionError("event.edit");
+  }
+  await writeEventPeople(eventId, input.picId, input.memberIds);
+  await logActivity({
+    actorId: actor.id,
+    action: "event.update",
+    entity: `event:${eventId}`,
+    detail: { picId: input.picId ?? "(none)", members: input.memberIds.length },
+    eventId,
+  });
+}
+
+/** Active internal users, for the PIC/member pickers. */
+export async function listAssignablePeople(actor: Actor) {
+  assertCan(actor, "event.view");
+  return db
+    .select({ id: profiles.id, name: profiles.name })
+    .from(profiles)
+    .where(and(eq(profiles.isActive, true), ne(profiles.role, "external")))
+    .orderBy(asc(profiles.name));
+}
+
+export async function updateEvent(
+  actor: Actor,
+  eventId: string,
+  input: {
+    name: string;
+    artists: string;
+    venue: string;
+    showDate: Date;
+    capacity?: number | null;
+    color?: string | null;
+    /** undefined = keep the current poster */
+    coverImagePath?: string;
+  },
+) {
+  assertCan(actor, "event.edit");
+  // the capability says "heads may edit events"; visibility says WHICH ones —
+  // a head cannot edit a show their division is not even allowed to see
+  if (!(await canViewEvent(actor, eventId))) {
+    throw new PermissionError("event.edit");
+  }
+  const name = input.name.trim();
+  if (!name) throw new Error("An event needs a name.");
+  await db
+    .update(events)
+    .set({
+      name,
+      artists: input.artists.trim(),
+      venue: input.venue.trim(),
+      showDate: input.showDate,
+      capacity: input.capacity ?? null,
+      color: input.color && isEventColor(input.color) ? input.color : null,
+      ...(input.coverImagePath !== undefined
+        ? { coverImagePath: input.coverImagePath }
+        : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(events.id, eventId));
+  await logActivity({
+    actorId: actor.id,
+    action: "event.update",
+    entity: `event:${eventId}`,
+    detail: { name, showDate: input.showDate.toISOString() },
+    eventId,
+  });
+}
+
+/**
+ * Archived events, newest show first.
+ *
+ * Every other list in the app filters `archivedAt IS NULL` — sidebar,
+ * dashboard, search, tickets, budgets, the AI snapshot — so without this an
+ * archived event is not merely hidden but unreachable, and `setArchived(…,
+ * false)` can never be called because nothing can show you the event to
+ * un-archive it.
+ */
+export async function listArchivedEvents(actor: Actor) {
+  assertCan(actor, "event.view");
+  return db
+    .select({ event: events, phaseName: eventPhases.name })
+    .from(events)
+    .leftJoin(eventPhases, eq(events.currentPhaseId, eventPhases.id))
+    .where(
+      and(isNotNull(events.archivedAt), scopeCondition(await visibleEventIds(actor), events.id)),
+    )
+    .orderBy(desc(events.showDate))
+    .then((rows) =>
+      rows.map((r) => ({ ...r.event, phaseName: r.phaseName ?? "—" })),
+    );
+}
+
+/**
+ * People with work on this event — leads and assignees, deduplicated.
+ *
+ * Answers "who is on this show?" at a glance in the header. Membership of a
+ * participating division is deliberately NOT enough: a division of twelve
+ * would fill the strip with people who have never touched the event.
+ */
+export async function listEventPeople(actor: Actor, eventId: string) {
+  assertCan(actor, "event.view");
+  if (!(await canViewEvent(actor, eventId))) return [];
+
+  const rows = await db
+    .selectDistinct({
+      id: profiles.id,
+      name: profiles.name,
+      avatarPath: profiles.avatarPath,
+    })
+    .from(tasks)
+    .leftJoin(taskAssignees, eq(taskAssignees.taskId, tasks.id))
+    .innerJoin(
+      profiles,
+      or(eq(profiles.id, tasks.leadId), eq(profiles.id, taskAssignees.userId)),
+    )
+    .where(eq(tasks.eventId, eventId))
+    .orderBy(asc(profiles.name));
+  // event-level crew belongs in the strip too — a PIC with no task yet is
+  // still on the show (Owner 2026-08-13)
+  const crew = await db
+    .select({
+      id: profiles.id,
+      name: profiles.name,
+      avatarPath: profiles.avatarPath,
+    })
+    .from(eventPeople)
+    .innerJoin(profiles, eq(profiles.id, eventPeople.userId))
+    .where(eq(eventPeople.eventId, eventId));
+  const seen = new Set(rows.map((r) => r.id));
+  for (const person of crew) {
+    if (!seen.has(person.id)) rows.push(person);
+  }
+  return rows;
 }
 
 export async function setArchived(

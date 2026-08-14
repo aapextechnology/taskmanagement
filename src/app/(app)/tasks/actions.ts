@@ -72,6 +72,7 @@ export async function createTaskAction(
         | "weekly"
         | "monthly",
       leadId: String(formData.get("leadId") ?? "") || undefined,
+      restricted: formData.get("restricted") === "on",
       assigneeIds: formData.getAll("assignees").map(String).filter(Boolean),
       labelIds: formData.getAll("labels").map(String).filter(Boolean),
       newLabel: String(formData.get("newLabelName") ?? "").trim()
@@ -89,12 +90,120 @@ export async function createTaskAction(
   redirect(`/tasks/${taskId}`);
 }
 
+/**
+ * Status via drag-and-drop on the list page (Owner 2026-08-12). Returns the
+ * error instead of throwing, so a refused drop — a sealed task, a division
+ * the actor cannot edit — surfaces as a toast rather than a dead gesture.
+ */
+export async function setStatusAction(
+  _prev: TaskActionState,
+  formData: FormData,
+): Promise<TaskActionState> {
+  try {
+    const actor = await requireActor();
+    const taskId = String(formData.get("taskId"));
+    const status = String(formData.get("status"));
+    await updateStatus(actor, taskId, status as TaskStatus);
+    revalidatePath(`/tasks/${taskId}`);
+    revalidatePath("/my-tasks");
+    return {};
+  } catch (error) {
+    return friendly(error);
+  }
+}
+
 export async function updateStatusAction(formData: FormData): Promise<void> {
   const actor = await requireActor();
   const taskId = String(formData.get("taskId"));
   await updateStatus(actor, taskId, String(formData.get("status")) as TaskStatus);
   revalidatePath(`/tasks/${taskId}`);
   revalidatePath("/my-tasks");
+}
+
+/**
+ * Priority alone, editable in place (Owner 2026-08-12). Not routed through
+ * updateFieldsAction, which writes every field it is given — called with only
+ * a priority it would blank the title and description.
+ */
+export async function setPriorityAction(
+  _prev: TaskActionState,
+  formData: FormData,
+): Promise<TaskActionState> {
+  try {
+    const actor = await requireActor();
+    const taskId = String(formData.get("taskId"));
+    const priority = String(formData.get("priority"));
+    if (!["low", "medium", "high", "urgent"].includes(priority)) {
+      return { error: "Unknown priority." };
+    }
+    await updateTaskFields(actor, taskId, {
+      priority: priority as "low" | "medium" | "high" | "urgent",
+    });
+    revalidatePath(`/tasks/${taskId}`);
+    return {};
+  } catch (error) {
+    return friendly(error);
+  }
+}
+
+/**
+ * One narrow action per cell for the grid (Owner 2026-08-12). Deliberately
+ * NOT routed through updateFieldsAction, which writes every field it is
+ * given: called with a single cell's value it would blank the rest of the
+ * task. Each returns its error instead of throwing, so a refused edit
+ * becomes a toast in the cell rather than a dead click.
+ */
+export async function setDueDateAction(
+  _prev: TaskActionState,
+  formData: FormData,
+): Promise<TaskActionState> {
+  try {
+    const actor = await requireActor();
+    const taskId = String(formData.get("taskId"));
+    const raw = String(formData.get("dueDate") ?? "").trim();
+    await updateTaskFields(actor, taskId, {
+      dueDate: raw ? new Date(raw) : null,
+    });
+    revalidatePath(`/tasks/${taskId}`);
+    return {};
+  } catch (error) {
+    return friendly(error);
+  }
+}
+
+export async function setTitleAction(
+  _prev: TaskActionState,
+  formData: FormData,
+): Promise<TaskActionState> {
+  try {
+    const actor = await requireActor();
+    const taskId = String(formData.get("taskId"));
+    const title = String(formData.get("title") ?? "").trim();
+    if (!title) return { error: "A task needs a title." };
+    await updateTaskFields(actor, taskId, { title });
+    revalidatePath(`/tasks/${taskId}`);
+    return {};
+  } catch (error) {
+    return friendly(error);
+  }
+}
+
+/** Grid variant: the drawer's setLeadAction throws on refusal, which is
+ *  right for a form submit and wrong for a cell — this one reports. */
+export async function setLeadCellAction(
+  _prev: TaskActionState,
+  formData: FormData,
+): Promise<TaskActionState> {
+  try {
+    const actor = await requireActor();
+    const taskId = String(formData.get("taskId"));
+    const userId = String(formData.get("userId") ?? "").trim();
+    await setTaskLead(actor, taskId, userId || null);
+    revalidatePath(`/tasks/${taskId}`);
+    return {};
+  } catch (error) {
+    return friendly(error);
+  }
 }
 
 export async function updateFieldsAction(

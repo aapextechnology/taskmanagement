@@ -16,6 +16,8 @@ export type NotificationType =
   | "unblocked"
   // someone made your task a blocker (EPIC-012) — in-app only, like unblocked
   | "dependency_waiting"
+  // a task you lead reached priority urgent (EPIC-015 T-151) — WhatsApp + in-app
+  | "priority_urgent"
   | "handoff_request"
   | "handoff_decided"
   | "approval_requested"
@@ -43,6 +45,7 @@ const WHATSAPP_TYPES: ReadonlySet<NotificationType> = new Set([
   "overdue",
   "approval_requested",
   "approval_decided",
+  "priority_urgent",
 ]);
 
 async function fanOutChannels(input: {
@@ -50,9 +53,11 @@ async function fanOutChannels(input: {
   type: NotificationType;
   title: string;
   href: string;
+  waText?: WaTextBuilder;
 }): Promise<void> {
   const [user] = await db
     .select({
+      name: profiles.name,
       email: profiles.email,
       phone: profiles.phone,
       emailNotifications: profiles.emailNotifications,
@@ -78,12 +83,23 @@ async function fanOutChannels(input: {
     user.whatsappNotifications &&
     user.phone
   ) {
+    // A caller may supply a rendered template (src/lib/whatsapp/templates.ts).
+    // The recipient's name only exists here, so the builder is applied at the
+    // last moment rather than at the call site.
     await sendWhatsApp({
       to: user.phone,
-      text: `${brand} — ${input.title}\n${link}`,
+      text:
+        input.waText?.({ recipientName: user.name ?? "", brand }) ??
+        `${brand} — ${input.title}\n${link}`,
     });
   }
 }
+
+/** Builds the WhatsApp body once the recipient is resolved. */
+export type WaTextBuilder = (ctx: {
+  recipientName: string;
+  brand: string;
+}) => string;
 
 export async function notify(input: {
   userId: string;
@@ -92,6 +108,8 @@ export async function notify(input: {
   href?: string;
   /** set for cron-driven alerts so re-runs never duplicate */
   dedupKey?: string;
+  /** overrides the generic WhatsApp body with a proper template */
+  waText?: WaTextBuilder;
 }): Promise<void> {
   const inserted = await db
     .insert(notifications)
@@ -113,6 +131,7 @@ export async function notify(input: {
       type: input.type,
       title: input.title,
       href: input.href ?? "",
+      waText: input.waText,
     }).catch((error) => console.error("[notify] fan-out failed:", error));
   }
 }
@@ -130,6 +149,7 @@ export async function notifyMany(
       title: input.title,
       href: input.href,
       dedupKey: input.dedupKeyFor?.(userId),
+      waText: input.waText,
     });
   }
 }

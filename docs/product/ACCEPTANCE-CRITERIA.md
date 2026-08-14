@@ -1,4 +1,4 @@
-# Backstage — Acceptance Criteria Standard
+# RVC Backstage — Acceptance Criteria Standard
 
 > The single, shared definition of "what makes a story or task acceptable" for this
 > project. User stories (`USER-STORIES.md`) and epics (`docs/epics/*`) embed acceptance

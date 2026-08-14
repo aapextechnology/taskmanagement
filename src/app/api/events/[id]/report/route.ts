@@ -41,7 +41,7 @@ export async function GET(
   return new NextResponse(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="report-${slug}-${stamp}.pdf"`,
+      "Content-Disposition": `attachment; filename="rvc-report-${slug}-${stamp}.pdf"`,
       "Cache-Control": "no-store",
     },
   });

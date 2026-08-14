@@ -6,6 +6,7 @@ import { sessionActor } from "@/lib/auth/session-actor";
 import {
   addPhase,
   createEvent,
+  updateEvent,
   deletePhase,
   movePhase,
   recomputeEventHealth,
@@ -13,8 +14,10 @@ import {
   setArchived,
   setCurrentPhase,
   setEventDivisions,
+  setEventPeople,
 } from "@/lib/events/service";
 import { PermissionError } from "@/lib/permissions";
+import { parseWibInput } from "@/lib/tasks/dates";
 import { saveImageUpload } from "@/lib/uploads";
 
 export interface EventActionState {
@@ -36,9 +39,10 @@ export async function createEventAction(
   try {
     const actor = await requireActor();
 
-    const showDateRaw = String(formData.get("showDate") ?? "");
-    const showDate = new Date(showDateRaw);
-    if (Number.isNaN(showDate.getTime())) {
+    // parsed AS WIB — a bare new Date() would read the picker's value in the
+    // container's zone (UTC) and shift every show time seven hours
+    const showDate = parseWibInput(String(formData.get("showDate") ?? ""));
+    if (!showDate) {
       return { error: "Show date is invalid." };
     }
 
@@ -50,12 +54,15 @@ export async function createEventAction(
 
     const capacityRaw = String(formData.get("capacity") ?? "");
     const event = await createEvent(actor, {
+      color: String(formData.get("color") ?? "") || null,
       name: String(formData.get("name") ?? ""),
       artists: String(formData.get("artists") ?? ""),
       venue: String(formData.get("venue") ?? ""),
       showDate,
       capacity: capacityRaw ? Number(capacityRaw) : undefined,
       coverImagePath,
+      picId: String(formData.get("picId") ?? "") || null,
+      memberIds: formData.getAll("memberIds").map(String).filter(Boolean),
     });
     // optional playbook (T-092): generate every division's checklist with
     // due dates counted back from show day
@@ -74,6 +81,52 @@ export async function createEventAction(
     }
     throw error;
   }
+  revalidatePath("/events");
+  redirect(`/events/${eventId}`);
+}
+
+export async function updateEventAction(
+  _prev: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  let eventId: string;
+  try {
+    const actor = await requireActor();
+    eventId = String(formData.get("eventId"));
+
+    const showDate = parseWibInput(String(formData.get("showDate") ?? ""));
+    if (!showDate) {
+      return { error: "Show date is invalid." };
+    }
+
+    // no upload = keep the current poster; a replacement overwrites the path
+    let coverImagePath: string | undefined;
+    const poster = formData.get("poster");
+    if (poster instanceof File && poster.size > 0) {
+      coverImagePath = await saveImageUpload(poster, "posters");
+    }
+
+    const capacityRaw = String(formData.get("capacity") ?? "");
+    await updateEvent(actor, eventId, {
+      name: String(formData.get("name") ?? ""),
+      artists: String(formData.get("artists") ?? ""),
+      venue: String(formData.get("venue") ?? ""),
+      showDate,
+      capacity: capacityRaw ? Number(capacityRaw) : null,
+      color: String(formData.get("color") ?? "") || null,
+      coverImagePath,
+    });
+    await setEventPeople(actor, eventId, {
+      picId: String(formData.get("picId") ?? "") || null,
+      memberIds: formData.getAll("memberIds").map(String).filter(Boolean),
+    });
+    await recomputeEventHealth(eventId);
+  } catch (error) {
+    if (error instanceof PermissionError) return { error: "Not allowed." };
+    if (error instanceof Error) return { error: error.message };
+    throw error;
+  }
+  revalidatePath(`/events/${eventId}`);
   revalidatePath("/events");
   redirect(`/events/${eventId}`);
 }

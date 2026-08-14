@@ -1,4 +1,4 @@
-# Backstage — User Stories
+# RVC Backstage — User Stories
 
 > Companion to `PRD.md`. Stories use `As a {role}, I want {capability}, so that {outcome}`.
 > Roles: **Owner** (CEO, final approver) · **Admin** · **Head** (Division Head) · **Staff** · **External** (vendor / artist mgmt / venue / sponsor rep / freelance crew).

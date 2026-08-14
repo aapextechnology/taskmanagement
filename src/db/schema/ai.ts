@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { profiles } from "./org";
 import { events } from "./events";
 
@@ -61,4 +61,32 @@ export const aiMessages = pgTable(
       .defaultNow(),
   },
   (t) => [index("ai_messages_conversation_idx").on(t.conversationId)],
+);
+
+// Files attached to a chat message (EPIC-016 T-161). The extracted TEXT is
+// not stored — it only ever lived in one prompt, and keeping it would
+// duplicate the document. The original file is kept so the user can open
+// what they sent; `chars`/`truncated` record what the model actually saw.
+export const aiAttachments = pgTable(
+  "ai_attachments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => aiMessages.id, { onDelete: "cascade" }),
+    fileName: text("file_name").notNull(),
+    // relative to UPLOADS_DIR, served through the auth-gated /api/files
+    filePath: text("file_path").notNull(),
+    kind: text("kind", { enum: ["text", "image"] }).notNull(),
+    sizeBytes: integer("size_bytes").notNull().default(0),
+    /** characters of extracted text sent to the model; 0 for images */
+    chars: integer("chars").notNull().default(0),
+    truncated: boolean("truncated").notNull().default(false),
+    /** why it could not be read, when it could not */
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("ai_attachments_message_idx").on(t.messageId)],
 );

@@ -12,7 +12,10 @@ import { can } from "@/lib/permissions";
 import { AssistantChat } from "./assistant-chat";
 import { HistoryPanel } from "./history-panel";
 
-export const metadata: Metadata = { title: "AI Assistant" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { getBranding } = await import("@/lib/org/branding");
+  return { title: (await getBranding()).assistantName };
+}
 
 // EPIC-014 T-140/T-141: predictive chat over the org's live data with saved
 // conversations — leadership only (owner / admin / division heads).
@@ -27,12 +30,14 @@ export default async function AssistantPage({
   const sp = await searchParams;
   const conversationId = typeof sp.c === "string" && sp.c ? sp.c : null;
 
-  const [events, history, conversation] = await Promise.all([
+  const { getBranding } = await import("@/lib/org/branding");
+  const [events, history, conversation, branding] = await Promise.all([
     listActiveEvents(actor),
     listHistory(actor),
     conversationId
       ? getConversationWithMessages(actor, conversationId)
       : Promise.resolve(null),
+    getBranding(),
   ]);
   // unknown/foreign id → start fresh rather than 404-ing the whole page
   if (conversationId && !conversation) redirect("/assistant");
@@ -40,7 +45,9 @@ export default async function AssistantPage({
   return (
     <section className="flex min-h-[calc(100svh-8rem)] flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-semibold tracking-tight">AI Assistant</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          {branding.assistantName}
+        </h1>
         <p className="text-sm text-muted-foreground">
           Ask about any event or the whole portfolio — predictions come with
           reasons, grounded in your live data. Chats are saved to your history.
@@ -67,6 +74,7 @@ export default async function AssistantPage({
         <AssistantChat
           key={conversation?.id ?? "new"}
           userName={session?.user?.name ?? "You"}
+          assistantName={branding.assistantName}
           events={events.map((e) => ({ id: e.id, name: e.name }))}
           configured={aiConfigured()}
           conversationId={conversation?.id ?? null}

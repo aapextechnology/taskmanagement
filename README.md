@@ -93,11 +93,11 @@ All configuration is environment variables — see `.env.example`.
 | `AUTH_SECRET` | Session signing secret (required) — `openssl rand -base64 32` |
 | `APP_URL` / `AUTH_URL` | Public URL. Set both when serving behind a domain or reverse proxy |
 | `ORG_NAME` / `ORG_SHORT_NAME` / `PRODUCT_NAME` | First-boot branding; editable later in Admin |
+| `ASSISTANT_NAME` | What the AI assistant is called (default `AI Assistant`) |
 | `SMTP_*` | Outgoing email. The dev stack includes Mailpit at `localhost:8025` |
 | `UPLOADS_DIR` | Where uploaded files land |
 | `OPENAI_API_KEY` | Optional — enables the AI assistant. Empty disables it cleanly |
 | `OPENAI_MODEL` | Model id for the assistant |
-| `APP_PORT` / `DB_PORT` / `MAILPIT_*_PORT` | Host ports, if the defaults are taken |
 
 ### Branding
 
@@ -106,6 +106,10 @@ The app carries **your** organisation's name, not ours. Set `ORG_NAME`,
 in **Admin → Organisation branding**. The name flows to the sidebar, page titles,
 the installable app name, notification and digest emails, guest invitations, PDF
 report headers, and the AI assistant's own description of who it works for.
+
+The assistant itself is named separately via `ASSISTANT_NAME` (or the same Admin
+screen) — call it whatever suits your team. It defaults to the neutral
+"AI Assistant".
 
 ---
 
@@ -164,10 +168,13 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Contributing
 
-Issues and pull requests are welcome — including "this didn't install and here's the
-error". See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, the two architectural rules
-worth knowing (everything goes through the permission module; day bucketing is
-timezone-explicit), and how to add migrations.
+Issues and pull requests are welcome. Please run the gates above before opening a
+PR, and add tests for new behaviour — the permission matrix and the pure-logic
+modules (scoring, date bucketing, progress, settlement math) are all unit-tested and
+should stay that way.
+
+When adding a migration, use `pnpm db:generate` rather than hand-writing SQL, so
+Drizzle's snapshot chain stays consistent.
 
 ## License
 

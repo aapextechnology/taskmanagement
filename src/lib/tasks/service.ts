@@ -20,6 +20,12 @@ import {
 import { logActivity } from "@/lib/activity";
 import { recomputeEventHealth } from "@/lib/events/service";
 import { notify, notifyMany } from "@/lib/notifications";
+import { canSeeTask, canRestrictTask, subjectOf } from "./visibility";
+import {
+  notifyLeadAssigned,
+  notifyMemberAssigned,
+  notifyPriorityUrgent,
+} from "./wa-notify";
 import {
   assertCan,
   can,
@@ -52,9 +58,23 @@ export async function getTaskScoped(actor: Actor, taskId: string) {
     .where(eq(taskAssignees.taskId, taskId));
   const isAssigned = assigneeRows.some((a) => a.userId === actor.id);
 
-  const visible =
-    can(actor, "task.viewDivision", { divisionId: task.divisionId }) ||
-    (isAssigned && can(actor, "task.updateAssigned", { isAssigned }));
+  // Reading follows the cross-division default (Owner 2026-08-11): an
+  // ordinary task opens for anyone internal, a sealed one only for its own
+  // division, leadership, and the people working on it. Editing rights are
+  // unchanged and still come from task.edit / task.updateAssigned.
+  const watcherRows = task.restricted
+    ? await db
+        .select({ userId: taskWatchers.userId })
+        .from(taskWatchers)
+        .where(eq(taskWatchers.taskId, taskId))
+    : [];
+  const visible = canSeeTask(subjectOf(actor), {
+    divisionId: task.divisionId,
+    restricted: task.restricted,
+    leadId: task.leadId,
+    assigneeIds: assigneeRows.map((a) => a.userId),
+    watcherIds: watcherRows.map((w) => w.userId),
+  });
   if (!visible) return null;
 
   return { ...task, assigneeIds: assigneeRows.map((a) => a.userId), isAssigned };
@@ -80,13 +100,52 @@ export async function listBoardTasks(
   eventId: string,
   divisionId: string,
 ) {
-  assertCan(actor, "task.viewDivision", { divisionId });
+  // A board is now readable across divisions (Owner 2026-08-11); the sealed
+  // rows are removed afterwards rather than the whole division being refused.
   const rows = await db
     .select()
     .from(tasks)
     .where(and(eq(tasks.eventId, eventId), eq(tasks.divisionId, divisionId)))
     .orderBy(asc(tasks.dueDate), asc(tasks.createdAt));
-  return withLabels(await withAssignees(rows));
+  return withLabels(await withAssignees(await filterVisible(actor, rows)));
+}
+
+/**
+ * Drops the tasks this person may not see. Applied after the query rather
+ * than inside it because "may see" depends on assignees and watchers, and a
+ * three-way EXISTS in every task query would be far easier to get subtly
+ * wrong than one rule applied in one place.
+ */
+async function filterVisible<
+  T extends { id: string; divisionId: string; restricted: boolean; leadId: string | null },
+>(actor: Actor, rows: T[]): Promise<T[]> {
+  const subject = subjectOf(actor);
+  if (subject.role === "owner" || subject.role === "admin") return rows;
+  const sealed = rows.filter((r) => r.restricted);
+  if (sealed.length === 0) {
+    return rows.filter((r) => canSeeTask(subject, { ...r, assigneeIds: [] }));
+  }
+  const ids = sealed.map((r) => r.id);
+  const [assignees, watchers] = await Promise.all([
+    db
+      .select({ taskId: taskAssignees.taskId, userId: taskAssignees.userId })
+      .from(taskAssignees)
+      .where(and(inArray(taskAssignees.taskId, ids), eq(taskAssignees.userId, actor.id))),
+    db
+      .select({ taskId: taskWatchers.taskId })
+      .from(taskWatchers)
+      .where(and(inArray(taskWatchers.taskId, ids), eq(taskWatchers.userId, actor.id))),
+  ]);
+  const mine = new Set([
+    ...assignees.map((a) => a.taskId),
+    ...watchers.map((w) => w.taskId),
+  ]);
+  return rows.filter((r) =>
+    canSeeTask(subject, {
+      ...r,
+      assigneeIds: mine.has(r.id) ? [actor.id] : [],
+    }),
+  );
 }
 
 async function withLabels<T extends { id: string }>(rows: T[]) {
@@ -127,27 +186,23 @@ export async function listEventTasks(
   eventId: string,
   filters: ListFilters = {},
 ) {
-  // visible divisions: owner/admin see all; members see their divisions
-  const visibleDivisions =
-    actor.role === "owner" || actor.role === "admin"
-      ? null
-      : actor.memberships.map((m) => m.divisionId);
-  if (visibleDivisions !== null && visibleDivisions.length === 0) return [];
-
+  // Tasks are visible across divisions by default now; only the sealed ones
+  // are withheld, and that is decided per row below.
   const conditions = [eq(tasks.eventId, eventId)];
-  if (visibleDivisions) conditions.push(inArray(tasks.divisionId, visibleDivisions));
   if (filters.divisionId) {
-    assertCan(actor, "task.viewDivision", { divisionId: filters.divisionId });
     conditions.push(eq(tasks.divisionId, filters.divisionId));
   }
   if (filters.status) conditions.push(eq(tasks.status, filters.status));
   if (filters.priority) conditions.push(eq(tasks.priority, filters.priority));
 
-  let rows = await db
-    .select()
-    .from(tasks)
-    .where(and(...conditions))
-    .orderBy(asc(tasks.dueDate), asc(tasks.createdAt));
+  let rows = await filterVisible(
+    actor,
+    await db
+      .select()
+      .from(tasks)
+      .where(and(...conditions))
+      .orderBy(asc(tasks.dueDate), asc(tasks.createdAt)),
+  );
 
   if (filters.assigneeId) {
     const assigned = await db
@@ -208,9 +263,16 @@ export async function createTask(
     assigneeIds?: string[];
     labelIds?: string[];
     newLabel?: { name: string; color: string };
+    /** hide from other divisions — head of that division, or leadership */
+    restricted?: boolean;
   },
 ) {
   assertCan(actor, "task.create", { divisionId: input.divisionId });
+  if (input.restricted && !canRestrictTask(subjectOf(actor), input.divisionId)) {
+    // staff cannot hide their own work from the rest of the event; sealing is
+    // a management decision, so it belongs to the division's head
+    throw new PermissionError("task.create");
+  }
   const [task] = await db
     .insert(tasks)
     .values({
@@ -223,17 +285,13 @@ export async function createTask(
       dueDate: input.dueDate ?? null,
       recurrence: input.recurrence ?? "none",
       leadId: input.leadId ?? null,
+      restricted: input.restricted ?? false,
       createdBy: actor.id,
     })
     .returning();
 
   if (input.leadId && input.leadId !== actor.id) {
-    await notify({
-      userId: input.leadId,
-      type: "assigned",
-      title: "You are the lead (PIC) of a new task",
-      href: `/tasks/${task.id}`,
-    });
+    await notifyLeadAssigned(task.id, input.leadId);
   }
 
   for (const userId of input.assigneeIds ?? []) {
@@ -296,6 +354,11 @@ export async function updateTaskFields(
     detail: { fields: Object.keys(fields) },
     eventId: task.eventId,
   });
+  // a human raising a task to urgent pings its PIC on WhatsApp (T-151);
+  // only on the transition, so re-saving an already-urgent task is silent
+  if (fields.priority === "urgent" && task.priority !== "urgent") {
+    await notifyPriorityUrgent(taskId, { kind: "manual", actorId: actor.id });
+  }
   await recomputeEventHealth(task.eventId);
   // due-date edits shift the overdue input of the bottleneck rule
   if (fields.dueDate !== undefined || fields.priority !== undefined) {
@@ -408,12 +471,7 @@ export async function setTaskLead(
     .set({ leadId: userId, updatedAt: new Date() })
     .where(eq(tasks.id, taskId));
   if (userId && userId !== actor.id) {
-    await notify({
-      userId,
-      type: "assigned",
-      title: "You are now the lead (PIC) of a task",
-      href: `/tasks/${taskId}`,
-    });
+    await notifyLeadAssigned(taskId, userId);
   }
   await logActivity({
     actorId: actor.id,
@@ -437,12 +495,7 @@ export async function assignUser(
     .values({ taskId, userId })
     .onConflictDoNothing();
   if (userId !== actor.id) {
-    await notify({
-      userId,
-      type: "assigned",
-      title: "You were assigned a task",
-      href: `/tasks/${taskId}`,
-    });
+    await notifyMemberAssigned(taskId, userId);
   }
   await logActivity({
     actorId: actor.id,

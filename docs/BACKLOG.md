@@ -1,4 +1,4 @@
-# Backstage — Roadmap & Backlog
+# RVC Backstage — Roadmap & Backlog
 
 > A prioritized **seed list** of work, grouped by phase/epic. Sits last in the
 > source-of-truth order: the backlog is *seeds only*. An item is "real" once it becomes
@@ -17,7 +17,7 @@
 - [ ] **P0** (Infra) Next.js + Tailwind + shadcn/ui scaffold, repo layout, lint/test scripts
 - [ ] **P0** (Infra) Docker Compose (app + Postgres + nginx), `.env.example`, health endpoint
 - [ ] **P0** (Backend) Drizzle ORM + migrations + validated env loader
-- [ ] **P0** (Frontend) Acme monochrome theme tokens (dark default), app shell, countdown component
+- [ ] **P0** (Frontend) RVC monochrome theme tokens (dark default), app shell, countdown component
 - [ ] **P1** (Infra) CI on PR + develop; gates wired to real commands
 
 ## Phase 1 · Auth, Org & Permissions _(EPIC-001)_

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { CommandPalette } from "@/components/command-palette";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { auth, signOut } from "@/lib/auth";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { listActiveEvents } from "@/lib/events/service";
+import { eventColorClass } from "@/lib/events/colors";
 import { getBranding } from "@/lib/org/branding";
 import { can } from "@/lib/permissions";
 
@@ -21,6 +23,21 @@ export async function AppShell({ children }: { children: ReactNode }) {
   const actor = session?.user?.id ? await sessionActor() : null;
 
   const branding = await getBranding();
+
+  // the session carries id+role only; the avatar lives on the profile row
+  const avatarPath = actor
+    ? await (async () => {
+        const { db } = await import("@/db");
+        const { profiles } = await import("@/db/schema");
+        const { eq } = await import("drizzle-orm");
+        const [row] = await db
+          .select({ avatarPath: profiles.avatarPath })
+          .from(profiles)
+          .where(eq(profiles.id, actor.id))
+          .limit(1);
+        return row?.avatarPath ?? null;
+      })()
+    : null;
 
   const timelineCounts = actor
     ? await (async () => {
@@ -40,9 +57,18 @@ export async function AppShell({ children }: { children: ReactNode }) {
       badge: timelineCounts.timeline + timelineCounts.mentions,
     },
     { href: "/approvals", label: "Approvals", icon: "approvals" },
+    ...(actor && can(actor, "page.use")
+      ? [{ href: "/pages", label: "Pages", icon: "pages" as const }]
+      : []),
     { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
     ...(actor && can(actor, "ai.assistant")
-      ? [{ href: "/assistant", label: "AI Assistant", icon: "assistant" as const }]
+      ? [
+          {
+            href: "/assistant",
+            label: branding.assistantName,
+            icon: "assistant" as const,
+          },
+        ]
       : []),
     ...(actor && can(actor, "org.manage")
       ? [{ href: "/admin", label: "Admin", icon: "admin" as const }]
@@ -56,6 +82,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
           id: e.id,
           name: e.name,
           health: e.health,
+          swatch: eventColorClass(e.id, e.color),
         }))
       : [];
 
@@ -81,6 +108,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
                   href={`/events/${event.id}`}
                   name={event.name}
                   health={event.health}
+                  swatch={event.swatch}
                 />
               ))}
             </div>
@@ -88,7 +116,17 @@ export async function AppShell({ children }: { children: ReactNode }) {
         </div>
         {session?.user ? (
           <div className="flex items-center gap-2 border-t p-3">
-            <UserAvatar name={session.user.name ?? "?"} className="size-7 text-[10px]" />
+            {/* the block itself opens the profile; Out stays its own button */}
+            <Link
+              href="/profile"
+              className="flex min-w-0 flex-1 items-center gap-2 rounded-md p-1 -m-1 transition-colors hover:bg-accent/40"
+              title="Your profile"
+            >
+            <UserAvatar
+              name={session.user.name ?? "?"}
+              src={avatarPath}
+              className="size-7 text-[10px]"
+            />
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="truncate text-xs font-medium">
                 {session.user.name}
@@ -97,6 +135,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
                 {session.user.role}
               </span>
             </div>
+            </Link>
             <form
               action={async () => {
                 "use server";
@@ -121,7 +160,11 @@ export async function AppShell({ children }: { children: ReactNode }) {
     <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur sm:px-6 print:hidden">
       <div className="flex items-center gap-2">
         <MobileNav
-          items={items}
+          // mobile has no sidebar user block, so Profile rides the menu there
+          items={[
+            ...items,
+            { href: "/profile", label: "Profile", icon: "profile" as const },
+          ]}
           events={events}
           orgShortName={branding.orgShortName}
           productName={branding.productName}

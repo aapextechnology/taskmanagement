@@ -1,5 +1,6 @@
 import { and, eq, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { scopeCondition, visibleEventIds } from "@/lib/events/visibility";
 import {
   divisions,
   documents,
@@ -37,6 +38,8 @@ export async function globalSearch(
 ): Promise<SearchResults> {
   const query = rawQuery.trim();
   if (!canSearch(actor) || query.length < 2) return EMPTY;
+  // search must not become the back door to events the reader cannot open
+  const eventScope = await visibleEventIds(actor);
 
   const pattern = `%${query.replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
   const scope = visibleDivisionsFor(actor);
@@ -50,6 +53,7 @@ export async function globalSearch(
       .where(
         and(
           isNull(events.archivedAt),
+          scopeCondition(eventScope, events.id),
           or(
             ilike(events.name, pattern),
             ilike(events.artists, pattern),

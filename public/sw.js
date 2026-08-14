@@ -7,7 +7,7 @@
 // cached; navigations are always network-first and fall back to a static
 // "you're offline" page.
 
-const VERSION = "backstage-v1";
+const VERSION = "rvc-backstage-v1";
 const STATIC_CACHE = `${VERSION}-static`;
 const OFFLINE_URL = "/offline";
 

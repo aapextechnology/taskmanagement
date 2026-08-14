@@ -1,4 +1,7 @@
 import {
+  numeric,
+  jsonb,
+  index,
   bigint,
   integer,
   pgTable,
@@ -60,4 +63,44 @@ export const ticketSalesSnapshots = pgTable(
       .defaultNow(),
   },
   (t) => [uniqueIndex("ticket_snapshots_event_day_idx").on(t.eventId, t.day)],
+);
+
+/**
+ * Tessera transactions, stored AS IS (Owner 2026-08-13). The typed columns
+ * cover what the UI shows; `raw` keeps the entire row exactly as Tessera
+ * sent it, so nothing they add later is lost before we learn to read it.
+ * Money is numeric-as-string: their fees carry decimals ("30071.43") and a
+ * float would corrupt them.
+ */
+export const tesseraTransactions = pgTable(
+  "tessera_transactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    /** Tessera's own row id — the upsert key, so re-syncs never duplicate */
+    tesseraId: text("tessera_id").notNull(),
+    orderId: text("order_id"),
+    buyerEmail: text("buyer_email"),
+    buyerName: text("buyer_name"),
+    category: text("category"),
+    status: text("status"),
+    promoCode: text("promo_code"),
+    currency: text("currency"),
+    purchasedAt: timestamp("purchased_at", { withTimezone: true }),
+    ticketPrice: numeric("ticket_price", { precision: 14, scale: 2 }),
+    grossSales: numeric("gross_sales", { precision: 14, scale: 2 }),
+    totalFees: numeric("total_fees", { precision: 14, scale: 2 }),
+    netSales: numeric("net_sales", { precision: 14, scale: 2 }),
+    discountAmount: numeric("discount_amount", { precision: 14, scale: 2 }),
+    refundedAmount: numeric("refunded_amount", { precision: 14, scale: 2 }),
+    vat: numeric("vat", { precision: 14, scale: 2 }),
+    raw: jsonb("raw").notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("tessera_tx_event_tessera_idx").on(t.eventId, t.tesseraId),
+    index("tessera_tx_event_idx").on(t.eventId),
+  ],
 );

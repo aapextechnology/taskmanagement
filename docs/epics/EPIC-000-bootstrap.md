@@ -12,8 +12,8 @@ tasks: ../product/ENGINEERING-TASKS.md (T-001 … T-006)
 
 ## Goal
 
-Stand up the Backstage foundation — Next.js app scaffold, self-hosted Postgres via
-Docker Compose, Drizzle migrations, the Acme monochrome theme system, CI, and working
+Stand up the RVC Backstage foundation — Next.js app scaffold, self-hosted Postgres via
+Docker Compose, Drizzle migrations, the RVC monochrome theme system, CI, and working
 gates — so that every feature epic ships against one stack with consistent quality checks.
 
 ## User Stories (Developer / Platform)
@@ -22,7 +22,7 @@ gates — so that every feature epic ships against one stack with consistent qua
 - **US-PLAT-2** — As a developer, I want one-command local infra (app + Postgres + nginx via Docker Compose), so that I can run the stack instantly.
 - **US-PLAT-3** — As a developer, I want CI on every PR (lint + typecheck + build + test), so that broken code can't merge.
 - **US-PLAT-4** — As a developer, I want validated env loading + `.env.example`, so that misconfiguration fails fast at boot.
-- **US-PLAT-5** — As a designer/developer, I want the Acme design language as theme tokens (dark default), so that every screen is on-brand from its first commit.
+- **US-PLAT-5** — As a designer/developer, I want the RVC design language as theme tokens (dark default), so that every screen is on-brand from its first commit.
 
 ## Tasks
 
@@ -38,9 +38,9 @@ gates — so that every feature epic ships against one stack with consistent qua
 
 - [x] **T-003** Drizzle ORM + migration pipeline (`drizzle-kit`) + seed script skeleton; validated env loader — boot fails fast with a clear error when a required var is missing.
 
-### Acme theme foundation
+### RVC theme foundation
 
-- [x] **T-004** Design tokens from the Acme design language (monochrome, dark default + light), typography scale, ↗ motif link/action components, app shell (nav + page frame). No hardcoded colors outside tokens.
+- [x] **T-004** Design tokens from the RVC design language (monochrome, dark default + light), typography scale, ↗ motif link/action components, app shell (nav + page frame). No hardcoded colors outside tokens.
 
 ### CI pipeline
 
@@ -82,7 +82,7 @@ gates — so that every feature epic ships against one stack with consistent qua
   recorded entries #1/#20 before writing). Pure INSERT: no DDL, no data
   touched — events/tasks/users/ai_chats counts unchanged (5/61/14/4), all
   live pages still 200, `drizzle-kit migrate` now exits 0. Backup taken
-  first (`~/backup-*.sql`). Separately verified a truly
+  first (`~/rvc-backup-2026-08-09-*.sql`). Separately verified a truly
   blank database migrates to an identical 38-table schema and seeds
   cleanly — the install path works for outside users.
 

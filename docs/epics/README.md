@@ -1,4 +1,4 @@
-# Backstage — Epics
+# RVC Backstage — Epics
 
 > **Canonical status registry.** This file + each `EPIC-XXX-*.md` frontmatter are
 > the *live state of work* — first in the source-of-truth order (see
@@ -26,6 +26,12 @@
 | [EPIC-012](EPIC-012-dependency-bottlenecks.md) | Phase 4 | Dependency Bottlenecks & External Waits | P1 | ready-for-qa |
 | [EPIC-013](EPIC-013-event-pages.md) | Phase 4 | Event Pages (Mini-Wiki) | P2 | ready-for-qa |
 | [EPIC-014](EPIC-014-ai-assistant.md) | Phase 4 | AI Assistant (Predictive Chat) | P1 | ready-for-qa |
+| [EPIC-015](EPIC-015-whatsapp-gateway.md) | Phase 4 | WhatsApp Gateway (Baileys) | P1 | ready-for-qa |
+| [EPIC-016](EPIC-016-assistant-upgrade.md) | Phase 4 | Assistant upgrade — Pages, attachments, vision, save-to-page | P1 | ready-for-qa |
+| [EPIC-017](EPIC-017-dataroom-core.md) | Phase 4 | Dataroom core — per-event files, quota, sealed folders, access log | P1 | ready-for-qa |
+| [EPIC-018](EPIC-018-dataroom-share-links.md) | Phase 4 | Dataroom share links for people outside the system | P1 | ready-for-qa |
+| [EPIC-019](EPIC-019-dataroom-watermark.md) | Phase 4 | Per-recipient watermarking (PDF + images) | P2 | ready-for-qa |
+| [EPIC-021](EPIC-021-event-visibility.md) | Phase 4 | Event visibility follows involvement | P0 | ready-for-qa |
 
 **Definition of MVP:** completion of **EPIC-000 → EPIC-003** (Phase 0 + Phase 1 — a division can run its event work end-to-end).
 

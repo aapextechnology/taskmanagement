@@ -1,5 +1,5 @@
 // Generates the PWA icon set (T-103) as 8-bit grayscale PNGs — no image
-// dependency, just zlib. The mark is a 5x7 bitmap lockup
+// dependency, just zlib. The mark is the RVC lockup reduced to a 5x7 bitmap
 // so it stays legible at 192px and matches the monochrome theme.
 //
 // Regenerate with:  node scripts/generate-icons.mjs
@@ -61,7 +61,7 @@ function encodePng(size, pixels) {
 }
 
 /**
- * Black canvas with the white wordmark centred.
+ * Black canvas with the white "RVC" mark centred.
  * `coverage` is the fraction of the canvas width the lockup may occupy —
  * maskable icons need to stay inside the 80% safe zone, so they use less.
  */

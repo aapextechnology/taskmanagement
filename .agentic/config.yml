@@ -1,0 +1,94 @@
+# .agentic/config.yml — per-project Agentic Workflow Kit manifest
+# ---------------------------------------------------------------------------
+# Single source of truth for everything that used to be hardcoded in scripts,
+# hooks, agents, and commands. Generic kit tooling READS this file (with
+# auto-detect fallbacks) so the same scripts work in every repo.
+#
+# This file is GIT-TRACKED. Machine-specific overrides go in
+# `.agentic/config.local.yml` (gitignored) and are deep-merged on top.
+# Any field left blank falls back to auto-detection at runtime.
+# ---------------------------------------------------------------------------
+
+project:
+  name: rvc-backstage              # short slug; used as the memory namespace root
+  repo: ""                          # no remote yet — auto-detected once origin exists
+  type: single-app
+
+package_manager: pnpm
+
+monorepo:
+  tool: none
+  workspaces: []
+
+branches:
+  integration: develop              # PRs target this
+  primary: main                     # production-tracking branch
+
+# Local DEV deploy (never production). Used by the deploy gate + smoke test.
+deploy:
+  dev_command: scripts/deploy-dev.sh          # wraps `docker compose up -d --build --wait` (EPIC-000)
+  health_url: http://localhost:3000/api/health
+  smoke_user: owner@rawvision.demo            # seeded Owner login used by smoke E2E
+
+# Foundation files agents must NOT modify without an explicit reviewed task.
+protected_paths:
+  - src/lib/permissions/**          # central authorization module — the security core
+  - src/lib/auth/**                 # Auth.js wiring (staff credentials + guest magic link)
+  - src/db/schema/**                # Drizzle schema — changes need a reviewed migration task
+  - src/components/ui/**            # shadcn/ui base restyled to RVC monochrome
+
+conventions:
+  page_pattern: "src/app/(app)/**/page.tsx"
+  shared_types: "src/lib/types"
+  notes: "UI language is English. RVC monochrome design language (dark default). ALL data access goes through the central permission module (src/lib/permissions) — never raw role checks in components."
+
+# Scoping fields the review + security agents must verify on every query.
+# Not SaaS multi-tenant, but division/event scoping is the product's core
+# security model — treat it with the same rigor.
+tenant:
+  scope_fields: [eventId, divisionId]
+
+guardrail:
+  override_env: AGENTIC_OVERRIDE
+
+gates:
+  qa: scripts/qa.sh
+  test: scripts/test.sh
+  security: scripts/security-check.sh
+
+# Loop engineering control plane — disabled until a human picks pattern/budget
+# and `bash scripts/loop-readiness.sh` passes.
+loop:
+  enabled: false
+  pattern: daily-triage
+  level: L1
+  mode: report-only
+  cadence: manual
+  state_file: docs/LOOP-STATE.md
+  run_log: docs/LOOP-RUN-LOG.md
+  ledger: .agentic/loop-ledger.tsv
+  constraints_file: .agentic/loop-constraints.md
+  kill_switch: .agentic/loop.pause
+  max_attempts_per_item: 3
+  max_runs_per_day: 1
+  token_budget_per_day: 100000
+  max_subagents_per_run: 0
+  worktree_required: true
+  verifier_required: true
+  human_gate: required
+
+memory:
+  enabled: true
+  namespace: rvc-backstage
+  warm_start: true
+  top_k: 8
+
+docs:
+  root: docs
+  prd: docs/product/PRD.md
+  stories: docs/product/USER-STORIES.md
+  acceptance: docs/product/ACCEPTANCE-CRITERIA.md
+  tasks: docs/product/ENGINEERING-TASKS.md
+  backlog: docs/BACKLOG.md
+  epics: docs/epics
+  definition_of_done: docs/DEFINITION-OF-DONE.md

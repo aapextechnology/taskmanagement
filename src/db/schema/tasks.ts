@@ -52,6 +52,13 @@ export const tasks = pgTable("tasks", {
   description: text("description").notNull().default(""),
   status: taskStatusEnum("status").notNull().default("todo"),
   priority: taskPriorityEnum("priority").notNull().default("medium"),
+  /**
+   * Locked to its own division (Owner 2026-08-11). Tasks are visible across
+   * divisions by default — a shared event needs a shared picture — and a
+   * division head can seal an individual one at creation. Owner/Admin still
+   * see it, as do the people actually working on it whatever their division.
+   */
+  restricted: boolean("restricted").notNull().default(false),
   startDate: timestamp("start_date", { withTimezone: true }),
   dueDate: timestamp("due_date", { withTimezone: true }),
   recurrence: taskRecurrenceEnum("recurrence").notNull().default("none"),

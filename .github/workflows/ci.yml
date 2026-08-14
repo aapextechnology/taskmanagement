@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [develop, main]
 
 jobs:
   checks:
@@ -30,12 +30,5 @@ jobs:
       - name: Test
         run: pnpm test
 
-      # Next collects page data at build time, which imports modules that read
-      # the validated env. Nothing connects to a database during the build —
-      # these are placeholders purely to satisfy validation (same approach as
-      # the Dockerfile's build stage).
       - name: Build
         run: pnpm build
-        env:
-          DATABASE_URL: postgres://build:build@localhost:5432/build
-          AUTH_SECRET: ci-build-placeholder-secret-32ch

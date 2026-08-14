@@ -1,4 +1,4 @@
-# Backstage — Definition of Done
+# RVC Backstage — Definition of Done
 
 > The single, cross-project bar every task clears before it counts as **done**.
 > It *wraps* the per-story/-task Acceptance Criteria (`ACCEPTANCE-CRITERIA.md`):

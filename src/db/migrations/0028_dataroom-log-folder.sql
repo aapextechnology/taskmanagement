@@ -1,0 +1,1 @@
+ALTER TABLE "dataroom_access_log" ADD COLUMN "folder_id" uuid;

@@ -7,6 +7,15 @@ export async function register() {
   const { recomputeAllEventHealth } = await import("@/lib/events/service");
   const { sweepDueNotifications } = await import("@/lib/tasks/service");
 
+  // WhatsApp gateway (EPIC-015): re-link silently if a previous pairing left
+  // credentials on the volume, so a redeploy doesn't require a new QR scan.
+  try {
+    const { resumeIfLinked } = await import("@/lib/whatsapp/session");
+    if (await resumeIfLinked()) console.log("[whatsapp] resuming linked device");
+  } catch (error) {
+    console.error("[whatsapp] resume failed:", error);
+  }
+
   // hourly: due/overdue notifications (deduped) then health sweep;
   // mutations also trigger targeted recomputes
   const { sweepBottlenecks } = await import("@/lib/tasks/dependency-engine");
@@ -20,6 +29,16 @@ export async function register() {
       console.log(
         `[cron] due sweep + health recompute for ${n} events + ${b} bottleneck checks`,
       );
+      // Tessera sales (EPIC: ticketing) — fails soft; expiry notifies admins
+      try {
+        const { syncTesseraSales } = await import("@/lib/tessera/client");
+        const t = await syncTesseraSales();
+        if (t.synced || t.failed) {
+          console.log(`[cron] tessera: ${t.synced} synced, ${t.failed} failed${t.tokenExpired ? " (token expired)" : ""}`);
+        }
+      } catch (error) {
+        console.error("[cron] tessera sync failed:", error);
+      }
     } catch (error) {
       console.error("[cron] sweep failed:", error);
     }

@@ -1,4 +1,4 @@
-# Backstage — Engineering Task Breakdown
+# RVC Backstage — Engineering Task Breakdown
 
 > Companion to `PRD.md` + `USER-STORIES.md`. Decomposes the epics in `docs/epics/`
 > into engineering tasks. Sits 4th in the source-of-truth order: it records *intent*
@@ -17,7 +17,7 @@
 | T-001 | Scaffold Next.js (App Router, TS) + Tailwind + shadcn/ui; repo layout `src/{app,lib,db,components}`; lint/typecheck/test scripts | Infra | M | — | `pnpm build` + `pnpm lint` green from clean clone | — |
 | T-002 | Docker Compose: app + Postgres + nginx; `.env.example`; `/api/health` endpoint; volumes + healthchecks | Infra | M | T-001 | `scripts/deploy-dev.sh` brings stack up; health URL returns 200 | — |
 | T-003 | Drizzle ORM + migration pipeline + seed script skeleton; validated env loader (boot fails fast on missing vars) | BE | M | T-002 | `drizzle-kit` migration applies to local PG; boot fails with clear error when env var missing | — |
-| T-004 | Acme monochrome theme foundation: design tokens (dark default + light), typography scale, ↗ motif components, app shell layout | FE | M | T-001 | Shell renders both themes; tokens documented; no hardcoded colors outside tokens | — |
+| T-004 | RVC monochrome theme foundation: design tokens (dark default + light), typography scale, ↗ motif components, app shell layout | FE | M | T-001 | Shell renders both themes; tokens documented; no hardcoded colors outside tokens | — |
 | T-005 | CI pipeline (lint + typecheck + build + test) on PR + `develop` | Infra | S | T-001 | CI red on an intentionally broken PR; green on clean | — |
 | T-006 | Wire gate scripts to real project commands; countdown-timer shared component | FS | S | T-004 | `scripts/{qa,test,security-check}.sh` run real checks and pass | — |
 
@@ -30,7 +30,7 @@
 | ID | Task | Type | Cx | Depends | Exit | Stories |
 | --- | --- | --- | --- | --- | --- | --- |
 | T-010 | Schema: `profiles`, `divisions`, `division_members` (user+division+role); migration + seed of 11 divisions | BE | S | T-003 | Migration applies; seed idempotent | US-AUTH-2 |
-| T-011 | Auth.js v5 credentials sign-in for staff; session strategy; login page in Acme theme | FS | M | T-010 | Seeded users of all 5 roles can sign in/out; wrong password rejected | US-AUTH-1 |
+| T-011 | Auth.js v5 credentials sign-in for staff; session strategy; login page in RVC theme | FS | M | T-010 | Seeded users of all 5 roles can sign in/out; wrong password rejected | US-AUTH-1 |
 | T-012 | Central permission module `src/lib/permissions`: role×division×event capability checks per PLAN §4 matrix; unit tests per matrix row | BE | L | T-010 | Matrix test suite passes incl. negative cases (cross-division read denied) | US-AUTH-3 |
 | T-013 | Admin UI: users, divisions, memberships, role assignment | FS | M | T-011, T-012 | Admin creates user + assigns Head; Staff cannot open `/admin` | US-AUTH-2 |
 | T-014 | `activity_log` table + write helper; log auth + permission + admin mutations | BE | S | T-010 | Every admin mutation produces a log row (who/what/when) | US-AUTH-4 |

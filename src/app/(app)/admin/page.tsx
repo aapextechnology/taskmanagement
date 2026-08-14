@@ -6,6 +6,9 @@ import { listDivisions, listUsersWithMemberships } from "@/lib/org/service";
 import { can } from "@/lib/permissions";
 import { getBranding } from "@/lib/org/branding";
 import { BrandingForm } from "./branding-form";
+import { WhatsAppGateway } from "./whatsapp-gateway";
+import { TesseraPanel } from "./tessera-panel";
+import { DivisionsCard } from "./divisions-card";
 import { AdminTabs } from "./admin-tabs";
 
 export const metadata: Metadata = { title: "Admin" };
@@ -19,6 +22,27 @@ export default async function AdminPage() {
     listDivisions(),
     getBranding(),
   ]);
+  const divisionStats = await (async () => {
+    const { db } = await import("@/db");
+    const { divisionMembers, tasks } = await import("@/db/schema");
+    const { eq, sql } = await import("drizzle-orm");
+    const members = await db
+      .select({ divisionId: divisionMembers.divisionId, count: sql<number>`count(*)::int` })
+      .from(divisionMembers)
+      .groupBy(divisionMembers.divisionId);
+    const taskRows = await db
+      .select({ divisionId: tasks.divisionId, count: sql<number>`count(*)::int` })
+      .from(tasks)
+      .groupBy(tasks.divisionId);
+    void eq;
+    return {
+      members: new Map(members.map((m) => [m.divisionId, m.count])),
+      tasks: new Map(taskRows.map((t) => [t.divisionId, t.count])),
+    };
+  })();
+
+  const { getTesseraStatus } = await import("@/lib/tessera/client");
+  const tessera = await getTesseraStatus(actor);
 
   return (
     <section className="flex flex-col gap-6">
@@ -29,18 +53,47 @@ export default async function AdminPage() {
             Manage users, divisions, and org-wide settings.
           </p>
         </div>
+        <div className="flex items-center gap-4">
+        <Link
+          href="/admin/storage"
+          className="text-xs font-medium uppercase tracking-wider text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Storage ↗
+        </Link>
         <Link
           href="/admin/audit"
           className="text-xs font-medium uppercase tracking-wider text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
         >
           Audit log ↗
         </Link>
+        </div>
       </div>
 
       <BrandingForm
         orgName={branding.orgName}
         orgShortName={branding.orgShortName}
         productName={branding.productName}
+        assistantName={branding.assistantName}
+      />
+
+      <WhatsAppGateway />
+
+      <TesseraPanel
+        configured={tessera.configured}
+        savedAt={tessera.savedAt}
+        lastOkAt={tessera.lastOkAt}
+        lastError={tessera.lastError}
+        unreadableSample={tessera.unreadableSample}
+        daysLeft={tessera.daysLeft}
+      />
+
+      <DivisionsCard
+        divisions={divisions.map((d) => ({
+          id: d.id,
+          name: d.name,
+          memberCount: divisionStats.members.get(d.id) ?? 0,
+          taskCount: divisionStats.tasks.get(d.id) ?? 0,
+        }))}
       />
 
       <AdminTabs
@@ -50,6 +103,8 @@ export default async function AdminPage() {
           email: u.email,
           role: u.role,
           isActive: u.isActive,
+          phone: u.phone,
+          whatsappNotifications: u.whatsappNotifications,
           memberships: u.memberships.map((m) => ({
             divisionId: m.divisionId,
             role: m.role,

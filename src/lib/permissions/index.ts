@@ -34,6 +34,7 @@ export type Capability =
   | "org.viewCrossDivisionSummary" // Head-level summary of other divisions
   | "event.view" // browse events & open a workspace (any internal user)
   | "event.create"
+  | "event.edit"
   | "event.archive"
   | "event.updatePhase" // advance the lifecycle phase
   | "event.manageDivisions" // which divisions participate in an event
@@ -68,7 +69,10 @@ export type Capability =
   // ticket sales (EPIC-009 T-093)
   | "tickets.record" // daily ticket sales snapshots (Ticketing division)
   // AI assistant (EPIC-014 T-140)
-  | "ai.assistant"; // predictive chat over org data (leadership only)
+  | "ai.assistant" // predictive chat over org data (leadership only)
+  // standalone workspace pages (EPIC-016 T-160)
+  | "page.use"; // reach the Pages module at all — per-page access is
+// row-level and decided by src/lib/pages/access.ts, not by this capability
 
 export interface PermissionContext {
   /** division the action targets (source division for handoffs) */
@@ -128,7 +132,6 @@ export function can(
   switch (capability) {
     // ---- org & events -------------------------------------------------
     case "org.manage":
-    case "event.create":
     case "event.archive":
     case "event.updatePhase":
     case "event.manageDivisions":
@@ -136,6 +139,18 @@ export function can(
     case "audit.view":
     case "org.viewAllDivisions":
       return isOwnerOrAdmin;
+
+    case "event.create":
+    case "event.edit":
+      // Owner 2026-08-12: a division HEAD may open a new event, not only
+      // owner/admin — a "member" global role with a head membership is how
+      // this org models its leads. Editing joined it (Owner 2026-08-13);
+      // archiving and phase control stay above. For edit, the service also
+      // requires the head to actually SEE the event — the capability alone
+      // is not a skeleton key over invisible events.
+      return (
+        isOwnerOrAdmin || actor.memberships.some((m) => m.role === "head")
+      );
 
     case "event.view":
       // every internal user navigates events; externals see only their
@@ -221,6 +236,12 @@ export function can(
       return (
         isOwnerOrAdmin || actor.memberships.some((m) => m.role === "head")
       );
+
+    case "page.use":
+      // any internal user may keep workspace pages; who can see a GIVEN page
+      // is row-level and decided by src/lib/pages/access.ts (private by
+      // default, shared explicitly). Externals never reach the module.
+      return actor.role !== "external";
 
     // ---- documents ------------------------------------------------------
     case "document.view":

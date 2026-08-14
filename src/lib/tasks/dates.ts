@@ -57,3 +57,21 @@ export function nextRecurrenceDate(
       return null;
   }
 }
+
+/** Value for a <input type="datetime-local"> showing this instant in WIB. */
+export function wibInputValue(date: Date): string {
+  return new Date(date.getTime() + WIB_OFFSET_MINUTES * 60_000)
+    .toISOString()
+    .slice(0, 16);
+}
+
+/**
+ * Parses a datetime-local string AS WIB. A bare `new Date(raw)` would read
+ * it in the server's zone — UTC in the container — silently shifting every
+ * show time seven hours.
+ */
+export function parseWibInput(raw: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(raw)) return null;
+  const date = new Date(`${raw.slice(0, 16)}:00+07:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}

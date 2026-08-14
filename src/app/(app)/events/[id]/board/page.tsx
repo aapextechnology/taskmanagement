@@ -6,6 +6,7 @@ import { NewTaskDialog } from "@/components/new-task-dialog";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { getEvent, listEventDivisions } from "@/lib/events/service";
 import { can } from "@/lib/permissions";
+import { canRestrictTask, subjectOf } from "@/lib/tasks/visibility";
 import {
   listBoardTasks,
   listEventTasks,
@@ -76,6 +77,9 @@ export default async function BoardPage({
         </div>
         {createOptions.length > 0 ? (
           <NewTaskDialog
+            canRestrictIn={createOptions
+              .filter((d) => canRestrictTask(subjectOf(actor), d.id))
+              .map((d) => d.id)}
             eventId={id}
             divisions={
               allMode

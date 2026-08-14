@@ -31,7 +31,7 @@ the security core every later epic builds on.
 
 ### Staff authentication
 
-- [x] **T-011** Auth.js v5 credentials provider (email+password), session strategy, sign-out; login page in Acme theme.
+- [x] **T-011** Auth.js v5 credentials provider (email+password), session strategy, sign-out; login page in RVC theme.
 
 ### Central permission module (protected path)
 
@@ -47,7 +47,7 @@ the security core every later epic builds on.
 
 ### Demo seed
 
-- [x] **T-015** `pnpm seed`: demo users for all 5 roles across ≥3 divisions + fixture data for dev/smoke (includes `owner@example.com`).
+- [x] **T-015** `pnpm seed`: demo users for all 5 roles across ≥3 divisions + fixture data for dev/smoke (includes `owner@rawvision.demo`).
 
 ## Acceptance Criteria
 
@@ -72,7 +72,7 @@ the security core every later epic builds on.
 
 ## Automation Log
 
-- 2026-08-06 **QA fix: browser login + public URL** — user-reported login failure was nginx forwarding `Host` without the port (Next server-action origin check → "Invalid Server Actions request"); fixed with `$http_host` + `X-Forwarded-Host`. App now exposed at **https://your-domain.example** via the existing Cloudflare Tunnel (DNS CNAME + ingress rule → localhost:3000). Next standalone reports its bind address as request host, so compose sets canonical `AUTH_URL=https://your-domain.example/api/auth` (overridable via env). Verified: login on the subdomain → correct redirect, session, `/admin` 200, `__Secure-` cookies.
+- 2026-08-06 **QA fix: browser login + public URL** — user-reported login failure was nginx forwarding `Host` without the port (Next server-action origin check → "Invalid Server Actions request"); fixed with `$http_host` + `X-Forwarded-Host`. App now exposed at **https://rvc.reddie.id** via the existing Cloudflare Tunnel (DNS CNAME + ingress rule → localhost:3000). Next standalone reports its bind address as request host, so compose sets canonical `AUTH_URL=https://rvc.reddie.id/api/auth` (overridable via env). Verified: login on the subdomain → correct redirect, session, `/admin` 200, `__Secure-` cookies.
 
 - 2026-08-06 **T-013 + T-014 done — EPIC COMPLETE → ready-for-qa** — `/admin` (users table, create user, assign/remove membership, activate/deactivate) with every mutation through `src/lib/org/service.ts` (assertCan + logActivity); `activity_log` table + `logActivity` helper; `auth.signin` events logged. Verified on the DEPLOYED stack (nginx :3000): owner login → session role owner → `/admin` 200; staff → 307 redirect; audit rows present. Docker gotcha: `next build` page-data collection imports env-reading modules — build stage needs placeholder `DATABASE_URL`/`AUTH_SECRET` (postgres.js never connects at build; real values from compose at runtime). **Human QA notes:** exercise the admin forms in a browser; consider forcing password reset flow later (not in scope v1).
 - 2026-08-06 **T-012 done** — central permission module: 39-test matrix suite green (incl. all negative cases). Key rules encoded: Admin has NO approval powers; final approval Owner-only; Finance members see all budgets, Heads own-division only, non-finance staff none; externals hard-whitelisted to assigned-task updates + form submit.

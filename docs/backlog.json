@@ -1,5 +1,5 @@
 {
-  "project": "Backstage Roadmap",
+  "project": "RVC Backstage Roadmap",
   "repo": "",
   "fields": {
     "Status": [
@@ -68,7 +68,7 @@
           "body": "Migration pipeline, seed skeleton, fail-fast env (T-003)"
         },
         {
-          "title": "Acme monochrome theme foundation",
+          "title": "RVC monochrome theme foundation",
           "area": "Frontend",
           "priority": "P0",
           "body": "Tokens dark/light, app shell, countdown component (T-004, T-006)"

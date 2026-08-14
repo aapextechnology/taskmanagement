@@ -1,4 +1,4 @@
-# Backstage — Docker stack: nginx (host :3000) → app → postgres.
+# RVC Backstage — DEV stack: nginx (host :3000) → app → postgres.
 # Brought up by scripts/deploy-dev.sh; never used for production by automation.
 
 services:
@@ -6,27 +6,26 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: backstage
-      POSTGRES_PASSWORD: change_me_in_production
-      POSTGRES_DB: backstage
+      POSTGRES_USER: rvc
+      POSTGRES_PASSWORD: rvc_dev_password
+      POSTGRES_DB: rvc_backstage
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U backstage -d backstage"]
+      test: ["CMD-SHELL", "pg_isready -U rvc -d rvc_backstage"]
       interval: 5s
       timeout: 3s
       retries: 10
     ports:
-      # host port for local `pnpm dev` + drizzle-kit; override with DB_PORT
-      - "127.0.0.1:${DB_PORT:-5432}:5432"
+      - "5438:5432" # host 5438 (5432-5437 taken on this server) for local `pnpm dev` + drizzle-kit
 
   # dev email catcher — UI at http://localhost:8025 (T-062)
   mailpit:
     image: axllent/mailpit:latest
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025" # web UI
-      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025" # SMTP for local `pnpm dev` (in-network uses mailpit:1025)
+      - "127.0.0.1:8025:8025" # web UI
+      - "127.0.0.1:1025:1025" # SMTP for local `pnpm dev` (in-network uses mailpit:1025)
 
   # one-shot schema migration — runs to completion before the app starts, so
   # a fresh `docker compose up` on an empty database Just Works. Uses the
@@ -38,7 +37,7 @@ services:
     command: pnpm db:migrate
     restart: "no"
     environment:
-      DATABASE_URL: postgres://backstage:change_me_in_production@db:5432/backstage
+      DATABASE_URL: postgres://rvc:rvc_dev_password@db:5432/rvc_backstage
       AUTH_SECRET: migrate-step-placeholder-secret32
     depends_on:
       db:
@@ -48,7 +47,7 @@ services:
     build: .
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://backstage:change_me_in_production@db:5432/backstage
+      DATABASE_URL: postgres://rvc:rvc_dev_password@db:5432/rvc_backstage
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       # Public URL. Next standalone reports its bind address (0.0.0.0:3000)
@@ -60,12 +59,22 @@ services:
       # CHANGE THIS before exposing the app: openssl rand -base64 32
       AUTH_SECRET: ${AUTH_SECRET:-dev-only-secret-change-me}
       UPLOADS_DIR: /data/uploads
+      # Dataroom (EPIC-017) lives on the 3.6 TB spinning disk, deliberately
+      # apart from uploads: large archived documents do not belong next to
+      # avatars, posters and the WhatsApp session on NVMe, and no dataroom
+      # cleanup may ever reach that volume.
+      DATAROOM_DIR: /data/dataroom
+      # WhatsApp gateway: linked-device credentials live on the uploads
+      # volume so a redeploy never forces a re-scan of the QR
+      WHATSAPP_SESSION_DIR: ${WHATSAPP_SESSION_DIR:-/data/uploads/whatsapp-session}
+      WHATSAPP_COUNTRY_CODE: ${WHATSAPP_COUNTRY_CODE:-62}
       # AI assistant (EPIC-014) — interpolated from the host .env, never
       # hardcoded here
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.6}
     volumes:
       - uploads:/data/uploads
+      - dataroom:/data/dataroom
     depends_on:
       db:
         condition: service_healthy
@@ -82,7 +91,7 @@ services:
     image: nginx:1.27-alpine
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-3000}:80"
+      - "3000:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
@@ -92,3 +101,12 @@ services:
 volumes:
   db_data:
   uploads:
+  # Bound to the second 3.6 TB disk. hdd1 already hosts cdn/websites for other
+  # projects and would compete for space; hdd2 held nothing but an unused,
+  # empty Nextcloud directory.
+  dataroom:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATAROOM_DEVICE:-/mnt/hdd2/rvc-dataroom}

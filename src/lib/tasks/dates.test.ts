@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bucketForDue, nextRecurrenceDate } from "./dates";
+import { bucketForDue, nextRecurrenceDate, parseWibInput, wibInputValue } from "./dates";
 
 // Wed 2026-08-05 17:00 UTC = Thu 2026-08-06 00:00 WIB... use a clear anchor:
 // now = 2026-08-06 03:00 UTC = 2026-08-06 10:00 WIB (Thursday)
@@ -57,5 +57,26 @@ describe("nextRecurrenceDate", () => {
 
   it("none → null", () => {
     expect(nextRecurrenceDate(base, "none")).toBeNull();
+  });
+});
+
+describe("datetime-local ⇄ WIB", () => {
+  it("round-trips across the UTC midnight boundary (straddles 17:00Z)", () => {
+    // 20:00 WIB on the 15th is 13:00Z; 02:00 WIB on the 16th is 19:00Z on the 15th
+    for (const raw of ["2026-08-15T20:00", "2026-08-16T02:00"]) {
+      const parsed = parseWibInput(raw)!;
+      expect(wibInputValue(parsed)).toBe(raw);
+    }
+  });
+
+  it("parses AS WIB, not server-zone", () => {
+    expect(parseWibInput("2026-08-15T19:00")!.toISOString()).toBe(
+      "2026-08-15T12:00:00.000Z",
+    );
+  });
+
+  it("refuses garbage", () => {
+    expect(parseWibInput("")).toBeNull();
+    expect(parseWibInput("not-a-date")).toBeNull();
   });
 });

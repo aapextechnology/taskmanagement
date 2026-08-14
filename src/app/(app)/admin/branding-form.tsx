@@ -12,10 +12,12 @@ export function BrandingForm({
   orgName,
   orgShortName,
   productName,
+  assistantName,
 }: {
   orgName: string;
   orgShortName: string;
   productName: string;
+  assistantName: string;
 }) {
   const [state, formAction, pending] = useActionState<{ error?: string }, FormData>(
     updateBrandingAction,
@@ -68,6 +70,20 @@ export function BrandingForm({
             defaultValue={productName}
             placeholder="Backstage"
           />
+        </div>
+        <div className="flex flex-col gap-1.5 sm:col-span-3">
+          <Label htmlFor="br-assistant" className="text-xs">
+            AI assistant name
+          </Label>
+          <Input
+            id="br-assistant"
+            name="assistantName"
+            defaultValue={assistantName}
+            placeholder="AI Assistant"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            What the assistant is called in the sidebar and on its own page.
+          </p>
         </div>
       </div>
       {state.error ? (

@@ -176,6 +176,97 @@
       "when": 1786187938517,
       "tag": "0024_ai-conversations",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1786340431618,
+      "tag": "0025_standalone-pages",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1786344118252,
+      "tag": "0026_ai-attachments",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1786411651031,
+      "tag": "0027_dataroom",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1786414824062,
+      "tag": "0028_dataroom-log-folder",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1786416140568,
+      "tag": "0029_dataroom-share-links",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1786423054802,
+      "tag": "0030_share-watermark",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1786499832022,
+      "tag": "0031_task-restricted",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1786507301548,
+      "tag": "0032_profile-avatar",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1786522346043,
+      "tag": "0033_event-color",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1786540369226,
+      "tag": "0034_share-audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1786541859689,
+      "tag": "0035_tessera-event-id",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1786551278582,
+      "tag": "0036_tessera-transactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1786606404234,
+      "tag": "0037_event-people",
+      "breakpoints": true
     }
   ]
 }

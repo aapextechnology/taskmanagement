@@ -7,6 +7,10 @@ import {
   createUser,
   removeMembership,
   setUserActive,
+  setUserContact,
+  createDivision,
+  renameDivision,
+  deleteDivision,
 } from "@/lib/org/service";
 import { getActor } from "@/lib/permissions/actor";
 import { PermissionError } from "@/lib/permissions";
@@ -52,6 +56,7 @@ export async function createUserAction(
         | "member"
         | "external",
       password: String(formData.get("password") ?? "") || undefined,
+      phone: String(formData.get("phone") ?? "") || undefined,
     });
     // optional initial divisions — a user can belong to several
     const divisionIds = formData.getAll("divisionIds").map(String).filter(Boolean);
@@ -61,6 +66,23 @@ export async function createUserAction(
     for (const divisionId of divisionIds) {
       await assignMembership(actor, user.id, divisionId, divisionRole);
     }
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (error) {
+    return asError(error);
+  }
+}
+
+export async function setUserContactAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const actor = await requireActor();
+    await setUserContact(actor, String(formData.get("userId")), {
+      phone: String(formData.get("phone") ?? ""),
+      whatsappNotifications: formData.get("whatsapp") === "on",
+    });
     revalidatePath("/admin");
     return { ok: true };
   } catch (error) {
@@ -122,6 +144,7 @@ export async function updateBrandingAction(
       orgName: String(formData.get("orgName") ?? ""),
       orgShortName: String(formData.get("orgShortName") ?? ""),
       productName: String(formData.get("productName") ?? ""),
+      assistantName: String(formData.get("assistantName") ?? ""),
     });
     // branding shows in the shell on every page
     revalidatePath("/", "layout");
@@ -135,5 +158,52 @@ export async function updateBrandingAction(
             ? error.message
             : "Failed to save branding.",
     };
+  }
+}
+
+export async function createDivisionAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const actor = await requireActor();
+    await createDivision(actor, String(formData.get("name") ?? ""));
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (error) {
+    return asError(error);
+  }
+}
+
+export async function renameDivisionAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const actor = await requireActor();
+    await renameDivision(
+      actor,
+      String(formData.get("divisionId")),
+      String(formData.get("name") ?? ""),
+    );
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (error) {
+    return asError(error);
+  }
+}
+
+export async function deleteDivisionAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const actor = await requireActor();
+    await deleteDivision(actor, String(formData.get("divisionId")));
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (error) {
+    // the guard's message carries the counts; show it as-is
+    return asError(error);
   }
 }

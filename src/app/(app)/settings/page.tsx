@@ -16,6 +16,9 @@ export default async function SettingsPage() {
 
   const [me] = await db
     .select({
+      name: profiles.name,
+      email: profiles.email,
+      passwordHash: profiles.passwordHash,
       emailNotifications: profiles.emailNotifications,
       whatsappNotifications: profiles.whatsappNotifications,
       dailyDigest: profiles.dailyDigest,
@@ -34,7 +37,8 @@ export default async function SettingsPage() {
           Settings
         </h1>
         <p className="text-sm text-muted-foreground">
-          Notifications and digests — all channels are yours to switch.
+          Notifications and digests — your name and password live in your{" "}
+          <a href="/profile" className="underline underline-offset-4">profile</a>.
         </p>
       </div>
       <PreferencesForm

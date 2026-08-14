@@ -1,4 +1,4 @@
-# backstage — Conventions
+# rvc-backstage — Conventions
 
 This file is the stable convention entry point referenced by both `CLAUDE.md` and `AGENTS.md`. All
 values are sourced from `.agentic/config.yml` so the conventions stay in sync with the manifest.
@@ -26,7 +26,7 @@ Agents (especially `code-agent`) must read but not modify these without an expli
   do not redeclare them locally.
 - **Workspaces:** `— (single-app)` (tool: `none`).
 - **Package manager:** `pnpm`.
-- **Notes:** UI language is English; Acme monochrome theme; ALL data access goes through the central permission module (src/lib/permissions)
+- **Notes:** UI language is English; RVC monochrome theme; ALL data access goes through the central permission module (src/lib/permissions)
 - Reuse existing utilities/components before creating local replacements.
 
 ## Tenant Scoping

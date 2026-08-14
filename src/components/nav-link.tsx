@@ -1,10 +1,12 @@
 "use client";
 
 import {
+  CircleUserRound,
   Calendar,
   CalendarRange,
   ChevronRight,
   ClipboardCheck,
+  FileText,
   LayoutDashboard,
   ListChecks,
   MessagesSquare,
@@ -27,7 +29,9 @@ const ICONS: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
   admin: Settings,
   settings: SlidersHorizontal,
+  profile: CircleUserRound,
   assistant: Sparkles,
+  pages: FileText,
 };
 
 export interface NavItem {
@@ -69,7 +73,7 @@ export function NavLink({ item }: { item: NavItem }) {
 
 // event sub-pages, in workspace order (Owner request 2026-08-07: the event
 // entry in the sidebar expands into these — tabs left the event page)
-const EVENT_SUBPAGES = [
+export const EVENT_SUBPAGES = [
   { path: "board", label: "Board" },
   { path: "list", label: "List" },
   { path: "pages", label: "Pages" },
@@ -78,7 +82,10 @@ const EVENT_SUBPAGES = [
   { path: "handoffs", label: "Handoffs" },
   { path: "budget", label: "Budget" },
   { path: "guests", label: "Guests" },
-  { path: "documents", label: "Documents" },
+  // Replaces the old Documents module (EPIC-017): access levels, versioning
+  // and an access log, on the 3.6 TB disk. The `documents` table is left in
+  // place — it holds no rows, and dropping it is not this task's risk to take.
+  { path: "dataroom", label: "Dataroom" },
   { path: "run-of-show", label: "Run of show" },
   { path: "tickets", label: "Tickets" },
 ] as const;
@@ -87,10 +94,13 @@ export function EventNavLink({
   href,
   name,
   health,
+  swatch,
 }: {
   href: string;
   name: string;
   health: "on_track" | "at_risk" | "critical";
+  /** identity colour class from lib/events/colors */
+  swatch: string;
 }) {
   const pathname = usePathname();
   const active = pathname === href || pathname.startsWith(`${href}/`);
@@ -113,16 +123,25 @@ export function EventNavLink({
           href={href}
           className="flex min-w-0 flex-1 items-center gap-2 truncate px-2.5 py-1.5 text-[13px]"
         >
+          {/* identity, not status: this is how you find the event you want */}
           <span
             aria-hidden
-            className={cn(
-              "size-1.5 shrink-0 rounded-full",
-              health === "on_track" && "bg-status-done",
-              health === "at_risk" && "bg-status-in-progress",
-              health === "critical" && "bg-status-blocked",
-            )}
+            className={cn("size-2.5 shrink-0 rounded-[4px]", swatch)}
           />
           <span className="truncate">{name}</span>
+          {/* Health speaks only when there is something to say. A green dot
+              beside every healthy event is decoration, and decoration next to
+              a warning is what makes the warning invisible. */}
+          {health !== "on_track" ? (
+            <span
+              title={health === "critical" ? "Critical" : "At risk"}
+              className={cn(
+                "size-1.5 shrink-0 rounded-full",
+                health === "at_risk" && "bg-status-in-progress",
+                health === "critical" && "bg-status-blocked",
+              )}
+            />
+          ) : null}
         </Link>
         <button
           type="button"

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { Lock } from "lucide-react";
 import { DependencyBadge } from "@/components/dependency-badge";
 import { LabelChip } from "@/components/label-chip";
 import {
@@ -11,6 +12,10 @@ import {
   STATUS_TEXT,
 } from "@/components/task-meta";
 import { NewTaskDialog } from "@/components/new-task-dialog";
+import { canRestrictTask, subjectOf } from "@/lib/tasks/visibility";
+import { StatusDropGroup, TaskDragRow } from "./list-dnd";
+import { GridView } from "./grid-view";
+import { ListViewToggle } from "@/components/list-view-toggle";
 import { sessionActor } from "@/lib/auth/session-actor";
 import { getEvent, listEventDivisions } from "@/lib/events/service";
 import { listDivisions } from "@/lib/org/service";
@@ -56,6 +61,7 @@ export default async function TaskListPage({
   const str = (key: string) =>
     typeof sp[key] === "string" && sp[key] ? (sp[key] as string) : undefined;
 
+  const view = str("view") === "grid" ? "grid" : "list";
   const sort = (str("sort") as SortKey) ?? "due";
   const dir = str("dir") === "desc" ? "desc" : "asc";
   const filters: ListFilters = {
@@ -149,14 +155,22 @@ export default async function TaskListPage({
             Task list
           </h1>
         </div>
-        {createOptions.length > 0 ? (
+        <div className="flex items-center gap-2">
+          {/* outside the create gate: someone who may only read still
+              chooses how they read */}
+          <ListViewToggle basePath={`/events/${id}/list`} active={view} />
+          {createOptions.length > 0 ? (
           <NewTaskDialog
+            canRestrictIn={createOptions
+              .filter((d) => canRestrictTask(subjectOf(actor), d.id))
+              .map((d) => d.id)}
             eventId={id}
             divisions={createOptions}
             defaultDivisionId={filters.divisionId}
             labels={labels}
           />
-        ) : null}
+          ) : null}
+        </div>
       </div>
 
       {/* Plane-style compact toolbar: filters & display behind popovers */}
@@ -185,10 +199,29 @@ export default async function TaskListPage({
         deleteAction={deleteFilterAction}
       />
 
-      {/* status groups, Plane-style */}
+      {view === "grid" ? (
+        <GridView
+          tasks={sorted.map((task) => ({
+            id: task.id,
+            title: task.title,
+            status: task.status,
+            priority: task.priority,
+            dueDate: task.dueDate ? task.dueDate.toISOString() : null,
+            divisionId: task.divisionId,
+            leadId: task.leadId,
+            assignees: task.assignees,
+            canEdit: can(actor, "task.edit", { divisionId: task.divisionId }),
+          }))}
+          divisionName={Object.fromEntries(divisionName)}
+          people={Object.fromEntries(
+            createOptions.map((d) => [d.id, d.members]),
+          )}
+        />
+      ) : (
+      /* status groups, Plane-style */
       <div className="flex flex-col gap-5">
         {groups.map(({ status, items }) => (
-          <div key={status} className="flex flex-col gap-2">
+          <StatusDropGroup key={status} status={status}>
             <div className="flex items-center gap-2.5 px-1">
               <StatusDot status={status} className="size-2.5" />
               <h2 className="text-sm font-semibold">{STATUS_TEXT[status]}</h2>
@@ -203,7 +236,7 @@ export default async function TaskListPage({
             ) : (
               <ul className="flex flex-col divide-y rounded-md border bg-card elev">
                 {items.map((task) => (
-                  <li key={task.id}>
+                  <TaskDragRow key={task.id} taskId={task.id}>
                     <Link
                       href={`/tasks/${task.id}`}
                       className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-accent/50"
@@ -212,6 +245,14 @@ export default async function TaskListPage({
                       <span className="min-w-0 flex-1 truncate font-medium">
                         {task.title}
                       </span>
+                      {task.restricted ? (
+                        // whoever can see this row is entitled to; the mark is
+                        // so its own division knows it is not on show
+                        <Lock
+                          className="size-3.5 shrink-0 text-muted-foreground"
+                          aria-label="Kept inside its division"
+                        />
+                      ) : null}
                       {task.labels.map((label) => (
                         <LabelChip
                           key={label.id}
@@ -231,13 +272,14 @@ export default async function TaskListPage({
                         {task.dueDate ? dt.format(task.dueDate) : "—"}
                       </span>
                     </Link>
-                  </li>
+                  </TaskDragRow>
                 ))}
               </ul>
             )}
-          </div>
+          </StatusDropGroup>
         ))}
       </div>
+      )}
     </section>
   );
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "dataroom_share_links" ADD COLUMN "watermark" boolean DEFAULT false NOT NULL;
