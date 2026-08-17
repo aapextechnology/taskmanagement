@@ -1,10 +1,11 @@
-import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import {
   appSettings,
+  eventTicketChannels,
   events,
-  tesseraTransactions,
   ticketSalesSnapshots,
+  ticketTransactions,
 } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
 import { assertCan, type Actor } from "@/lib/permissions";
@@ -215,10 +216,18 @@ export async function syncTesseraSales(): Promise<SyncResult> {
   const creds = await credentials();
   if (!creds) return { synced: 0, failed: 0, tokenExpired: false };
 
+  // events connected to the TESSERA channel; an event may also carry a
+  // Megatix channel, which its own sync handles independently
   const mapped = await db
-    .select({ id: events.id, tesseraEventId: events.tesseraEventId })
-    .from(events)
-    .where(and(isNotNull(events.tesseraEventId), isNull(events.archivedAt)));
+    .select({
+      id: events.id,
+      tesseraEventId: eventTicketChannels.providerEventId,
+    })
+    .from(eventTicketChannels)
+    .innerJoin(events, eq(events.id, eventTicketChannels.eventId))
+    .where(
+      and(eq(eventTicketChannels.provider, "tessera"), isNull(events.archivedAt)),
+    );
   if (mapped.length === 0) return { synced: 0, failed: 0, tokenExpired: false };
 
   let listRows: TesseraEventRow[] = [];
@@ -286,7 +295,8 @@ export async function syncTesseraSales(): Promise<SyncResult> {
           if (!tx.tesseraId) continue; // no stable key — cannot upsert honestly
           const txValues = {
             eventId: event.id,
-            tesseraId: tx.tesseraId,
+            provider: "tessera",
+            providerTxnId: tx.tesseraId,
             orderId: tx.orderNo,
             buyerEmail: tx.email,
             buyerName: tx.name,
@@ -295,6 +305,8 @@ export async function syncTesseraSales(): Promise<SyncResult> {
             promoCode: tx.promoCode,
             currency: tx.currency,
             purchasedAt: tx.purchasedAt ? new Date(tx.purchasedAt) : null,
+            // Tessera reports one row PER TICKET, so each row is exactly one
+            quantity: 1,
             ticketPrice: tx.ticketPrice,
             grossSales: tx.grossSales,
             totalFees: tx.totalFees,
@@ -306,10 +318,14 @@ export async function syncTesseraSales(): Promise<SyncResult> {
             syncedAt: new Date(),
           };
           await db
-            .insert(tesseraTransactions)
+            .insert(ticketTransactions)
             .values(txValues)
             .onConflictDoUpdate({
-              target: [tesseraTransactions.eventId, tesseraTransactions.tesseraId],
+              target: [
+                ticketTransactions.provider,
+                ticketTransactions.eventId,
+                ticketTransactions.providerTxnId,
+              ],
               set: txValues,
             });
         }
