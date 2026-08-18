@@ -383,49 +383,11 @@ export default async function TicketsPage({
                 );
               })()}
 
-              {/* combined only when both channels actually carry sales, and
-                  only when they agree on a currency — adding IDR to AUD would
-                  produce a number that means nothing */}
-              {connect.channels.filter((c) => c.rows > 0).length > 1 ? (
-                (() => {
-                  const live = connect.channels.filter((c) => c.rows > 0);
-                  const currencies = new Set(live.map((c) => c.currency ?? "IDR"));
-                  const tickets = live.reduce((sum, c) => sum + c.tickets, 0);
-                  return (
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-md border bg-muted/30 px-4 py-3 text-sm">
-                      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                        Both channels
-                      </span>
-                      <span className="font-semibold tabular-nums">
-                        {tickets.toLocaleString("en")} tickets
-                      </span>
-                      {currencies.size === 1 ? (
-                        <>
-                          <span className="font-semibold tabular-nums">
-                            {formatMoney(
-                              live.reduce((sum, c) => sum + c.revenue, 0),
-                              live[0].currency,
-                            )}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            ticket value ·{" "}
-                            {formatMoney(
-                              live.reduce((sum, c) => sum + c.paid, 0),
-                              live[0].currency,
-                            )}{" "}
-                            paid by buyers incl. fees
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">
-                          Revenue not combined — the channels report different
-                          currencies ({[...currencies].join(", ")}).
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()
-              ) : null}
+              {/* No cross-channel total here (Owner 2026-08-17: "dibuat satu
+                  satu saja jangan digabung"). Each tab answers for its own
+                  platform; the event-level daily snapshot still sums them,
+                  because the dashboard, event health and the settlement PDF
+                  each need ONE figure per show. */}
 
               {connect.transactions.length > 0 ? (
                 <div className="flex flex-col gap-2">

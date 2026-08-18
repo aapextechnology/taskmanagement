@@ -133,3 +133,9 @@ stays readable.
   means face value everywhere; "Buyer fees" and "Paid by buyers" sit beside it
   as their own labelled figures. Moodymann: 73 tickets, Rp 27,375,000 ticket
   value, Rp 1,711,270 fees, Rp 29,366,432 paid.
+- 2026-08-17 — Owner: "dibuat satu satu saja jangan digabung antara tessera
+  dan megatix". The cross-channel line is removed from the Tickets page; each
+  tab now answers only for its own platform. The event-level daily snapshot
+  still sums both, because the dashboard, event health and the settlement PDF
+  each need one figure per show — flagged to the Owner rather than changed
+  silently.
