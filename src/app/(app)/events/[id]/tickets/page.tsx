@@ -68,7 +68,10 @@ export default async function TicketsPage({
     providerEventId: string | null;
     presenterId: string | null;
     tickets: number;
+    /** the tickets' face value — what the show earned */
     revenue: number;
+    /** total charged to buyers, face value plus their fees */
+    paid: number;
     fees: number;
     currency: string | null;
     rows: number;
@@ -131,7 +134,11 @@ export default async function TicketsPage({
       .select({
         provider: ticketTransactions.provider,
         tickets: sql<number>`coalesce(sum(quantity), 0)::int`,
-        revenue: sql<number>`coalesce(sum(gross_sales), 0)::float`,
+        // Revenue is the tickets' FACE VALUE, matching the daily snapshot and
+        // Tessera's own KPI. gross_sales is what buyers paid — face value plus
+        // the platform's fee — and is shown beside it, never instead of it.
+        revenue: sql<number>`coalesce(sum(ticket_price), 0)::float`,
+        paid: sql<number>`coalesce(sum(gross_sales), 0)::float`,
         fees: sql<number>`coalesce(sum(total_fees), 0)::float`,
         currency: sql<string | null>`max(currency)`,
         rows: sql<number>`count(*)::int`,
@@ -152,6 +159,7 @@ export default async function TicketsPage({
         presenterId: link?.presenterId ?? null,
         tickets: stats?.tickets ?? 0,
         revenue: stats?.revenue ?? 0,
+        paid: stats?.paid ?? 0,
         fees: stats?.fees ?? 0,
         currency: stats?.currency ?? null,
         rows: stats?.rows ?? 0,
@@ -342,15 +350,25 @@ export default async function TicketsPage({
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {[
                       { label: "Tickets", value: channel.tickets.toLocaleString("en") },
-                      { label: "Revenue", value: formatMoney(channel.revenue, channel.currency) },
-                      { label: "Fees", value: formatMoney(channel.fees, channel.currency) },
                       {
-                        label: tab === "megatix" ? "Orders" : "Rows",
-                        value: channel.rows.toLocaleString("en"),
+                        label: "Revenue",
+                        value: formatMoney(channel.revenue, channel.currency),
+                        hint: "Ticket face value — the figure the daily snapshot uses",
+                      },
+                      {
+                        label: "Buyer fees",
+                        value: formatMoney(channel.fees, channel.currency),
+                        hint: "Charged on top by the platform",
+                      },
+                      {
+                        label: "Paid by buyers",
+                        value: formatMoney(channel.paid, channel.currency),
+                        hint: "Face value plus fees — what left the buyers' pockets",
                       },
                     ].map((cell) => (
                       <div
                         key={cell.label}
+                        title={"hint" in cell ? cell.hint : undefined}
                         className="flex flex-col gap-1 rounded-md border bg-card p-4"
                       >
                         <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -382,12 +400,22 @@ export default async function TicketsPage({
                         {tickets.toLocaleString("en")} tickets
                       </span>
                       {currencies.size === 1 ? (
-                        <span className="font-semibold tabular-nums">
-                          {formatMoney(
-                            live.reduce((sum, c) => sum + c.revenue, 0),
-                            live[0].currency,
-                          )}
-                        </span>
+                        <>
+                          <span className="font-semibold tabular-nums">
+                            {formatMoney(
+                              live.reduce((sum, c) => sum + c.revenue, 0),
+                              live[0].currency,
+                            )}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            ticket value ·{" "}
+                            {formatMoney(
+                              live.reduce((sum, c) => sum + c.paid, 0),
+                              live[0].currency,
+                            )}{" "}
+                            paid by buyers incl. fees
+                          </span>
+                        </>
                       ) : (
                         <span className="text-xs text-muted-foreground">
                           Revenue not combined — the channels report different

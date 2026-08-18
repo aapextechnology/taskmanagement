@@ -124,3 +124,12 @@ stays readable.
   `src/db/migrations` no longer fails the gate (a schema change is exactly
   where a DROP belongs) but is still PRINTED as a notice so it can never land
   unnoticed. Everywhere else it still fails.
+- 2026-08-17 — **Two definitions of "revenue" on one page** (Owner spotted it:
+  the combined line read IDR 29,366,432 while the daily snapshot said
+  27,375,000). The channel cards and the combined line summed `gross_sales` —
+  what buyers paid, fees included — while the snapshot used ticket face value.
+  Both numbers were arithmetically right and the pair was useless, which is
+  exactly the failure this integration was supposed to avoid. Revenue now
+  means face value everywhere; "Buyer fees" and "Paid by buyers" sit beside it
+  as their own labelled figures. Moodymann: 73 tickets, Rp 27,375,000 ticket
+  value, Rp 1,711,270 fees, Rp 29,366,432 paid.
