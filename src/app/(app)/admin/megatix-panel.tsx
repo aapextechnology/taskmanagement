@@ -160,11 +160,11 @@ export function MegatixPanel({
             id="mgx-base"
             name="baseUrl"
             defaultValue={baseUrl}
-            placeholder="https://api.megatix.com.au"
+            placeholder="https://megatix.com.au"
           />
           <span className="text-[11px] text-muted-foreground">
-            Region-scoped — if your Megatix account is not on the .com.au host,
-            put its host here.
+            Verified default. Change it only if your Megatix account lives on
+            a different regional host.
           </span>
         </div>
         {saveState.error ? (

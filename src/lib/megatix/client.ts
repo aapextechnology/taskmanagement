@@ -4,11 +4,11 @@ import {
   appSettings,
   eventTicketChannels,
   events,
-  ticketSalesSnapshots,
   ticketTransactions,
 } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
 import { assertCan, type Actor } from "@/lib/permissions";
+import { recordChannelDaily } from "@/lib/tickets/rollup";
 import { wibDayKey } from "@/lib/tickets/service";
 import {
   extractEvents,
@@ -36,8 +36,15 @@ const KEY_CREDS = "megatix_credentials";
 const KEY_SESSION = "megatix_session";
 const KEY_STATUS = "megatix_status";
 
-/** Their documented default; overridable because the host is region-scoped. */
-export const DEFAULT_MEGATIX_BASE = "https://api.megatix.com.au";
+/**
+ * Verified by probe 2026-08-17: the API lives on the bare domain. The
+ * documentation ships `{{hostname}}` as a Postman variable and never prints
+ * the value, and the obvious guess — api.megatix.com.au — does not exist in
+ * DNS at all. This host answers /auth/login with a proper 422
+ * authentication_failed, which is the endpoint behaving correctly.
+ * Still overridable: the host may be region-scoped.
+ */
+export const DEFAULT_MEGATIX_BASE = "https://megatix.com.au";
 
 export class MegatixAuthError extends Error {
   constructor(message = "Megatix rejected the credentials (401).") {
@@ -79,6 +86,15 @@ async function readSetting(key: string): Promise<unknown> {
     .where(eq(appSettings.key, key))
     .limit(1);
   return row?.value ?? null;
+}
+
+/**
+ * Removes a setting entirely. Writing null here would violate app_settings'
+ * NOT NULL on `value` — "forget this" has to mean deleting the row, not
+ * storing an empty one.
+ */
+async function dropSetting(key: string) {
+  await db.delete(appSettings).where(eq(appSettings.key, key));
 }
 
 async function writeSetting(key: string, value: unknown) {
@@ -139,7 +155,7 @@ export async function saveMegatixCredentials(
     savedAt: new Date().toISOString(),
   } satisfies StoredCreds);
   // a new login invalidates whatever session was cached for the old one
-  await writeSetting(KEY_SESSION, null);
+  await dropSetting(KEY_SESSION);
   await logActivity({
     actorId: actor.id,
     action: "megatix.credentials_saved",
@@ -151,8 +167,8 @@ export async function saveMegatixCredentials(
 
 export async function clearMegatixCredentials(actor: Actor) {
   assertCan(actor, "org.manage");
-  await writeSetting(KEY_CREDS, null);
-  await writeSetting(KEY_SESSION, null);
+  await dropSetting(KEY_CREDS);
+  await dropSetting(KEY_SESSION);
   await logActivity({
     actorId: actor.id,
     action: "megatix.credentials_cleared",
@@ -365,6 +381,7 @@ export async function syncMegatixSales(): Promise<{
           grossSales: order.amount,
           totalFees: order.transactionFee,
           discountAmount: order.discountAmount,
+          refundedAmount: order.refundedAmount,
           raw: order.raw,
           syncedAt: new Date(),
         };
@@ -382,24 +399,20 @@ export async function syncMegatixSales(): Promise<{
       }
 
       const totals = summariseOrders(orders);
-      await db
-        .insert(ticketSalesSnapshots)
-        .values({
-          eventId: channel.eventId,
-          day,
-          ticketsSold: totals.tickets,
-          revenue: Math.round(totals.revenue),
-          note: "Synced from Megatix",
-          recordedBy: null,
-        })
-        .onConflictDoUpdate({
-          target: [ticketSalesSnapshots.eventId, ticketSalesSnapshots.day],
-          set: {
-            ticketsSold: totals.tickets,
-            revenue: Math.round(totals.revenue),
-            note: "Synced from Megatix",
-          },
-        });
+      // revenue as the tickets' face value, not the total charged: Tessera
+      // reports the same figure, so the two channels stay addable. The
+      // buyer-paid fees remain visible per row and in the channel cards.
+      const faceValue = orders.reduce(
+        (sum, o) => sum + (o.ticketSubtotal ? Number(o.ticketSubtotal) : 0),
+        0,
+      );
+      await recordChannelDaily({
+        eventId: channel.eventId,
+        provider: "megatix",
+        day,
+        tickets: totals.tickets,
+        revenue: faceValue,
+      });
       synced += 1;
     } catch (error) {
       if (error instanceof MegatixAuthError) {

@@ -127,6 +127,15 @@ export const eventTicketChannels = pgTable(
     providerEventId: text("provider_event_id").notNull(),
     /** Megatix scopes events under a presenter; null for Tessera */
     providerAccountId: text("provider_account_id"),
+    // Each channel's OWN latest daily numbers. Kept per channel because the
+    // shared ticket_sales_snapshots row is keyed (event, day): with two
+    // channels live on one show, each sync would otherwise overwrite the
+    // other's figures and the headline would show whichever ran last
+    // instead of the sum.
+    lastDay: text("last_day"),
+    lastTickets: integer("last_tickets"),
+    lastRevenue: bigint("last_revenue", { mode: "number" }),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
     connectedAt: timestamp("connected_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

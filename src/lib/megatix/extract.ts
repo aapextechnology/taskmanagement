@@ -40,6 +40,7 @@ export interface MegatixOrder {
   transactionFee: string | null;
   discountAmount: string | null;
   deliveryFee: string | null;
+  refundedAmount: string | null;
   raw: Record<string, unknown>;
 }
 
@@ -60,18 +61,34 @@ function moneyStr(value: unknown): string | null {
 }
 
 /**
- * Megatix sends "YYYY-MM-DD HH:MM:SS" with NO zone. It is the presenter's
- * local wall clock, so this deployment reads it as WIB — reading it as UTC
- * would file every Jakarta order seven hours early and land some of them on
- * the wrong calendar day. The untouched string is kept in `completedAtRaw`
- * (and in `raw`) so the assumption stays auditable.
+ * Megatix sends timestamps in two shapes, confirmed against the live API on
+ * 2026-08-17: the documentation's zone-less "YYYY-MM-DD HH:MM:SS", and the
+ * real responses' "2026-08-24T20:00:00+0700" WITH an offset.
+ *
+ * An explicit offset is always honoured — inventing WIB over a stated zone
+ * would corrupt any event outside Jakarta. Only when no zone is given does
+ * this fall back to WIB, because the value is then the presenter's local
+ * wall clock and reading it as UTC would file Jakarta orders seven hours
+ * early, some onto the wrong sales day. The untouched string is kept in
+ * `completedAtRaw` (and in `raw`) so the assumption stays auditable.
  */
 export function parseMegatixTime(value: unknown): Date | null {
   const text = str(value);
   if (!text) return null;
-  const match = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(:\d{2})?)/.exec(text);
+  const match =
+    /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(?::\d{2})?)\s*(Z|[+-]\d{2}:?\d{2})?/.exec(text);
   if (!match) return null;
-  const date = new Date(`${match[1]}T${match[2].length === 5 ? `${match[2]}:00` : match[2]}+07:00`);
+  const [, day, clock, zone] = match;
+  const time = clock.length === 5 ? `${clock}:00` : clock;
+  // normalise "+0700" to "+07:00"; absent zone means the presenter's WIB
+  const offset = !zone
+    ? "+07:00"
+    : zone === "Z"
+      ? "Z"
+      : zone.includes(":")
+        ? zone
+        : `${zone.slice(0, 3)}:${zone.slice(3)}`;
+  const date = new Date(`${day}T${time}${offset}`);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
@@ -135,9 +152,12 @@ export function extractOrders(payload: unknown): MegatixOrder[] {
     const orderNumber = str(row.order_number);
     if (!orderNumber) return [];
 
-    const first = str(row.first_name);
-    const last = str(row.last_name);
-    const name = [first, last].filter(Boolean).join(" ") || null;
+    // The live API sends a single `name`; the documented sample splits it
+    // into first_name/last_name. Read both — trusting the docs alone left
+    // every buyer nameless (found against real data 2026-08-17).
+    const name =
+      str(row.name) ??
+      ([str(row.first_name), str(row.last_name)].filter(Boolean).join(" ") || null);
     const quantityRaw = row.quantity;
     const quantity =
       typeof quantityRaw === "number" && Number.isFinite(quantityRaw) && quantityRaw > 0
@@ -159,6 +179,9 @@ export function extractOrders(payload: unknown): MegatixOrder[] {
         transactionFee: moneyStr(row.transaction_fee),
         discountAmount: moneyStr(row.discount_amount),
         deliveryFee: moneyStr(row.delivery_fee),
+        // live-only field: a refunded order still occupies a row, and its
+        // money must not read as revenue
+        refundedAmount: moneyStr(row.refunded_amount),
         raw: row,
       },
     ];

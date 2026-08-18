@@ -288,6 +288,13 @@
       "when": 1786934188261,
       "tag": "0040_drop-legacy-tessera-columns",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1787019461530,
+      "tag": "0041_channel-daily-rollup",
+      "breakpoints": true
     }
   ]
 }

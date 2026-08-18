@@ -4,11 +4,11 @@ import {
   appSettings,
   eventTicketChannels,
   events,
-  ticketSalesSnapshots,
   ticketTransactions,
 } from "@/db/schema";
 import { logActivity } from "@/lib/activity";
 import { assertCan, type Actor } from "@/lib/permissions";
+import { recordChannelDaily } from "@/lib/tickets/rollup";
 import { wibDayKey } from "@/lib/tickets/service";
 import { extractEvents, extractKpis, type TesseraEventRow } from "./extract";
 
@@ -265,21 +265,13 @@ export async function syncTesseraSales(): Promise<SyncResult> {
         sold = kpis.ticketsSold;
         revenue = kpis.revenue;
       }
-      const values = {
+      await recordChannelDaily({
         eventId: event.id,
+        provider: "tessera",
         day,
-        ticketsSold: sold,
+        tickets: sold,
         revenue: revenue ?? 0,
-        note: "Synced from Tessera",
-        recordedBy: null,
-      };
-      await db
-        .insert(ticketSalesSnapshots)
-        .values(values)
-        .onConflictDoUpdate({
-          target: [ticketSalesSnapshots.eventId, ticketSalesSnapshots.day],
-          set: values,
-        });
+      });
       // transactions, stored AS IS (Owner 2026-08-13): the typed columns feed
       // the table on the Connect tab, `raw` keeps everything Tessera sent —
       // and because the page reads THIS store, it stays useful after the

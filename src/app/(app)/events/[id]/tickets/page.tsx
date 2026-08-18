@@ -39,9 +39,19 @@ export default async function TicketsPage({
   const snapshots = await listSnapshots(actor, id);
   const canRecord = can(actor, "tickets.record");
   const canManageChannels = can(actor, "org.manage");
-  const tab = sp.tab === "manual" ? "manual" : "connect";
-  const channelFilter =
-    sp.channel === "tessera" || sp.channel === "megatix" ? sp.channel : "all";
+  // One tab PER CHANNEL (Owner 2026-08-17: "buatkan tab baru di bagian ticket
+  // ya" · "dipisahkan saja ya page nya"). Each platform gets its own surface
+  // so their numbers are never read as one blended figure; Manual keeps the
+  // hand-entered curve.
+  //
+  // Megatix leads and is the default: Tessera is being discontinued (Owner),
+  // so the channel people should land on is the one still being fed.
+  const tab =
+    sp.tab === "manual" || sp.tab === "megatix" || sp.tab === "tessera"
+      ? sp.tab
+      : "megatix";
+  const isChannelTab = tab === "tessera" || tab === "megatix";
+  const channelFilter = isChannelTab ? tab : "all";
 
   // The Connect tab reads the DATABASE, never the providers (Owner
   // 2026-08-13, extended for Megatix 2026-08-17): each sync stores every
@@ -90,18 +100,19 @@ export default async function TicketsPage({
     > | null;
   } = { channels: [], transactions: [], tesseraStatus: null, megatixStatus: null };
 
-  if (tab === "connect" && canRecord) {
+  if (isChannelTab && canRecord) {
     const { db } = await import("@/db");
     const { eventTicketChannels, ticketTransactions } = await import("@/db/schema");
     const { and: andOp, desc, eq: eqOp, sql } = await import("drizzle-orm");
 
     if (canManageChannels) {
-      const { getTesseraStatus } = await import("@/lib/tessera/client");
-      const { getMegatixStatus } = await import("@/lib/megatix/client");
-      [connect.tesseraStatus, connect.megatixStatus] = await Promise.all([
-        getTesseraStatus(actor),
-        getMegatixStatus(actor),
-      ]);
+      if (tab === "tessera") {
+        const { getTesseraStatus } = await import("@/lib/tessera/client");
+        connect.tesseraStatus = await getTesseraStatus(actor);
+      } else {
+        const { getMegatixStatus } = await import("@/lib/megatix/client");
+        connect.megatixStatus = await getMegatixStatus(actor);
+      }
     }
 
     const linked = await db
@@ -202,31 +213,33 @@ export default async function TicketsPage({
         <h1 className="text-2xl font-semibold tracking-tight">
           Ticket sales
         </h1>
-        {/* Manual | Connect — the source of truth stays ONE table either way;
-            Connect only automates what the form does by hand */}
+        {/* Tessera | Megatix | Manual — a tab per channel so neither
+            platform's figures are ever read as the whole show */}
         <div className="flex w-fit rounded-md border p-0.5 text-sm">
-          <a
-            href={`/events/${id}/tickets`}
-            className={cn(
-              "rounded px-3 py-1 transition-colors",
-              tab === "connect" ? "bg-accent font-medium" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Connect
-          </a>
-          <a
-            href={`/events/${id}/tickets?tab=manual`}
-            className={cn(
-              "rounded px-3 py-1 transition-colors",
-              tab === "manual" ? "bg-accent font-medium" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Manual
-          </a>
+          {(
+            [
+              ["megatix", "Megatix"],
+              ["tessera", "Tessera (legacy)"],
+              ["manual", "Manual"],
+            ] as const
+          ).map(([key, label]) => (
+            <a
+              key={key}
+              href={`/events/${id}/tickets${key === "megatix" ? "" : `?tab=${key}`}`}
+              className={cn(
+                "rounded px-3 py-1 transition-colors",
+                tab === key
+                  ? "bg-accent font-medium"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {label}
+            </a>
+          ))}
         </div>
       </div>
 
-      {tab === "connect" ? (
+      {isChannelTab ? (
         <div className="flex flex-col gap-4">
           {!canRecord ? (
             <p className="rounded-md border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
@@ -234,147 +247,123 @@ export default async function TicketsPage({
             </p>
           ) : (
             <>
-              {canManageChannels ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  <ChannelMap
-                    eventId={id}
-                    provider="tessera"
-                    mappedId={
-                      connect.channels.find((c) => c.provider === "tessera")
-                        ?.providerEventId ?? null
-                    }
-                  />
-                  <ChannelMap
-                    eventId={id}
-                    provider="megatix"
-                    mappedId={
-                      connect.channels.find((c) => c.provider === "megatix")
-                        ?.providerEventId ?? null
-                    }
-                    presenterId={
-                      connect.channels.find((c) => c.provider === "megatix")
-                        ?.presenterId ?? null
-                    }
-                  />
-                </div>
-              ) : null}
-
-              {/* one health pill per channel — a blended "ticketing is fine"
-                  would hide that one platform stopped reporting */}
-              {connect.tesseraStatus || connect.megatixStatus ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  {(
-                    [
-                      ["Tessera", connect.tesseraStatus ? apiHealth(connect.tesseraStatus) : null],
-                      [
-                        "Megatix",
-                        connect.megatixStatus
-                          ? apiHealth({
-                              configured: connect.megatixStatus.configured,
-                              // Megatix logs in again by itself, so there is no
-                              // countdown to expiry to warn about
-                              daysLeft: null,
-                              lastOkAt: connect.megatixStatus.lastOkAt,
-                              lastError: connect.megatixStatus.lastError,
-                            })
-                          : null,
-                      ],
-                    ] as const
-                  ).map(([name, h]) =>
-                    h ? (
-                      <span
-                        key={name}
-                        title={h.detail ?? undefined}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
-                          h.state === "live"
-                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                            : h.state === "expiring"
-                              ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                              : h.state === "off"
-                                ? "border-border bg-muted/40 text-muted-foreground"
-                                : "border-destructive/40 bg-destructive/10 text-destructive",
-                        )}
-                      >
-                        <span
-                          aria-hidden
-                          className={cn(
-                            "size-1.5 rounded-full",
-                            h.state === "live"
-                              ? "bg-emerald-500"
-                              : h.state === "expiring"
-                                ? "bg-amber-500"
-                                : h.state === "off"
-                                  ? "bg-muted-foreground/50"
-                                  : "bg-destructive",
-                          )}
-                        />
-                        {name}: {h.label}
-                      </span>
-                    ) : null,
-                  )}
-                </div>
-              ) : null}
-
-              {connect.channels.length === 0 ? (
-                <p className="rounded-md border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-                  No ticketing channel is linked to this event yet.
-                  {canManageChannels
-                    ? " Link Tessera or Megatix above — credentials live in Admin, one set for the whole organisation."
-                    : " An org admin can link one from this page."}
+              {tab === "tessera" ? (
+                <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                  Tessera is being discontinued — new sales are tracked on the
+                  Megatix tab. What is stored here stays readable, so past
+                  shows keep their history.
                 </p>
-              ) : (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {connect.channels.map((channel) => (
-                    <div
-                      key={channel.provider}
-                      className="flex flex-col gap-3 rounded-md border bg-card p-4"
+              ) : null}
+              {canManageChannels ? (
+                <ChannelMap
+                  eventId={id}
+                  provider={tab}
+                  mappedId={
+                    connect.channels.find((c) => c.provider === tab)
+                      ?.providerEventId ?? null
+                  }
+                  presenterId={
+                    connect.channels.find((c) => c.provider === tab)
+                      ?.presenterId ?? null
+                  }
+                />
+              ) : null}
+
+              {/* the health of THIS channel; the other tab answers for its own */}
+              {(() => {
+                const status =
+                  tab === "tessera" ? connect.tesseraStatus : connect.megatixStatus;
+                if (!status) return null;
+                const h =
+                  tab === "tessera"
+                    ? apiHealth(connect.tesseraStatus!)
+                    : apiHealth({
+                        configured: status.configured,
+                        // Megatix signs in again by itself, so there is no
+                        // expiry countdown to warn about
+                        daysLeft: null,
+                        lastOkAt: status.lastOkAt,
+                        lastError: status.lastError,
+                      });
+                return (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
+                        h.state === "live"
+                          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                          : h.state === "expiring"
+                            ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                            : h.state === "off"
+                              ? "border-border bg-muted/40 text-muted-foreground"
+                              : "border-destructive/40 bg-destructive/10 text-destructive",
+                      )}
                     >
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="text-sm font-semibold capitalize">
-                          {channel.provider}
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "size-1.5 rounded-full",
+                          h.state === "live"
+                            ? "bg-emerald-500"
+                            : h.state === "expiring"
+                              ? "bg-amber-500"
+                              : h.state === "off"
+                                ? "bg-muted-foreground/50"
+                                : "bg-destructive",
+                        )}
+                      />
+                      {h.label}
+                    </span>
+                    {h.detail ? (
+                      <span className="text-xs text-muted-foreground">{h.detail}</span>
+                    ) : null}
+                    {!status.configured && canManageChannels ? (
+                      <a href="/admin" className="text-xs underline underline-offset-4">
+                        Connect it in Admin
+                      </a>
+                    ) : null}
+                  </div>
+                );
+              })()}
+
+              {(() => {
+                const channel = connect.channels.find((c) => c.provider === tab);
+                if (!channel) {
+                  return (
+                    <p className="rounded-md border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+                      This event is not linked to {tab === "tessera" ? "Tessera" : "Megatix"} yet.
+                      {canManageChannels
+                        ? " Link it above — credentials live in Admin, one set for the whole organisation."
+                        : " An org admin can link it from this page."}
+                    </p>
+                  );
+                }
+                return (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {[
+                      { label: "Tickets", value: channel.tickets.toLocaleString("en") },
+                      { label: "Revenue", value: formatMoney(channel.revenue, channel.currency) },
+                      { label: "Fees", value: formatMoney(channel.fees, channel.currency) },
+                      {
+                        label: tab === "megatix" ? "Orders" : "Rows",
+                        value: channel.rows.toLocaleString("en"),
+                      },
+                    ].map((cell) => (
+                      <div
+                        key={cell.label}
+                        className="flex flex-col gap-1 rounded-md border bg-card p-4"
+                      >
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                          {cell.label}
                         </span>
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                          {channel.providerEventId
-                            ? `event ${channel.providerEventId}`
-                            : "unlinked — history kept"}
+                        <span className="text-base font-semibold tabular-nums">
+                          {cell.value}
                         </span>
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          {
-                            label: "Tickets",
-                            value: channel.tickets.toLocaleString("en"),
-                          },
-                          {
-                            label: "Revenue",
-                            value: formatMoney(channel.revenue, channel.currency),
-                          },
-                          {
-                            label: "Fees",
-                            value: formatMoney(channel.fees, channel.currency),
-                          },
-                        ].map((cell) => (
-                          <div key={cell.label} className="flex flex-col gap-0.5">
-                            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                              {cell.label}
-                            </span>
-                            <span className="text-sm font-semibold tabular-nums">
-                              {cell.value}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      <span className="text-[11px] text-muted-foreground">
-                        {channel.rows.toLocaleString("en")} stored transaction(s)
-                        {channel.provider === "megatix"
-                          ? " · one row per order"
-                          : " · one row per ticket"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+              })()}
 
               {/* combined only when both channels actually carry sales, and
                   only when they agree on a currency — adding IDR to AUD would
@@ -416,31 +405,15 @@ export default async function TicketsPage({
                     <h2 className="text-sm font-semibold">
                       Transactions{" "}
                       <span className="font-normal text-muted-foreground">
-                        — stored as sent, {connect.transactions.length} row(s)
+                        — stored as sent from {tab === "tessera" ? "Tessera" : "Megatix"},{" "}
+                      {connect.transactions.length} row(s)
                       </span>
                     </h2>
-                    <div className="flex w-fit rounded-md border p-0.5 text-xs">
-                      {(["all", "tessera", "megatix"] as const).map((key) => (
-                        <a
-                          key={key}
-                          href={`/events/${id}/tickets${key === "all" ? "" : `?channel=${key}`}`}
-                          className={cn(
-                            "rounded px-2.5 py-1 capitalize transition-colors",
-                            channelFilter === key
-                              ? "bg-accent font-medium"
-                              : "text-muted-foreground hover:text-foreground",
-                          )}
-                        >
-                          {key}
-                        </a>
-                      ))}
-                    </div>
                   </div>
                   <div className="overflow-x-auto rounded-md border bg-card">
-                    <table className="w-full min-w-[980px] text-sm">
+                    <table className="w-full min-w-[900px] text-sm">
                       <thead>
                         <tr className="border-b text-left text-xs uppercase tracking-wider text-muted-foreground">
-                          <th className="px-3 py-2.5 font-medium">Channel</th>
                           <th className="px-3 py-2.5 font-medium">Order</th>
                           <th className="px-3 py-2.5 font-medium">Buyer</th>
                           <th className="px-3 py-2.5 font-medium">Category</th>
@@ -457,11 +430,6 @@ export default async function TicketsPage({
                       <tbody>
                         {connect.transactions.map((row) => (
                           <tr key={row.id} className="border-b last:border-0">
-                            <td className="px-3 py-2">
-                              <span className="rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                                {row.provider}
-                              </span>
-                            </td>
                             <td className="px-3 py-2 font-mono text-xs">
                               {row.orderId ?? "—"}
                             </td>
@@ -519,7 +487,7 @@ export default async function TicketsPage({
                     </table>
                   </div>
                 </div>
-              ) : connect.channels.length > 0 ? (
+              ) : connect.channels.some((c) => c.provider === tab) ? (
                 <p className="rounded-md border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
                   No transactions stored yet — run Admin → Sync now, or wait for
                   the hourly sync.

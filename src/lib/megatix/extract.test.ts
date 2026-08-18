@@ -150,3 +150,84 @@ describe("megatix presenters & events", () => {
     expect(extractPresenters({ data: [{ name: "no id" }] })).toEqual([]);
   });
 });
+
+// Added after meeting the live API (2026-08-17): the real responses carry an
+// explicit offset, which the documented samples do not.
+describe("megatix timestamps — live shapes", () => {
+  it("honours an explicit +0700 offset instead of assuming one", () => {
+    expect(parseMegatixTime("2026-08-24T20:00:00+0700")!.toISOString()).toBe(
+      "2026-08-24T13:00:00.000Z",
+    );
+  });
+
+  it("honours a NON-Jakarta offset — the case that would silently corrupt", () => {
+    expect(parseMegatixTime("2026-08-24T20:00:00+1000")!.toISOString()).toBe(
+      "2026-08-24T10:00:00.000Z",
+    );
+    expect(parseMegatixTime("2026-08-24T20:00:00Z")!.toISOString()).toBe(
+      "2026-08-24T20:00:00.000Z",
+    );
+  });
+
+  it("still falls back to WIB when no zone is stated", () => {
+    expect(parseMegatixTime("2026-08-24 20:00:00")!.toISOString()).toBe(
+      "2026-08-24T13:00:00.000Z",
+    );
+  });
+});
+
+// The LIVE payload, pinned from a real response on 2026-08-17 (buyer details
+// replaced). It differs from the published sample in ways that matter: one
+// `name` field instead of first/last, and refund columns the docs never show.
+const LIVE_ORDER = {
+  data: [
+    {
+      name: "Buyer Example",
+      email: "buyer@example.com",
+      phone: "0812000000",
+      amount: 822750,
+      discount: null,
+      quantity: 2,
+      event_name: "RAW VISION COLLECTIVE X LE CIRQUE PRESENT : MOODYMANN",
+      completed_at: "2026-08-15T14:29:49+0700",
+      order_number: "1533350455",
+      start_datetime: "2026-08-24T20:00:00+0700",
+      upsales_amount: null,
+      discount_amount: null,
+      extras_quantity: 0,
+      refunded_amount: 0,
+      ticket_subtotal: 750000,
+      transaction_fee: 8311,
+      upsales_booking_fee: null,
+      refunded_extras_amount: 0,
+      refunded_ticket_amount: 0,
+    },
+  ],
+  event: { currency_code: "IDR" },
+};
+
+describe("megatix orders — live payload", () => {
+  it("reads the single `name` field the docs do not mention", () => {
+    const [order] = extractOrders(LIVE_ORDER);
+    expect(order.buyerName).toBe("Buyer Example");
+    expect(order.buyerPhone).toBe("0812000000");
+  });
+
+  it("carries refunds through instead of dropping them", () => {
+    const [order] = extractOrders(LIVE_ORDER);
+    expect(order.refundedAmount).toBe("0");
+  });
+
+  it("reads the offset-bearing purchase time", () => {
+    const [order] = extractOrders(LIVE_ORDER);
+    expect(order.completedAt!.toISOString()).toBe("2026-08-15T07:29:49.000Z");
+  });
+
+  it("still totals this order correctly", () => {
+    expect(summariseOrders(extractOrders(LIVE_ORDER))).toEqual({
+      tickets: 2,
+      revenue: 822750,
+      fees: 8311,
+    });
+  });
+});
