@@ -7,6 +7,7 @@ import { can } from "@/lib/permissions";
 import { getBranding } from "@/lib/org/branding";
 import { BrandingForm } from "./branding-form";
 import { WhatsAppGateway } from "./whatsapp-gateway";
+import { AgentKeysCard } from "./agent-keys-card";
 import { MegatixPanel } from "./megatix-panel";
 import { TesseraPanel } from "./tessera-panel";
 import { DivisionsCard } from "./divisions-card";
@@ -44,9 +45,11 @@ export default async function AdminPage() {
 
   const { getTesseraStatus } = await import("@/lib/tessera/client");
   const { getMegatixStatus } = await import("@/lib/megatix/client");
-  const [tessera, megatix] = await Promise.all([
+  const { listAgentKeys } = await import("@/lib/agent/auth");
+  const [tessera, megatix, agentKeys] = await Promise.all([
     getTesseraStatus(actor),
     getMegatixStatus(actor),
+    listAgentKeys(actor),
   ]);
 
   return (
@@ -102,6 +105,17 @@ export default async function AdminPage() {
         lastOkAt={megatix.lastOkAt}
         lastError={megatix.lastError}
         unreadableSample={megatix.unreadableSample}
+      />
+
+      <AgentKeysCard
+        keys={agentKeys.map((k) => ({
+          id: k.id,
+          name: k.name,
+          tokenTail: k.tokenTail,
+          createdAt: k.createdAt.toISOString(),
+          lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
+          revokedAt: k.revokedAt?.toISOString() ?? null,
+        }))}
       />
 
       <DivisionsCard
