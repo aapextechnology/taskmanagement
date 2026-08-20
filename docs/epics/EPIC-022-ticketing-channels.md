@@ -139,3 +139,12 @@ stays readable.
   still sums both, because the dashboard, event health and the settlement PDF
   each need one figure per show — flagged to the Owner rather than changed
   silently.
+- 2026-08-18 — Owner: "tambahkan tab overall… cukup summary nya saja tidak
+  perlu ada detail table nya". New **Overall** tab, now the landing view:
+  four combined cards (tickets / revenue / buyer fees / paid), a one-line-per-
+  channel split with each channel's own last-sync stamp, and no transaction
+  table — detail stays in the channel tabs. It loads no transaction rows at
+  all, so the summary costs one grouped query. Money is only added when the
+  channels agree on a currency; otherwise the totals read "—" with a notice,
+  while ticket counts still add. Live at the time of writing: 123 tickets,
+  Rp 46,125,000 face value (Megatix 69, Tessera 54).
