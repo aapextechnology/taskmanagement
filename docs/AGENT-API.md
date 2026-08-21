@@ -249,6 +249,52 @@ meninggalkan jalan pulang. Hard delete tidak tersedia lewat API ini.
 
 ---
 
+### Modul lainnya — cakupan penuh sidebar
+
+Setiap menu di aplikasi punya padanan endpoint. Semua mengikuti pola yang
+sama (dua header, `{ok, data|error}`), jadi tabel ringkas ini cukup:
+
+| Modul | Endpoint | Aksi |
+|---|---|---|
+| Timeline | `GET /timeline` (`?mentions=1`, `?limit=`) | feed + jumlah unread |
+| Approvals | `GET /approvals` · `?mine=1` | antrean keputusan saya · pengajuan saya |
+| | `GET /approvals/{id}` | detail + riwayat |
+| | `POST /approvals/{id}` `{decision:"approved"|"rejected", comment}` | memutuskan — **comment wajib** |
+| | `POST /approvals` `{type,title,divisionId,amount?,eventId?}` | mengajukan |
+| Pages | `GET /pages` · `GET /pages/{id}` | daftar / isi |
+| | `POST /pages` `{title, markdown?}` | buat — **markdown** dikonversi ke format editor |
+| | `PATCH /pages/{id}` `{title?, markdown?}` · `DELETE` | ubah (markdown mengganti seluruh isi) / hapus |
+| Event Pages (wiki) | `GET /event-pages?eventId=` + `POST` + `GET/PATCH/DELETE /event-pages/{id}` | sama seperti Pages, dalam lingkup event |
+| Dashboard | `GET /dashboard` | portfolio, milestone, bottleneck, blocker, overdue — satu panggilan |
+| Calendar | `GET /calendar?from=YYYY-MM-DD&to=…` | hari show + due date task (default 31 hari ke depan, tanggal WIB) |
+| Search | `GET /search?q=…` | pencarian global, tetap ter-scope visibility |
+| Budget | `GET /budget?eventId=` | rollup + daftar expense |
+| | `POST /budget` `{eventId,divisionId,name,plannedAmount}` | baris anggaran |
+| Expenses | `POST /expenses` `{eventId,divisionId,title,amount,…}` | ajukan expense — **otomatis membuka rantai approval** |
+| Guests | `GET /guests?eventId=` · `POST /guests` | daftar undangan · undang external — magic link dikembalikan di respons, TIDAK dikirim otomatis |
+| Handoffs | `GET /handoffs?eventId=` · `POST /handoffs` | daftar · minta serah-terima antar divisi |
+| | `POST /handoffs/{id}` `{accept:true|false}` | keputusan divisi penerima |
+| Run of Show | `GET /run-of-show?eventId=` · `POST` | daftar cue · tambah (`startTime "HH:MM"` WIB) |
+| | `PATCH /run-of-show/{id}` · `DELETE` | ubah / hapus cue |
+| Tickets | `GET /tickets?eventId=` | angka per channel (Tessera/Megatix) + kurva snapshot harian |
+| | `POST /tickets` `{eventId,ticketsSold,revenue?}` | snapshot MANUAL (bukan menimpa data sync) |
+| Board / List / My Tasks | *(sudah ada)* `GET/POST /tasks`, `PATCH /tasks/{id}` | |
+| Admin | `GET /admin/users` · `PATCH /admin/users/{id}` `{phone, whatsappNotifications}` | daftar user (tanpa hash password) · ubah kontak |
+| | `GET/POST /admin/divisions` | daftar; `{name}` buat · `{id,name}` rename · `{id,delete:true}` hapus |
+| | `GET/PATCH /admin/branding` | branding organisasi |
+
+Semua endpoint Admin menuntut hak `org.manage` pada si **pengirim** — key
+agent tidak menambah hak apa pun.
+
+> **Kintsugi Intelligence sengaja TIDAK diberi endpoint.** Hermes sendiri
+> adalah LLM; menyuruh Hermes bertanya ke Kintsugi berarti membayar dua
+> model untuk satu jawaban dengan konteks yang sama. Endpoint-endpoint di
+> atas memberi Hermes bahan mentah yang sama dengan yang dibaca Kintsugi —
+> biarkan Hermes menalar sendiri. Kalau nanti tetap dibutuhkan, itu tugas
+> refactor terpisah (memisahkan pipeline SSE dari route chat).
+
+---
+
 ---
 
 ## 3. Kode error — dan apa yang harus dilakukan agent

@@ -62,3 +62,20 @@ to read a sealed dataroom folder through the agent.
   a ZZ probe event (created → upload → list → download bytes → rename → move
   → non-empty delete refused → trash → folder delete), probe event, bytes and
   key all removed after.
+- 2026-08-21 — **Full-sidebar coverage** (Owner: "semua menu dan module …
+  buatkan endpoint nya"). 19 new routes: timeline, approvals (queue/detail/
+  decide/create — comment REQUIRED on decisions taken from chat), standalone
+  pages + event pages (markdown in, converted via markdownToDoc so pages open
+  cleanly in the editor), dashboard (one call), calendar (WIB range),
+  search, budget + expenses (expense POST opens the approval chain exactly
+  like the form), guests (magic link returned, never auto-sent), handoffs
+  (request + decide), run of show (CRUD), tickets (per-channel figures +
+  manual snapshot), admin users/divisions/branding (org.manage asserted;
+  user rows mapped explicitly so the password hash can never ship). All 16
+  GET surfaces probed live → 200; write paths verified for run-of-show and
+  pages; probe artifacts removed and the probe key revoked.
+- 2026-08-21 — Kintsugi Intelligence deliberately has NO endpoint: Hermes is
+  itself an LLM, and proxying question→Kintsugi→answer pays two models for
+  one answer over the same context these endpoints already expose. Recorded
+  as a decision, not an omission; if ever needed it is a separate refactor
+  (extract the SSE pipeline from the chat route).
