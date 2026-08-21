@@ -50,3 +50,15 @@ to read a sealed dataroom folder through the agent.
 - Next (when the Owner builds the agent): point OpenClaw/Hermes tools at
   these endpoints; the agent's WA layer must pass each sender's number in
   X-On-Behalf-Of. Group chat = identity of the SENDER, never the group.
+- 2026-08-21 — **Dataroom endpoints added** (Owner: "update, add, delete dan
+  melakukan semua akses di dataroom melalui agent hermes"). Eight routes under
+  /api/agent/dataroom/**, all thin wrappers over src/lib/dataroom/service.ts,
+  so sealed/division visibility, nesting rules, quota and the access log apply
+  unchanged. Upload mirrors the app's raw-PUT streaming contract (quota is
+  checked while streaming, never after buffering); download streams bytes and
+  is logged by openForDownload in the same step that resolves it; DELETE on a
+  file is ALWAYS soft (trash) — an injected "delete everything" must leave a
+  road back — and a non-empty folder refuses deletion. Verified end-to-end on
+  a ZZ probe event (created → upload → list → download bytes → rename → move
+  → non-empty delete refused → trash → folder delete), probe event, bytes and
+  key all removed after.

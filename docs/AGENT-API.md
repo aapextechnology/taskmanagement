@@ -173,6 +173,82 @@ pemilik divisi/lead bisa edit penuh; assignee bisa update task-nya sendiri.
 Komentar tampil di timeline task dengan sufiks `— via <key>`. Mention `@all`
 di body akan meng-mention seluruh divisi task itu (perilaku sama dengan app).
 
+### Dataroom
+
+Semua aturan akses dataroom (sealed / division / event / organisation, folder
+tersegel, quota) berlaku penuh — endpoint ini hanya pintu lain menuju service
+yang sama dengan yang dipakai aplikasi.
+
+#### `GET /dataroom?eventId={id}` — daftar folder + file
+
+Folder yang boleh dilihat si pengirim, masing-masing dengan file-nya,
+`canUpload`, dan `canManage`. Folder sealed yang bukan haknya tidak muncul.
+
+```json
+{ "ok": true, "data": { "folders": [
+  { "id": "…", "name": "Kontrak", "parentId": null, "visibility": "event",
+    "canUpload": true, "canManage": true,
+    "files": [ { "id": "…", "name": "kontrak-final.pdf", "version": 2,
+                 "updatedAt": "…" } ] }
+]}}
+```
+
+#### `POST /dataroom/folders` — buat folder
+
+```json
+{ "eventId": "…", "name": "Kontrak", "parentId": null,
+  "visibility": "event", "divisionId": null }
+```
+
+`visibility`: `sealed · division · event · organisation` (default `event`;
+`division` wajib menyertakan `divisionId`). Respons: `{ "id": "…" }`.
+
+#### `PATCH /dataroom/folders/{id}` — rename / pindah
+
+Body `{ "name": "…" }` dan/atau `{ "parentId": "…" | null }` (null = ke akar).
+Aturan nesting visibility tetap ditegakkan service.
+
+#### `DELETE /dataroom/folders/{id}` — hapus folder
+
+**Menolak folder yang masih berisi** ("still holds N files") — mengosongkan
+isinya harus keputusan yang disengaja, bukan efek samping.
+
+#### `PUT /dataroom/files?folderId={id}&name={nama}` — upload
+
+**Raw PUT** — bytes file sebagai body, metadata di query string (bukan
+multipart, supaya quota dicek sambil streaming, bukan setelah memori penuh).
+Opsional: `&replaceFileId=…` untuk menimpa sebagai versi baru, header
+`X-File-Type` untuk MIME.
+
+```bash
+curl -X PUT "https://rvc.reddie.id/api/agent/dataroom/files?folderId=…&name=rider.pdf" \
+  -H "Authorization: Bearer rvca_XXXX" -H "X-On-Behalf-Of: 0812…" \
+  -H "X-File-Type: application/pdf" --data-binary @rider.pdf
+```
+
+Respons: `{ "fileId": "…", "versionNo": 1, "sizeBytes": 12345,
+"crossedWarning": false }`. Quota penuh / disk floor → 400 dengan angka
+persisnya di pesan error.
+
+#### `GET /dataroom/files/{id}` — download
+
+Respons = **bytes file** (bukan JSON), `Content-Disposition: attachment`.
+Setiap download tercatat di access log dataroom atas nama user-nya — lewat
+agent pun tidak ada baca yang tak terekam. File yang tak boleh dilihat → 404
+(bukan 403; keberadaan file pun tidak dibocorkan).
+
+#### `PATCH /dataroom/files/{id}` — rename / pindah
+
+Body `{ "name": "…" }` dan/atau `{ "folderId": "…" }`.
+
+#### `DELETE /dataroom/files/{id}` — hapus (ke trash)
+
+Selalu **soft delete**: file masuk trash dan bisa dipulihkan selama retention
+window. Disengaja — agent yang disuruh "hapus semua" oleh pesan injeksi harus
+meninggalkan jalan pulang. Hard delete tidak tersedia lewat API ini.
+
+---
+
 ---
 
 ## 3. Kode error — dan apa yang harus dilakukan agent
@@ -214,7 +290,19 @@ LLM mengarang URL). Contoh definisi tool minimum:
   { "name": "rvc_update_task", "method": "PATCH","path": "/tasks/{taskId}",
     "body": ["status?","priority?","title?","dueDate?"] },
   { "name": "rvc_comment",     "method": "POST", "path": "/tasks/{taskId}/comments",
-    "body": ["body"] }
+    "body": ["body"] },
+  { "name": "rvc_dataroom",        "method": "GET",    "path": "/dataroom?eventId={eventId}" },
+  { "name": "rvc_dr_mkdir",        "method": "POST",   "path": "/dataroom/folders",
+    "body": ["eventId","name","parentId?","visibility?","divisionId?"] },
+  { "name": "rvc_dr_upload",       "method": "PUT",    "path": "/dataroom/files?folderId={id}&name={nama}",
+    "body": "raw file bytes" },
+  { "name": "rvc_dr_download",     "method": "GET",    "path": "/dataroom/files/{fileId}" },
+  { "name": "rvc_dr_rename_file",  "method": "PATCH",  "path": "/dataroom/files/{fileId}",
+    "body": ["name?","folderId?"] },
+  { "name": "rvc_dr_trash_file",   "method": "DELETE", "path": "/dataroom/files/{fileId}" },
+  { "name": "rvc_dr_edit_folder",  "method": "PATCH",  "path": "/dataroom/folders/{folderId}",
+    "body": ["name?","parentId?"] },
+  { "name": "rvc_dr_rm_folder",    "method": "DELETE", "path": "/dataroom/folders/{folderId}" }
 ]
 ```
 
