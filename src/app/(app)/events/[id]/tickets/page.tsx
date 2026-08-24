@@ -44,12 +44,14 @@ export default async function TicketsPage({
   // so their numbers are never read as one blended figure; Manual keeps the
   // hand-entered curve.
   //
-  // Megatix leads and is the default: Tessera is being discontinued (Owner),
-  // so the channel people should land on is the one still being fed.
+  // Overall leads (Owner 2026-08-18): the first question about a show is how
+  // it is selling in total, and only then which platform did what. It is a
+  // summary ONLY — no transaction table — so the per-channel tabs stay the
+  // single place detail lives.
   const tab =
     sp.tab === "manual" || sp.tab === "megatix" || sp.tab === "tessera"
       ? sp.tab
-      : "megatix";
+      : "overall";
   const isChannelTab = tab === "tessera" || tab === "megatix";
   const channelFilter = isChannelTab ? tab : "all";
 
@@ -67,6 +69,8 @@ export default async function TicketsPage({
     provider: ChannelKey;
     providerEventId: string | null;
     presenterId: string | null;
+    lastDay: string | null;
+    lastSyncedAt: Date | null;
     tickets: number;
     /** the tickets' face value — what the show earned */
     revenue: number;
@@ -103,16 +107,17 @@ export default async function TicketsPage({
     > | null;
   } = { channels: [], transactions: [], tesseraStatus: null, megatixStatus: null };
 
-  if (isChannelTab && canRecord) {
+  if ((isChannelTab || tab === "overall") && canRecord) {
     const { db } = await import("@/db");
     const { eventTicketChannels, ticketTransactions } = await import("@/db/schema");
     const { and: andOp, desc, eq: eqOp, sql } = await import("drizzle-orm");
 
     if (canManageChannels) {
-      if (tab === "tessera") {
+      if (tab !== "megatix") {
         const { getTesseraStatus } = await import("@/lib/tessera/client");
         connect.tesseraStatus = await getTesseraStatus(actor);
-      } else {
+      }
+      if (tab !== "tessera") {
         const { getMegatixStatus } = await import("@/lib/megatix/client");
         connect.megatixStatus = await getMegatixStatus(actor);
       }
@@ -123,6 +128,8 @@ export default async function TicketsPage({
         provider: eventTicketChannels.provider,
         providerEventId: eventTicketChannels.providerEventId,
         presenterId: eventTicketChannels.providerAccountId,
+        lastDay: eventTicketChannels.lastDay,
+        lastSyncedAt: eventTicketChannels.lastSyncedAt,
       })
       .from(eventTicketChannels)
       .where(eqOp(eventTicketChannels.eventId, id));
@@ -157,6 +164,8 @@ export default async function TicketsPage({
         provider,
         providerEventId: link?.providerEventId ?? null,
         presenterId: link?.presenterId ?? null,
+        lastDay: link?.lastDay ?? null,
+        lastSyncedAt: link?.lastSyncedAt ?? null,
         tickets: stats?.tickets ?? 0,
         revenue: stats?.revenue ?? 0,
         paid: stats?.paid ?? 0,
@@ -166,6 +175,8 @@ export default async function TicketsPage({
       });
     }
 
+    // Overall is a summary: it never loads transaction rows.
+    if (isChannelTab)
     connect.transactions = await db
       .select({
         id: ticketTransactions.id,
@@ -226,6 +237,7 @@ export default async function TicketsPage({
         <div className="flex w-fit rounded-md border p-0.5 text-sm">
           {(
             [
+              ["overall", "Overall"],
               ["megatix", "Megatix"],
               ["tessera", "Tessera (legacy)"],
               ["manual", "Manual"],
@@ -233,7 +245,7 @@ export default async function TicketsPage({
           ).map(([key, label]) => (
             <a
               key={key}
-              href={`/events/${id}/tickets${key === "megatix" ? "" : `?tab=${key}`}`}
+              href={`/events/${id}/tickets${key === "overall" ? "" : `?tab=${key}`}`}
               className={cn(
                 "rounded px-3 py-1 transition-colors",
                 tab === key
@@ -246,6 +258,154 @@ export default async function TicketsPage({
           ))}
         </div>
       </div>
+
+      {tab === "overall" ? (
+        !canRecord ? (
+          <p className="rounded-md border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+            Ticket figures need the tickets.record capability.
+          </p>
+        ) : (() => {
+          const live = connect.channels.filter((c) => c.rows > 0);
+          if (live.length === 0) {
+            return (
+              <p className="rounded-md border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+                No ticketing channel has reported sales for this event yet.
+              </p>
+            );
+          }
+          // Adding IDR to AUD would produce a number that means nothing, so
+          // the total is withheld rather than fabricated when the channels
+          // disagree about currency.
+          const currencies = new Set(live.map((c) => c.currency ?? "IDR"));
+          const oneCurrency = currencies.size === 1;
+          const currency = live[0].currency;
+          const sum = (pick: (c: (typeof live)[number]) => number) =>
+            live.reduce((total, c) => total + pick(c), 0);
+
+          return (
+            <div className="flex flex-col gap-5">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  {
+                    label: "Tickets sold",
+                    value: sum((c) => c.tickets).toLocaleString("en"),
+                    hint: "Every channel added together",
+                  },
+                  {
+                    label: "Revenue",
+                    value: oneCurrency
+                      ? formatMoney(sum((c) => c.revenue), currency)
+                      : "—",
+                    hint: "Ticket face value — what the show earned",
+                  },
+                  {
+                    label: "Buyer fees",
+                    value: oneCurrency ? formatMoney(sum((c) => c.fees), currency) : "—",
+                    hint: "Charged on top by the platforms",
+                  },
+                  {
+                    label: "Paid by buyers",
+                    value: oneCurrency ? formatMoney(sum((c) => c.paid), currency) : "—",
+                    hint: "Face value plus fees",
+                  },
+                ].map((cell) => (
+                  <div
+                    key={cell.label}
+                    title={cell.hint}
+                    className="flex flex-col gap-1 rounded-md border bg-card p-4"
+                  >
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                      {cell.label}
+                    </span>
+                    <span className="text-lg font-semibold tabular-nums">
+                      {cell.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {!oneCurrency ? (
+                <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                  The channels report different currencies (
+                  {[...currencies].join(", ")}), so the money is not added up.
+                  Ticket counts still are.
+                </p>
+              ) : null}
+
+              {/* the split behind the total — still a summary, one line each */}
+              <div className="overflow-x-auto rounded-md border bg-card">
+                <table className="w-full min-w-[520px] text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-xs uppercase tracking-wider text-muted-foreground">
+                      <th className="px-4 py-2.5 font-medium">Channel</th>
+                      <th className="px-4 py-2.5 text-right font-medium">Tickets</th>
+                      <th className="px-4 py-2.5 text-right font-medium">Revenue</th>
+                      <th className="px-4 py-2.5 text-right font-medium">Fees</th>
+                      <th className="px-4 py-2.5 font-medium">Last sync</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {live.map((channel) => (
+                      <tr key={channel.provider} className="border-b last:border-0">
+                        <td className="px-4 py-2.5 font-medium capitalize">
+                          {channel.provider}
+                          {channel.providerEventId ? null : (
+                            <span className="ml-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                              unlinked
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">
+                          {channel.tickets.toLocaleString("en")}
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">
+                          {formatMoney(channel.revenue, channel.currency)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
+                          {formatMoney(channel.fees, channel.currency)}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                          {channel.lastSyncedAt
+                            ? channel.lastSyncedAt.toLocaleString("en-GB", {
+                                day: "numeric",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                timeZone: "Asia/Jakarta",
+                              })
+                            : "never"}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="bg-muted/30">
+                      <td className="px-4 py-2.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                        Total
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-semibold tabular-nums">
+                        {sum((c) => c.tickets).toLocaleString("en")}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-semibold tabular-nums">
+                        {oneCurrency ? formatMoney(sum((c) => c.revenue), currency) : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
+                        {oneCurrency ? formatMoney(sum((c) => c.fees), currency) : "—"}
+                      </td>
+                      <td />
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Figures are cumulative totals from each platform, stored at the
+                last sync — a channel that has stopped reporting keeps its last
+                known number rather than dropping to zero. Open a channel tab
+                for its transactions.
+              </p>
+            </div>
+          );
+        })()
+      ) : null}
 
       {isChannelTab ? (
         <div className="flex flex-col gap-4">
